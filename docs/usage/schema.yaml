@@ -1,0 +1,379 @@
+schema:
+  version: "1.0.0"
+  description: "Yu-Gi-Oh! Card Database Schema Definition"
+  
+files:
+  cards-all.tsv:
+    description: "Main card information file"
+    format: "TSV"
+    encoding: "UTF-8"
+    
+  detail-all.tsv:
+    description: "Additional card details (supplementary information)"
+    format: "TSV"
+    encoding: "UTF-8"
+
+columns:
+  # ===== Basic Information =====
+  cardType:
+    file: "cards-all.tsv"
+    type: "enum"
+    required: true
+    description: "Card type"
+    values:
+      - monster
+      - spell
+      - trap
+      
+  name:
+    file: "cards-all.tsv"
+    type: "string"
+    required: true
+    description: "Official card name"
+    searchable: true
+    wildcard: true
+    negative_search: true
+    example: "青眼の白龍"
+    
+  nameModified:
+    file: "cards-all.tsv"
+    type: "string"
+    required: true
+    description: "Normalized name for searching (symbols removed, hiragana→katakana, 竜→龍)"
+    searchable: false
+    internal: true
+    normalization_rules:
+      - "Remove whitespace and symbols (・★☆ etc)"
+      - "Convert hiragana to katakana"
+      - "Convert full-width alphanumeric to half-width"
+      - "Convert to lowercase"
+      - "Normalize kanji variants (竜→龍)"
+    examples:
+      - original: "青眼の白龍"
+        normalized: "青眼ノ白龍"
+      - original: "アシスト★ヤミー！"
+        normalized: "アシストヤミー"
+    
+  ruby:
+    file: "cards-all.tsv"
+    type: "string"
+    required: false
+    description: "Reading (furigana) of card name"
+    searchable: true
+    example: "ブルーアイズ・ホワイト・ドラゴン"
+    
+  cardId:
+    file: "cards-all.tsv, detail-all.tsv"
+    type: "string"
+    required: true
+    description: "Unique card identifier"
+    primary_key: true
+    example: "4007"
+    
+  ciid:
+    file: "cards-all.tsv"
+    type: "string"
+    required: false
+    description: "Additional identifier (purpose unknown)"
+    
+  imgs:
+    file: "cards-all.tsv"
+    type: "array<string>"
+    required: false
+    description: "Array of card image URLs"
+    stored_as: "JSON string"
+    example: '["url1", "url2"]'
+    
+  # ===== Text Information =====
+  text:
+    file: "cards-all.tsv"
+    type: "string"
+    required: false
+    description: "Card effect text"
+    searchable: true
+    wildcard: true
+    negative_search: true
+    
+  # ===== Monster-specific Fields =====
+  attribute:
+    file: "cards-all.tsv"
+    type: "enum"
+    required: false
+    applies_to: "monster"
+    description: "Monster attribute"
+    values:
+      - dark    # 闇
+      - divine  # 神
+      - earth   # 地
+      - fire    # 炎
+      - light   # 光
+      - water   # 水
+      - wind    # 風
+      
+  levelType:
+    file: "cards-all.tsv"
+    type: "enum"
+    required: false
+    applies_to: "monster"
+    description: "Level/Rank/Link type"
+    values:
+      - level  # Standard monsters
+      - rank   # Xyz monsters
+      - link   # Link monsters
+      
+  levelValue:
+    file: "cards-all.tsv"
+    type: "string"  # stored as string
+    required: false
+    applies_to: "monster"
+    description: "Level/Rank/Link value"
+    range: "1-12 (level/rank), 1-8 (link)"
+    
+  race:
+    file: "cards-all.tsv"
+    type: "enum"
+    required: false
+    applies_to: "monster"
+    description: "Monster race/type"
+    values:
+      - aqua           # 水族
+      - beast          # 獣族
+      - beastwarrior   # 獣戦士族
+      - creatorgod     # 創造神族
+      - cyberse        # サイバース族
+      - dinosaur       # 恐竜族
+      - divine         # 幻神獣族
+      - dragon         # ドラゴン族
+      - fairy          # 天使族
+      - fiend          # 悪魔族
+      - fish           # 魚族
+      - illusion       # 幻竜族
+      - insect         # 昆虫族
+      - machine        # 機械族
+      - plant          # 植物族
+      - psychic        # サイキック族
+      - pyro           # 炎族
+      - reptile        # 爬虫類族
+      - rock           # 岩石族
+      - seaserpent     # 海竜族
+      - spellcaster    # 魔法使い族
+      - thunder        # 雷族
+      - warrior        # 戦士族
+      - windbeast      # 鳥獣族
+      - wyrm           # 幻竜族
+      - zombie         # アンデット族
+      
+  monsterTypes:
+    file: "cards-all.tsv"
+    type: "array<enum>"
+    required: false
+    applies_to: "monster"
+    description: "Monster types (multiple allowed)"
+    stored_as: "JSON array string"
+    values:
+      - normal      # 通常
+      - effect      # 効果
+      - fusion      # 融合
+      - ritual      # 儀式
+      - synchro     # シンクロ
+      - xyz         # エクシーズ
+      - link        # リンク
+      - pendulum    # ペンデュラム
+      - tuner       # チューナー
+      - spirit      # スピリット
+      - union       # ユニオン
+      - gemini      # デュアル
+      - flip        # リバース
+      - toon        # トゥーン
+      - special     # 特殊召喚
+    example: '["effect", "tuner"]'
+    
+  atk:
+    file: "cards-all.tsv"
+    type: "string"  # stored as string
+    required: false
+    applies_to: "monster"
+    description: "Attack points"
+    possible_values: "0-9999 or ?"
+    example: "3000"
+    
+  def:
+    file: "cards-all.tsv"
+    type: "string"  # stored as string
+    required: false
+    applies_to: "monster (except link)"
+    description: "Defense points"
+    possible_values: "0-9999 or ?"
+    example: "2500"
+    
+  linkMarkers:
+    file: "cards-all.tsv"
+    type: "array<enum>"
+    required: false
+    applies_to: "link monster"
+    description: "Link marker positions"
+    stored_as: "JSON array string"
+    values:
+      - top
+      - bottom
+      - left
+      - right
+      - top-left
+      - top-right
+      - bottom-left
+      - bottom-right
+    example: '["top", "bottom-left", "bottom-right"]'
+    
+  pendulumScale:
+    file: "cards-all.tsv"
+    type: "string"  # stored as string
+    required: false
+    applies_to: "pendulum monster"
+    description: "Pendulum scale value"
+    range: "0-13"
+    
+  pendulumText:
+    file: "cards-all.tsv"
+    type: "string"
+    required: false
+    applies_to: "pendulum monster"
+    description: "Pendulum effect text"
+    searchable: true
+    wildcard: true
+    negative_search: true
+    
+  isExtraDeck:
+    file: "cards-all.tsv"
+    type: "boolean"
+    required: false
+    applies_to: "monster"
+    description: "Whether card belongs to Extra Deck"
+    stored_as: "string (true or empty)"
+    applies_to_types: "fusion, synchro, xyz, link"
+    
+  # ===== Spell Card Fields =====
+  spellEffectType:
+    file: "cards-all.tsv"
+    type: "enum"
+    required: false
+    applies_to: "spell"
+    description: "Spell card type"
+    values:
+      - normal      # 通常
+      - quick       # 速攻
+      - continuous  # 永続
+      - equip       # 装備
+      - field       # フィールド
+      - ritual      # 儀式
+      
+  # ===== Trap Card Fields =====
+  trapEffectType:
+    file: "cards-all.tsv"
+    type: "enum"
+    required: false
+    applies_to: "trap"
+    description: "Trap card type"
+    values:
+      - normal      # 通常
+      - continuous  # 永続
+      - counter     # カウンター
+      
+  # ===== Detail File Fields =====
+  cardName:
+    file: "detail-all.tsv"
+    type: "string"
+    required: true
+    description: "Card name (reference only)"
+    
+  supplementInfo:
+    file: "detail-all.tsv"
+    type: "string"
+    required: false
+    description: "Supplementary information for card effect"
+    searchable: true
+    wildcard: true
+    negative_search: true
+    
+  supplementDate:
+    file: "detail-all.tsv"
+    type: "string"  # ISO date
+    required: false
+    description: "Date of supplementInfo update"
+    format: "YYYY-MM-DD"
+    
+  pendulumSupplementInfo:
+    file: "detail-all.tsv"
+    type: "string"
+    required: false
+    description: "Supplementary information for pendulum effect"
+    searchable: true
+    wildcard: true
+    negative_search: true
+    
+  pendulumSupplementDate:
+    file: "detail-all.tsv"
+    type: "string"  # ISO date
+    required: false
+    description: "Date of pendulumSupplementInfo update"
+    format: "YYYY-MM-DD"
+
+search_features:
+  wildcard:
+    character: "*"
+    description: "Matches any sequence of characters"
+    supported_fields:
+      - name
+      - text
+      - pendulumText
+      - supplementInfo
+      - pendulumSupplementInfo
+    requires_flag: "flagAllowWild=true (default)"
+    examples:
+      - pattern: "ブルーアイズ*"
+        description: "Cards starting with ブルーアイズ"
+      - pattern: "*ドラゴン"
+        description: "Cards ending with ドラゴン"
+      - pattern: "*destroy*monster*"
+        description: "Cards containing destroy and monster"
+        
+  negative_search:
+    syntax:
+      - '(space|　)-"phrase"'
+      - "-'phrase'"
+      - "-`phrase`"
+    description: "Excludes cards containing the phrase"
+    supported_fields:
+      - name
+      - text
+      - pendulumText
+      - supplementInfo
+      - pendulumSupplementInfo
+    position_independent: true
+    multiple_allowed: true
+    examples:
+      - pattern: 'destroy -"negate"'
+        description: "Cards with destroy but not negate"
+      - pattern: '*summon* -"hand" -"deck"'
+        description: "Cards with summon excluding hand and deck"
+      - pattern: '-"once per turn"'
+        description: "Cards without once per turn"
+        
+  normalization:
+    flag: "flagAutoModify=true (default)"
+    applies_to: "name field only"
+    features:
+      - "Remove whitespace"
+      - "Remove symbols (・★☆ etc)"
+      - "Convert full-width to half-width"
+      - "Convert to lowercase"
+      - "Convert hiragana to katakana"
+      - "Normalize kanji (竜→龍)"
+    internal_column: "nameModified"
+
+notes:
+  - "JSON array fields (imgs, monsterTypes, linkMarkers) are stored as JSON strings"
+  - "Empty string represents null/undefined"
+  - "Numeric fields (atk, def, levelValue) are stored as strings"
+  - "Normalization (flagAutoModify) only applies to name field"
+  - "Partial match (mode=partial) only works with name field"
+  - "Wildcard and negative search cannot be used with mode=partial"

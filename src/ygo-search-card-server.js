@@ -11,6 +11,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const cliScript = path.join(__dirname, "search-cards.ts");
 const bulkScript = path.join(__dirname, "bulk-search-cards.ts");
 const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.ts");
+const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.ts");
 const npxPath = "npx";
 const tsxArgs = ["tsx", cliScript];
 
@@ -26,7 +27,7 @@ const availableFields = [
 ];
 
 const paramsSchema = {
-  filter: z.record(z.any()).describe("Filter conditions. Example: {name: 'Blue-Eyes White Dragon'} or {attribute: 'light', race: 'dragon'}"),
+  filter: z.record(z.any()).describe("Filter conditions. Example: {name: 'Blue-Eyes White Dragon'} or {text: '*destroy*'} or {text: 'destroy -\"negate\"'} (negative search)"),
   cols: z.array(z.string()).optional().describe(`Columns to return. Available: ${availableFields.join(", ")}. Use 'text' for card effects.`),
   mode: z.enum(["exact", "partial"]).optional().describe("Search mode: 'exact' (default) or 'partial' (substring match)"),
   includeRuby: z.boolean().optional().describe("Include ruby (reading) field in name searches (default: true)"),
@@ -34,13 +35,13 @@ const paramsSchema = {
   flagAutoSupply: z.boolean().optional().describe("Always auto-include supplementInfo even if empty (default: true)"),
   flagAutoRuby: z.boolean().optional().describe("Auto-include ruby when requesting 'name' (default: true)"),
   flagAutoModify: z.boolean().optional().describe("Normalize name for flexible matching (default: true)"),
-  flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name searches (default: true)"),
+  flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name and text searches (default: true). Negative search: -(space|　)-\"phrase\" excludes cards with phrase"),
   flagNearly: z.boolean().optional().describe("Fuzzy matching - not yet implemented (default: false)"),
 };
 
 server.tool(
   "search_cards",
-  `Search Yu-Gi-Oh cards database. Available fields: name, ruby, cardId, text (card effect), attribute, race, monsterTypes, atk, def, levelValue, pendulumText, supplementInfo. Use 'text' for card effects, not 'desc'.`,
+  `Search Yu-Gi-Oh cards database. Available fields: name, ruby, cardId, text (card effect), attribute, race, monsterTypes, atk, def, levelValue, pendulumText, supplementInfo. Use 'text' for card effects. Supports wildcard (*) in name and text fields, and negative search: -"phrase" to exclude.`,
   paramsSchema,
   async ({ filter, cols, mode, includeRuby, flagAutoPend, flagAutoSupply, flagAutoRuby, flagAutoModify, flagAllowWild, flagNearly }) => {
     const args = [...tsxArgs, JSON.stringify(filter)];
@@ -127,6 +128,37 @@ server.tool(
   },
   async ({ text }) => {
     const args = ["tsx", extractAndSearchScript, text];
+
+    return await new Promise((resolve) => {
+      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      child.stdout.on("data", (b) => (out += b.toString()));
+      child.stderr.on("data", (b) => (err += b.toString()));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          resolve({
+            content: [{
+              type: "text",
+              text: `error: ${err || `exit ${code}`}`
+            }]
+          });
+          return;
+        }
+        resolve({ content: [{ type: "text", text: out }] });
+      });
+    });
+  }
+);
+
+// Judge and replace tool
+server.tool(
+  "judge_and_replace_cards",
+  `Extract card patterns, search, and replace them intelligently. Results: 1 match → {{name|id}}, multiple → {{` + "`query`_`name|id`_...}}, none → {{NOTFOUND_`query`}}. Warns if unprocessed patterns remain.",
+  {
+    text: z.string().describe("Text with card patterns: {flexible}, 《exact》. Already processed {{name|id}} patterns are preserved.")
+  },
+  async ({ text }) => {
+    const args = ["tsx", judgeAndReplaceScript, text];
 
     return await new Promise((resolve) => {
       const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });

@@ -7,13 +7,71 @@ Already installed. Dependencies:
 - `tsx` (for running TypeScript)
 - `zod` (for parameter validation)
 
+## MCP Client Configuration
+
+### Claude Desktop
+
+**macOS/Linux:**
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `~/.config/Claude/claude_desktop_config.json` (Linux):
+
+```json
+{
+  "mcpServers": {
+    "ygo-search-card": {
+      "command": "node",
+      "args": ["/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.js"]
+    }
+  }
+}
+```
+
+**Windows:**
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "ygo-search-card": {
+      "command": "node",
+      "args": ["C:\\absolute\\path\\to\\ygo-db-local-mcp\\src\\ygo-search-card-server.js"]
+    }
+  }
+}
+```
+
+### Cline (VS Code Extension)
+
+Open Cline MCP settings and add:
+
+```json
+{
+  "ygo-search-card": {
+    "command": "node",
+    "args": ["/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.js"]
+  }
+}
+```
+
+### Other MCP Clients
+
+Configure with:
+- **Command**: `node`
+- **Args**: `["/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.js"]`
+- **Transport**: stdio (JSON-RPC 2.0)
+
+**Important:** Use absolute paths. Replace `/absolute/path/to/` with your actual installation directory.
+
+After adding the configuration, restart your MCP client.
+
 ## Usage
 
 ### As MCP Server
 
-Start the server:
+Start the server manually (for testing):
 ```bash
-node scripts/mcp/ygo-search-card-server.js
+node src/ygo-search-card-server.js
 ```
 
 The server communicates via stdio using JSON-RPC 2.0 protocol.
@@ -49,7 +107,7 @@ Single card search tool.
 - `flagAutoSupply` (boolean, optional, default: true): When true and cols includes 'text', automatically includes supplementInfo (always, even if empty)
 - `flagAutoRuby` (boolean, optional, default: true): When true and cols includes 'name', automatically includes ruby (reading)
 - `flagAutoModify` (boolean, optional, default: true): When filtering by name, normalizes input to ignore whitespace, symbols (including ・★☆※‼！？。、:：;；brackets, quotes, and other punctuation), case, half/full width, hiragana/katakana differences, and kanji variants (竜→龍). Uses pre-computed nameModified column for efficient matching.
-- `flagAllowWild` (boolean, optional, default: true): When true, treats `*` (asterisk) as a wildcard that matches any characters in name searches. Works with flagAutoModify. Cannot be used with mode=partial.
+- `flagAllowWild` (boolean, optional, default: true): When true, treats `*` (asterisk) as a wildcard that matches any characters in name and text fields (text, pendulumText, supplementInfo, pendulumSupplementInfo). Works with flagAutoModify. Cannot be used with mode=partial. Also supports negative search: `(space|　)-"phrase"` or `-'phrase'` or `-\`phrase\`` to exclude cards containing the phrase.
 - `flagNearly` (boolean, optional, default: false): (TODO - not yet implemented) When true, uses fuzzy matching for name search to handle typos and minor variations
 
 **Example MCP request:**
@@ -80,9 +138,39 @@ Single card search tool.
 // Find all cards containing "Evil" and "Twin" in that order
 {"filter": {"name": "Evil*Twin*"}, "cols": ["name"]}
 
+// Text field wildcard: find cards with "destroy" and "monster"
+{"filter": {"text": "*destroy*monster*"}, "cols": ["name", "text"]}
+
 // Disable wildcard to search for literal "*"
 {"filter": {"name": "*ドラゴン"}, "cols": ["name"], "flagAllowWild": false}
 ```
+
+**Negative search examples:**
+```json
+// Find cards with "destroy" but not "negate"
+{"filter": {"text": "destroy -\"negate\""}, "cols": ["name", "text"]}
+
+// Find cards with "special summon" but not "hand" or "deck"
+{"filter": {"text": "special summon -\"hand\" -\"deck\""}, "cols": ["name", "text"]}
+
+// Combine wildcard and negative: cards with "dragon" but not "effect"
+{"filter": {"text": "*dragon* -\"effect\""}, "cols": ["name", "text"]}
+
+// Only negative: cards without "once per turn"
+{"filter": {"text": "-\"once per turn\""}, "cols": ["name", "text"]}
+
+// Use single quotes or backticks
+{"filter": {"text": "destroy -'target'"}, "cols": ["name"]}
+{"filter": {"text": "summon -`negate`"}, "cols": ["name"]}
+```
+
+**Note on negative search:**
+- Syntax: `(space|　)-"phrase"` or `-'phrase'` or `-\`phrase\``
+- Can appear anywhere in the search pattern
+- Works with text, pendulumText, supplementInfo, pendulumSupplementInfo fields
+- Also works with name field
+- Multiple negative patterns are supported
+- Can be combined with wildcards
 
 ### bulk_search_cards
 
@@ -180,6 +268,76 @@ npx tsx scripts/mcp/extract-and-search-cards.ts "Use {ブルーアイズ*} and �
 - All fields are included in results (same as specifying all columns in `search_cards`)
 - Patterns are extracted in order: `{{...}}` first, then `《...》`, then `{...}`
 - If no patterns are found, returns empty `cards` array
+
+### judge_and_replace_cards
+
+**New!** Extract card patterns, search, and intelligently replace them based on match results.
+
+**Replacement Logic:**
+- **1 match** → `{{card-name|cardId}}` (automatically resolved)
+- **Multiple matches** → ``{{`original-query`_`name|id`_`name|id`_...}}`` (requires manual selection)
+- **No matches** → ``{{NOTFOUND_`original-query`}}`` (marked as not found)
+- **Already processed** → `{{name|id}}` patterns are preserved
+
+**Parameters:**
+- `text` (string, required): Text containing card name patterns
+
+**Example MCP request:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "judge_and_replace_cards",
+    "arguments": {
+      "text": "Use {ブルーアイズ*} and 《青眼の白龍》 cards"
+    }
+  }
+}
+```
+
+**Response format:**
+```json
+{
+  "processedText": "Use {{`ブルーアイズ*`_`青眼の白龍|4007`_`青眼の究極竜|2129`_...}} and {{青眼の白龍|4007}} cards",
+  "hasUnprocessed": true,
+  "warnings": [
+    "⚠️ Text contains unprocessed patterns that require manual review",
+    "Found 1 pattern(s) with multiple matches - please select correct one"
+  ],
+  "processedPatterns": [
+    {
+      "original": "{ブルーアイズ*}",
+      "replaced": "{{`ブルーアイズ*`_`青眼の白龍|4007`_`青眼の究極竜|2129`_...}}",
+      "status": "multiple"
+    },
+    {
+      "original": "《青眼の白龍》",
+      "replaced": "{{青眼の白龍|4007}}",
+      "status": "resolved"
+    }
+  ]
+}
+```
+
+**Direct CLI usage:**
+```bash
+npx tsx src/judge-and-replace.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
+```
+
+**Workflow:**
+1. Extract patterns from text
+2. Search for each pattern
+3. Replace based on match count
+4. User manually edits ambiguous/not-found patterns
+5. Re-run `judge_and_replace_cards` on edited text
+6. Repeat until `hasUnprocessed` is false
+
+**Note:**
+- Backticks (`` ` ``) are used to distinguish multi-match candidates from card names containing underscores
+- Already processed `{{name|id}}` patterns are skipped and preserved
+- Warnings are provided when manual intervention is needed
 
 ## Additional Notes
 
