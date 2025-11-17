@@ -25,8 +25,8 @@ mkdir -p "$DATA_DIR"
 
 # Download cards-all.tsv
 echo "Downloading cards-all.tsv..."
-HTTP_CODE=$(curl -L -w "%{http_code}" -o "$DATA_DIR/cards-all.tsv" -s \
-  "$RELEASE_URL/$VERSION/cards-all.tsv")
+HTTP_CODE=$(curl -L -w "%{http_code}" -o "$DATA_DIR/cards-all.tsv" -sS \
+  "$RELEASE_URL/$VERSION/cards-all.tsv" 2>&1 | tail -n 1)
 
 if [ "$HTTP_CODE" != "200" ]; then
   echo "Error: Failed to download cards-all.tsv (HTTP $HTTP_CODE)"
@@ -44,8 +44,8 @@ fi
 
 # Download detail-all.tsv
 echo "Downloading detail-all.tsv..."
-HTTP_CODE=$(curl -L -w "%{http_code}" -o "$DATA_DIR/detail-all.tsv" -s \
-  "$RELEASE_URL/$VERSION/detail-all.tsv")
+HTTP_CODE=$(curl -L -w "%{http_code}" -o "$DATA_DIR/detail-all.tsv" -sS \
+  "$RELEASE_URL/$VERSION/detail-all.tsv" 2>&1 | tail -n 1)
 
 if [ "$HTTP_CODE" != "200" ]; then
   echo "Error: Failed to download detail-all.tsv (HTTP $HTTP_CODE)"
