@@ -36,7 +36,12 @@ cd ygo-db-local-mcp
 npm install
 
 # Download data files (21.2MB total)
-bash scripts/setup/setup-data.sh v1.0.0
+# Usage: bash scripts/setup/setup-data.sh [version]
+# Default version: v1.0.0
+bash scripts/setup/setup-data.sh
+
+# Or specify a version:
+# bash scripts/setup/setup-data.sh v1.0.0
 ```
 
 ## Usage
