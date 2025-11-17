@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="$SCRIPT_DIR/../../data"
-RELEASE_URL="https://github.com/YOUR_USERNAME/YOUR_REPO/releases/download"
+RELEASE_URL="https://github.com/TomoTom0/ygo-db-local-mcp/releases/download"
 VERSION="${1:-v1.0.0}"
 
 echo "=== YGO MCP Server - Data Setup ==="
