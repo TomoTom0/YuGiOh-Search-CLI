@@ -5,7 +5,11 @@
   "type": "module",
   "main": "src/ygo-search-card-server.ts",
   "bin": {
-    "ygo-search-card-server": "./src/ygo-search-card-server.ts"
+    "ygo-search-card-server": "./src/ygo-search-card-server.ts",
+    "ygo_search": "./src/cli/ygo_search.ts",
+    "ygo_bulk_search": "./src/cli/ygo_bulk_search.ts",
+    "ygo_extract": "./src/cli/ygo_extract.ts",
+    "ygo_convert": "./src/cli/ygo_convert.ts"
   },
   "scripts": {
     "start": "npx tsx src/ygo-search-card-server.ts",
