@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "MCP server for Yu-Gi-Oh card search",
   "type": "module",
-  "main": "ygo-search-card-server.js",
+  "main": "src/ygo-search-card-server.ts",
   "bin": {
-    "ygo-search-card-server": "./ygo-search-card-server.js"
+    "ygo-search-card-server": "./src/ygo-search-card-server.ts"
   },
   "scripts": {
-    "start": "node ygo-search-card-server.js",
+    "start": "npx tsx src/ygo-search-card-server.ts",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",

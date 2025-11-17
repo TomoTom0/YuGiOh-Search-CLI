@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// scripts/mcp/ygo-search-card-server.js
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { spawn } from "child_process";
+import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import url from "url";
+import type { Card } from "./types/card.js";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const cliScript = path.join(__dirname, "search-cards.ts");
@@ -16,6 +16,31 @@ const npxPath = "npx";
 const tsxArgs = ["tsx", cliScript];
 
 const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
+
+interface SpawnResult {
+  stdout: string;
+  stderr: string;
+  code: number | null;
+}
+
+// Helper function to execute CLI script with type safety
+async function executeCLI(args: string[]): Promise<{ content: Array<{ type: string; text: string }> }> {
+  return new Promise((resolve) => {
+    const child: ChildProcess = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "", err = "";
+    
+    child.stdout?.on("data", (b: Buffer) => (out += b.toString()));
+    child.stderr?.on("data", (b: Buffer) => (err += b.toString()));
+    
+    child.on("close", (code: number | null) => {
+      if (code !== 0) {
+        resolve({ content: [{ type: "text", text: `error: ${err || `exit ${code}`}` }] });
+        return;
+      }
+      resolve({ content: [{ type: "text", text: out }] });
+    });
+  });
+}
 
 // Available field names
 const availableFields = [
@@ -55,19 +80,7 @@ server.tool(
     if (flagAllowWild === false) args.push(`flagAllowWild=false`);
     if (flagNearly === true) args.push(`flagNearly=true`);
 
-    return await new Promise((resolve) => {
-      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
-      let out = "", err = "";
-      child.stdout.on("data", (b) => (out += b.toString()));
-      child.stderr.on("data", (b) => (err += b.toString()));
-      child.on("close", (code) => {
-        if (code !== 0) {
-          resolve({ content: [{ type: "text", text: `error: ${err || `exit ${code}`}` }] });
-          return;
-        }
-        resolve({ content: [{ type: "text", text: out }] });
-      });
-    });
+    return executeCLI(args);
   }
 );
 
@@ -97,25 +110,7 @@ server.tool(
   bulkParamsSchema,
   async ({ queries }) => {
     const args = ["tsx", bulkScript, JSON.stringify(queries)];
-
-    return await new Promise((resolve) => {
-      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
-      let out = "", err = "";
-      child.stdout.on("data", (b) => (out += b.toString()));
-      child.stderr.on("data", (b) => (err += b.toString()));
-      child.on("close", (code) => {
-        if (code !== 0) {
-          resolve({
-            content: [{
-              type: "text",
-              text: `error: ${err || `exit ${code}`}`
-            }]
-          });
-          return;
-        }
-        resolve({ content: [{ type: "text", text: out }] });
-      });
-    });
+    return executeCLI(args);
   }
 );
 
@@ -128,25 +123,7 @@ server.tool(
   },
   async ({ text }) => {
     const args = ["tsx", extractAndSearchScript, text];
-
-    return await new Promise((resolve) => {
-      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
-      let out = "", err = "";
-      child.stdout.on("data", (b) => (out += b.toString()));
-      child.stderr.on("data", (b) => (err += b.toString()));
-      child.on("close", (code) => {
-        if (code !== 0) {
-          resolve({
-            content: [{
-              type: "text",
-              text: `error: ${err || `exit ${code}`}`
-            }]
-          });
-          return;
-        }
-        resolve({ content: [{ type: "text", text: out }] });
-      });
-    });
+    return executeCLI(args);
   }
 );
 
@@ -159,25 +136,7 @@ server.tool(
   },
   async ({ text }) => {
     const args = ["tsx", judgeAndReplaceScript, text];
-
-    return await new Promise((resolve) => {
-      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
-      let out = "", err = "";
-      child.stdout.on("data", (b) => (out += b.toString()));
-      child.stderr.on("data", (b) => (err += b.toString()));
-      child.on("close", (code) => {
-        if (code !== 0) {
-          resolve({
-            content: [{
-              type: "text",
-              text: `error: ${err || `exit ${code}`}`
-            }]
-          });
-          return;
-        }
-        resolve({ content: [{ type: "text", text: out }] });
-      });
-    });
+    return executeCLI(args);
   }
 );
 
