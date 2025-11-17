@@ -21,7 +21,7 @@ const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
 // Helper function to generate timestamp-based filename
 function generateTimestampFilename(extension: string = "jsonl"): string {
   const now = new Date();
-  const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, -5); // 2025-11-17T21-12-02
+  const timestamp = now.toISOString().slice(0, 19).replace(/:/g, "-"); // 2025-11-17T21-12-02
   return `ygo-search-${timestamp}.${extension}`;
 }
 
@@ -45,6 +45,31 @@ async function saveOutput(outputPath: string, content: string): Promise<void> {
   const dir = path.dirname(outputPath);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(outputPath, content, "utf-8");
+}
+
+// Helper function to execute and optionally save output
+async function executeAndSave(
+  cliArgs: string[],
+  outputPath?: string,
+  outputDir?: string
+): Promise<{ content: Array<{ type: string; text: string }> }> {
+  const result = await executeCLI(cliArgs);
+  const resolvedPath = resolveOutputPath(outputPath, outputDir);
+
+  if (resolvedPath) {
+    const outputContent = result.content[0]?.text;
+    if (outputContent) {
+      await saveOutput(resolvedPath, outputContent);
+      return {
+        content: [{
+          type: "text",
+          text: `${outputContent}\n\n✅ Saved to: ${resolvedPath}`
+        }]
+      };
+    }
+  }
+  
+  return result;
 }
 
 // Helper function to execute CLI script with type safety
@@ -110,21 +135,7 @@ server.tool(
     if (flagAllowWild === false) args.push(`flagAllowWild=false`);
     if (flagNearly === true) args.push(`flagNearly=true`);
 
-    const result = await executeCLI(args);
-    
-    // Save to file if outputPath or outputDir is specified
-    const resolvedPath = resolveOutputPath(outputPath, outputDir);
-    if (resolvedPath) {
-      await saveOutput(resolvedPath, result.content[0].text);
-      return {
-        content: [{
-          type: "text",
-          text: `${result.content[0].text}\n\n✅ Saved to: ${resolvedPath}`
-        }]
-      };
-    }
-    
-    return result;
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
@@ -156,20 +167,7 @@ server.tool(
   bulkParamsSchema,
   async ({ queries, outputPath, outputDir }) => {
     const args = ["tsx", bulkScript, JSON.stringify(queries)];
-    const result = await executeCLI(args);
-    
-    const resolvedPath = resolveOutputPath(outputPath, outputDir);
-    if (resolvedPath) {
-      await saveOutput(resolvedPath, result.content[0].text);
-      return {
-        content: [{
-          type: "text",
-          text: `${result.content[0].text}\n\n✅ Saved to: ${resolvedPath}`
-        }]
-      };
-    }
-    
-    return result;
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
@@ -184,20 +182,7 @@ server.tool(
   },
   async ({ text, outputPath, outputDir }) => {
     const args = ["tsx", extractAndSearchScript, text];
-    const result = await executeCLI(args);
-    
-    const resolvedPath = resolveOutputPath(outputPath, outputDir);
-    if (resolvedPath) {
-      await saveOutput(resolvedPath, result.content[0].text);
-      return {
-        content: [{
-          type: "text",
-          text: `${result.content[0].text}\n\n✅ Saved to: ${resolvedPath}`
-        }]
-      };
-    }
-    
-    return result;
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
@@ -212,20 +197,7 @@ server.tool(
   },
   async ({ text, outputPath, outputDir }) => {
     const args = ["tsx", judgeAndReplaceScript, text];
-    const result = await executeCLI(args);
-    
-    const resolvedPath = resolveOutputPath(outputPath, outputDir);
-    if (resolvedPath) {
-      await saveOutput(resolvedPath, result.content[0].text);
-      return {
-        content: [{
-          type: "text",
-          text: `${result.content[0].text}\n\n✅ Saved to: ${resolvedPath}`
-        }]
-      };
-    }
-    
-    return result;
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
