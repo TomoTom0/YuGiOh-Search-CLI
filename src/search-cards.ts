@@ -171,7 +171,7 @@ async function main(){
   }
 
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const dataDir = path.join(__dirname,'../../data/data/cards')
+  const dataDir = path.join(__dirname,'../data')
   const cardsFile = path.join(dataDir,'cards-all.tsv')
   const detailFile = path.join(dataDir,'detail-all.tsv')
   if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error('data files not found'); process.exit(2) }

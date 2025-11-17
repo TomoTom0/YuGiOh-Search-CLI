@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Data files (use setup-data.sh to download)
+data/*.tsv
+
 # Logs
 *.log
 npm-debug.log*
