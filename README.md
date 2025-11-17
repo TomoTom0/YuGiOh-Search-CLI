@@ -71,12 +71,14 @@ npm start
       "command": "npx",
       "args": [
         "tsx",
-        "/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.ts"
+        "<YOUR_ABSOLUTE_PATH>/ygo-db-local-mcp/src/ygo-search-card-server.ts"
       ]
     }
   }
 }
 ```
+
+**Note**: Replace `<YOUR_ABSOLUTE_PATH>` with the actual absolute path to your project directory.
 
 ### Direct CLI
 

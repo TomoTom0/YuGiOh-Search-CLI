@@ -5,7 +5,6 @@ import { z } from "zod";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import url from "url";
-import type { Card } from "./types/card.js";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const cliScript = path.join(__dirname, "search-cards.ts");
@@ -17,12 +16,6 @@ const tsxArgs = ["tsx", cliScript];
 
 const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
 
-interface SpawnResult {
-  stdout: string;
-  stderr: string;
-  code: number | null;
-}
-
 // Helper function to execute CLI script with type safety
 async function executeCLI(args: string[]): Promise<{ content: Array<{ type: string; text: string }> }> {
   return new Promise((resolve) => {
@@ -31,6 +24,10 @@ async function executeCLI(args: string[]): Promise<{ content: Array<{ type: stri
     
     child.stdout?.on("data", (b: Buffer) => (out += b.toString()));
     child.stderr?.on("data", (b: Buffer) => (err += b.toString()));
+    
+    child.on("error", (error: Error) => {
+      resolve({ content: [{ type: "text", text: `spawn error: ${error.message}` }] });
+    });
     
     child.on("close", (code: number | null) => {
       if (code !== 0) {
