@@ -27,7 +27,7 @@ const availableFields = [
 ];
 
 const paramsSchema = {
-  filter: z.record(z.any()).describe("Filter conditions. Example: {name: 'Blue-Eyes White Dragon'} or {attribute: 'light', race: 'dragon'}"),
+  filter: z.record(z.any()).describe("Filter conditions. Example: {name: 'Blue-Eyes White Dragon'} or {text: '*destroy*'} or {text: 'destroy -\"negate\"'} (negative search)"),
   cols: z.array(z.string()).optional().describe(`Columns to return. Available: ${availableFields.join(", ")}. Use 'text' for card effects.`),
   mode: z.enum(["exact", "partial"]).optional().describe("Search mode: 'exact' (default) or 'partial' (substring match)"),
   includeRuby: z.boolean().optional().describe("Include ruby (reading) field in name searches (default: true)"),
@@ -35,13 +35,13 @@ const paramsSchema = {
   flagAutoSupply: z.boolean().optional().describe("Always auto-include supplementInfo even if empty (default: true)"),
   flagAutoRuby: z.boolean().optional().describe("Auto-include ruby when requesting 'name' (default: true)"),
   flagAutoModify: z.boolean().optional().describe("Normalize name for flexible matching (default: true)"),
-  flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name searches (default: true)"),
+  flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name and text searches (default: true). Negative search: -(space|　)-\"phrase\" excludes cards with phrase"),
   flagNearly: z.boolean().optional().describe("Fuzzy matching - not yet implemented (default: false)"),
 };
 
 server.tool(
   "search_cards",
-  `Search Yu-Gi-Oh cards database. Available fields: name, ruby, cardId, text (card effect), attribute, race, monsterTypes, atk, def, levelValue, pendulumText, supplementInfo. Use 'text' for card effects, not 'desc'.`,
+  `Search Yu-Gi-Oh cards database. Available fields: name, ruby, cardId, text (card effect), attribute, race, monsterTypes, atk, def, levelValue, pendulumText, supplementInfo. Use 'text' for card effects. Supports wildcard (*) in name and text fields, and negative search: -"phrase" to exclude.`,
   paramsSchema,
   async ({ filter, cols, mode, includeRuby, flagAutoPend, flagAutoSupply, flagAutoRuby, flagAutoModify, flagAllowWild, flagNearly }) => {
     const args = [...tsxArgs, JSON.stringify(filter)];

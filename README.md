@@ -26,6 +26,13 @@ Automatically handles:
 - Hiragana/katakana conversion
 - Kanji variants (竜→龍)
 
+### 🔎 Advanced Search Features
+
+- **Wildcard**: Use `*` in name and text fields (e.g., `{text: "*destroy*monster*"}`)
+- **Negative search**: Exclude cards with `-"phrase"` (e.g., `{text: "summon -\"negate\""}`)
+- **Bulk search**: Search up to 50 cards at once
+- **Pattern extraction**: Auto-detect `{flexible}`, `《exact》`, `{{name|id}}` patterns
+
 ## Installation
 
 ```bash

@@ -107,7 +107,7 @@ Single card search tool.
 - `flagAutoSupply` (boolean, optional, default: true): When true and cols includes 'text', automatically includes supplementInfo (always, even if empty)
 - `flagAutoRuby` (boolean, optional, default: true): When true and cols includes 'name', automatically includes ruby (reading)
 - `flagAutoModify` (boolean, optional, default: true): When filtering by name, normalizes input to ignore whitespace, symbols (including ・★☆※‼！？。、:：;；brackets, quotes, and other punctuation), case, half/full width, hiragana/katakana differences, and kanji variants (竜→龍). Uses pre-computed nameModified column for efficient matching.
-- `flagAllowWild` (boolean, optional, default: true): When true, treats `*` (asterisk) as a wildcard that matches any characters in name searches. Works with flagAutoModify. Cannot be used with mode=partial.
+- `flagAllowWild` (boolean, optional, default: true): When true, treats `*` (asterisk) as a wildcard that matches any characters in name and text fields (text, pendulumText, supplementInfo, pendulumSupplementInfo). Works with flagAutoModify. Cannot be used with mode=partial. Also supports negative search: `(space|　)-"phrase"` or `-'phrase'` or `-\`phrase\`` to exclude cards containing the phrase.
 - `flagNearly` (boolean, optional, default: false): (TODO - not yet implemented) When true, uses fuzzy matching for name search to handle typos and minor variations
 
 **Example MCP request:**
@@ -138,9 +138,39 @@ Single card search tool.
 // Find all cards containing "Evil" and "Twin" in that order
 {"filter": {"name": "Evil*Twin*"}, "cols": ["name"]}
 
+// Text field wildcard: find cards with "destroy" and "monster"
+{"filter": {"text": "*destroy*monster*"}, "cols": ["name", "text"]}
+
 // Disable wildcard to search for literal "*"
 {"filter": {"name": "*ドラゴン"}, "cols": ["name"], "flagAllowWild": false}
 ```
+
+**Negative search examples:**
+```json
+// Find cards with "destroy" but not "negate"
+{"filter": {"text": "destroy -\"negate\""}, "cols": ["name", "text"]}
+
+// Find cards with "special summon" but not "hand" or "deck"
+{"filter": {"text": "special summon -\"hand\" -\"deck\""}, "cols": ["name", "text"]}
+
+// Combine wildcard and negative: cards with "dragon" but not "effect"
+{"filter": {"text": "*dragon* -\"effect\""}, "cols": ["name", "text"]}
+
+// Only negative: cards without "once per turn"
+{"filter": {"text": "-\"once per turn\""}, "cols": ["name", "text"]}
+
+// Use single quotes or backticks
+{"filter": {"text": "destroy -'target'"}, "cols": ["name"]}
+{"filter": {"text": "summon -`negate`"}, "cols": ["name"]}
+```
+
+**Note on negative search:**
+- Syntax: `(space|　)-"phrase"` or `-'phrase'` or `-\`phrase\``
+- Can appear anywhere in the search pattern
+- Works with text, pendulumText, supplementInfo, pendulumSupplementInfo fields
+- Also works with name field
+- Multiple negative patterns are supported
+- Can be combined with wildcards
 
 ### bulk_search_cards
 
