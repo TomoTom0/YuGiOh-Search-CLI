@@ -4,11 +4,12 @@ Model Context Protocol (MCP) server for searching Yu-Gi-Oh! card database locall
 
 ## Features
 
-### 🔍 Three Search Tools
+### 🔍 Four Search Tools
 
 1. **search_cards** - Single card search with flexible filters
 2. **bulk_search_cards** - Efficient bulk search (up to 50 queries)
 3. **extract_and_search_cards** - Extract card patterns from text and search automatically
+4. **judge_and_replace_cards** - Extract, search, and intelligently replace patterns with card IDs
 
 ### 📝 Card Name Patterns
 
@@ -63,6 +64,9 @@ npx tsx src/search-cards.ts '{"name":"ブルーアイズ*"}' cols=name,atk
 
 # Extract from text
 npx tsx src/extract-and-search-cards.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
+
+# Judge and replace patterns
+npx tsx src/judge-and-replace.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
 ```
 
 ## Database

@@ -11,6 +11,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const cliScript = path.join(__dirname, "search-cards.ts");
 const bulkScript = path.join(__dirname, "bulk-search-cards.ts");
 const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.ts");
+const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.ts");
 const npxPath = "npx";
 const tsxArgs = ["tsx", cliScript];
 
@@ -127,6 +128,37 @@ server.tool(
   },
   async ({ text }) => {
     const args = ["tsx", extractAndSearchScript, text];
+
+    return await new Promise((resolve) => {
+      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      child.stdout.on("data", (b) => (out += b.toString()));
+      child.stderr.on("data", (b) => (err += b.toString()));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          resolve({
+            content: [{
+              type: "text",
+              text: `error: ${err || `exit ${code}`}`
+            }]
+          });
+          return;
+        }
+        resolve({ content: [{ type: "text", text: out }] });
+      });
+    });
+  }
+);
+
+// Judge and replace tool
+server.tool(
+  "judge_and_replace_cards",
+  `Extract card patterns, search, and replace them intelligently. Results: 1 match → {{name|id}}, multiple → {{` + "`query`_`name|id`_...}}, none → {{NOTFOUND_`query`}}. Warns if unprocessed patterns remain.",
+  {
+    text: z.string().describe("Text with card patterns: {flexible}, 《exact》. Already processed {{name|id}} patterns are preserved.")
+  },
+  async ({ text }) => {
+    const args = ["tsx", judgeAndReplaceScript, text];
 
     return await new Promise((resolve) => {
       const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });

@@ -8,7 +8,9 @@
     "ygo-search-card-server": "./ygo-search-card-server.js"
   },
   "scripts": {
-    "start": "node ygo-search-card-server.js"
+    "start": "node ygo-search-card-server.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "mcp",
@@ -20,5 +22,9 @@
     "@modelcontextprotocol/sdk": "^1.22.0",
     "tsx": "^4.20.6",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "vitest": "^4.0.10"
   }
 }
