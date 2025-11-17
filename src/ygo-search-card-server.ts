@@ -90,6 +90,8 @@ const paramsSchema = {
   flagAutoModify: z.boolean().optional().describe("Normalize name for flexible matching (default: true)"),
   flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name and text searches (default: true). Negative search: -(space|　)-\"phrase\" excludes cards with phrase"),
   flagNearly: z.boolean().optional().describe("Fuzzy matching - not yet implemented (default: false)"),
+  outputPath: z.string().optional().describe("Optional: Filename or absolute path to save results. If absolute path, used directly. Otherwise combined with outputDir/YGO_OUTPUT_DIR env var/cwd. If omitted with outputDir, auto-generates timestamp filename like 'ygo-search-2025-11-17T21-12-02.jsonl'."),
+  outputDir: z.string().optional().describe("Optional: Directory to save output file. Priority: 1) This parameter, 2) YGO_OUTPUT_DIR environment variable, 3) Current directory. Creates directory if not exists. Combined with outputPath or auto-generated filename."),
 };
 
 server.tool(
