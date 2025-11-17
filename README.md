@@ -57,8 +57,28 @@ bash scripts/setup/setup-data.sh
 ### As MCP Server
 
 ```bash
-node src/ygo-search-card-server.js
+npx tsx src/ygo-search-card-server.ts
+# or
+npm start
 ```
+
+#### Claude Desktop Configuration
+
+```json
+{
+  "mcpServers": {
+    "ygo-search-card": {
+      "command": "npx",
+      "args": [
+        "tsx",
+        "<YOUR_ABSOLUTE_PATH>/ygo-db-local-mcp/src/ygo-search-card-server.ts"
+      ]
+    }
+  }
+}
+```
+
+**Note**: Replace `<YOUR_ABSOLUTE_PATH>` with the actual absolute path to your project directory.
 
 ### Direct CLI
 
