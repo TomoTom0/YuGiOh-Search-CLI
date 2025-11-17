@@ -10,7 +10,10 @@
   "scripts": {
     "start": "node ygo-search-card-server.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [
     "mcp",
