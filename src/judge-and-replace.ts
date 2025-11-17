@@ -2,93 +2,22 @@
 import { spawn } from 'child_process'
 import path from 'path'
 import url from 'url'
+import type { Card, PatternType, ReplacementResult, ReplacementStatus } from './types/card'
+import { extractCardPatterns } from './utils/pattern-extractor'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const searchScript = path.join(__dirname, 'search-cards.ts')
+const bulkSearchScript = path.join(__dirname, 'bulk-search-cards.ts')
 
-interface CardMatch {
+interface CardMatchWithIndex {
   pattern: string
-  type: 'flexible' | 'exact' | 'cardId'
+  type: PatternType
   query: string
-  results: any[]
+  results: Card[]
+  startIndex: number
 }
 
-interface ReplaceResult {
-  processedText: string
-  hasUnprocessed: boolean
-  warnings: string[]
-  processedPatterns: Array<{
-    original: string
-    replaced: string
-    status: 'resolved' | 'multiple' | 'notfound' | 'already_processed'
-  }>
-}
-
-// Parse text and extract card name patterns (same as extract-and-search)
-function extractCardPatterns(text: string): Array<{pattern: string, type: 'flexible' | 'exact' | 'cardId', query: string, startIndex: number}> {
-  const patterns: Array<{pattern: string, type: 'flexible' | 'exact' | 'cardId', query: string, startIndex: number}> = []
-  const usedPositions = new Set<number>()
-  
-  // Pattern 1: {{card-name|cid}} - already processed
-  const cardIdPattern = /\{\{([^|]+)\|([^}]+)\}\}/g
-  let match: RegExpExecArray | null
-  while ((match = cardIdPattern.exec(text)) !== null) {
-    patterns.push({
-      pattern: match[0],
-      type: 'cardId',
-      query: match[2].trim(),
-      startIndex: match.index
-    })
-    for (let i = match.index; i < match.index + match[0].length; i++) {
-      usedPositions.add(i)
-    }
-  }
-  
-  // Pattern 2: 《card-name》 - exact name search
-  const exactPattern = /《([^》]+)》/g
-  while ((match = exactPattern.exec(text)) !== null) {
-    if (usedPositions.has(match.index)) continue
-    
-    patterns.push({
-      pattern: match[0],
-      type: 'exact',
-      query: match[1].trim(),
-      startIndex: match.index
-    })
-    for (let i = match.index; i < match.index + match[0].length; i++) {
-      usedPositions.add(i)
-    }
-  }
-  
-  // Pattern 3: {card-name} - flexible name search
-  const flexiblePattern = /\{([^}]+)\}/g
-  while ((match = flexiblePattern.exec(text)) !== null) {
-    if (usedPositions.has(match.index)) continue
-    
-    patterns.push({
-      pattern: match[0],
-      type: 'flexible',
-      query: match[1].trim(),
-      startIndex: match.index
-    })
-    for (let i = match.index; i < match.index + match[0].length; i++) {
-      usedPositions.add(i)
-    }
-  }
-  
-  return patterns.sort((a, b) => a.startIndex - b.startIndex)
-}
-
-// Execute search for a single pattern
-async function searchCard(pattern: {pattern: string, type: string, query: string}): Promise<CardMatch> {
-  const args: string[] = []
-  
-  if (pattern.type === 'cardId') {
-    args.push(JSON.stringify({ cardId: pattern.query }))
-  } else {
-    args.push(JSON.stringify({ name: pattern.query }))
-  }
-  
+// Execute bulk search for all patterns at once (performance improvement)
+async function bulkSearchCards(patterns: Array<{type: PatternType, query: string}>): Promise<Card[][]> {
   const cols = [
     'cardType', 'name', 'ruby', 'cardId', 'ciid', 'imgs',
     'text', 'attribute', 'levelType', 'levelValue', 'race', 'monsterTypes',
@@ -96,18 +25,32 @@ async function searchCard(pattern: {pattern: string, type: string, query: string
     'isExtraDeck', 'spellEffectType', 'trapEffectType',
     'supplementInfo', 'supplementDate', 'pendulumSupplementInfo', 'pendulumSupplementDate'
   ]
-  args.push(`cols=${cols.join(',')}`)
   
-  if (pattern.type === 'flexible') {
-    args.push('flagAllowWild=true')
-    args.push('flagAutoModify=true')
-  } else if (pattern.type === 'exact') {
-    args.push('flagAllowWild=false')
-    args.push('flagAutoModify=true')
-  }
+  // Build queries for bulk search
+  const queries = patterns.map(pattern => {
+    const query: any = {}
+    
+    if (pattern.type === 'cardId') {
+      query.filter = { cardId: pattern.query }
+    } else {
+      query.filter = { name: pattern.query }
+    }
+    
+    query.cols = cols
+    
+    if (pattern.type === 'flexible') {
+      query.flagAllowWild = true
+      query.flagAutoModify = true
+    } else if (pattern.type === 'exact') {
+      query.flagAllowWild = false
+      query.flagAutoModify = true
+    }
+    
+    return query
+  })
   
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', searchScript, ...args], {
+    const child = spawn('npx', ['tsx', bulkSearchScript, JSON.stringify(queries)], {
       stdio: ['ignore', 'pipe', 'pipe']
     })
     
@@ -124,40 +67,21 @@ async function searchCard(pattern: {pattern: string, type: string, query: string
     
     child.on('close', (code) => {
       if (code !== 0) {
-        resolve({
-          pattern: pattern.pattern,
-          type: pattern.type as any,
-          query: pattern.query,
-          results: []
-        })
+        // Return empty results for all patterns on error
+        resolve(patterns.map(() => []))
         return
       }
       
       try {
         const result = JSON.parse(stdout)
-        resolve({
-          pattern: pattern.pattern,
-          type: pattern.type as any,
-          query: pattern.query,
-          results: result
-        })
+        resolve(result)
       } catch (e) {
-        resolve({
-          pattern: pattern.pattern,
-          type: pattern.type as any,
-          query: pattern.query,
-          results: []
-        })
+        resolve(patterns.map(() => []))
       }
     })
     
     child.on('error', () => {
-      resolve({
-        pattern: pattern.pattern,
-        type: pattern.type as any,
-        query: pattern.query,
-        results: []
-      })
+      resolve(patterns.map(() => []))
     })
   })
 }
@@ -172,7 +96,7 @@ async function main() {
   }
   
   const text = args[0]
-  const patterns = extractCardPatterns(text)
+  const patterns = extractCardPatterns(text, { includeStartIndex: true })
   
   if (patterns.length === 0) {
     console.log(JSON.stringify({
@@ -180,15 +104,15 @@ async function main() {
       hasUnprocessed: false,
       warnings: [],
       processedPatterns: []
-    } as ReplaceResult, null, 2))
+    } as ReplacementResult, null, 2))
     return
   }
   
-  // Search all patterns
-  const searchResults = await Promise.all(patterns.map(p => searchCard(p)))
+  // Bulk search all patterns at once for better performance
+  const searchResults = await bulkSearchCards(patterns)
   
   // Build result
-  const result: ReplaceResult = {
+  const result: ReplacementResult = {
     processedText: text,
     hasUnprocessed: false,
     warnings: [],
@@ -196,9 +120,15 @@ async function main() {
   }
   
   // Process replacements in reverse order to maintain indices
-  const sortedResults = searchResults
-    .map((sr, idx) => ({ ...sr, startIndex: patterns[idx].startIndex }))
-    .sort((a, b) => b.startIndex - a.startIndex)
+  const patternsWithResults: CardMatchWithIndex[] = patterns.map((p, idx) => ({
+    pattern: p.pattern,
+    type: p.type,
+    query: p.query,
+    results: searchResults[idx],
+    startIndex: p.startIndex!
+  }))
+  
+  const sortedResults = patternsWithResults.sort((a, b) => b.startIndex - a.startIndex)
   
   for (const match of sortedResults) {
     if (match.type === 'cardId') {
@@ -229,7 +159,7 @@ async function main() {
     } else if (resultCount > 1) {
       // Multiple results - format as {{`original`_`name|id`_`name|id`_...}}
       const candidatesStr = match.results
-        .map((card: any) => `\`${card.name}|${card.cardId}\``)
+        .map((card: Card) => `\`${card.name}|${card.cardId}\``)
         .join('_')
       const replacement = `{{\`${match.query}\`_${candidatesStr}}}`
       result.processedText = result.processedText.substring(0, match.startIndex) + 

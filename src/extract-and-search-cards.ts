@@ -2,78 +2,18 @@
 import { spawn } from 'child_process'
 import path from 'path'
 import url from 'url'
+import type { Card, CardMatch, PatternType } from './types/card'
+import { extractCardPatterns } from './utils/pattern-extractor'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 const searchScript = path.join(__dirname, 'search-cards.ts')
-
-interface CardMatch {
-  pattern: string
-  type: 'flexible' | 'exact' | 'cardId'
-  query: string
-  results: any[]
-}
 
 interface SearchResult {
   cards: CardMatch[]
 }
 
-// Parse text and extract card name patterns
-function extractCardPatterns(text: string): Array<{pattern: string, type: 'flexible' | 'exact' | 'cardId', query: string}> {
-  const patterns: Array<{pattern: string, type: 'flexible' | 'exact' | 'cardId', query: string}> = []
-  const usedPositions = new Set<number>()
-  
-  // Pattern 1: {{card-name|cid}} - cardId search (must be checked first)
-  const cardIdPattern = /\{\{([^|]+)\|([^}]+)\}\}/g
-  let match: RegExpExecArray | null
-  while ((match = cardIdPattern.exec(text)) !== null) {
-    patterns.push({
-      pattern: match[0],
-      type: 'cardId',
-      query: match[2].trim()
-    })
-    // Mark positions as used
-    for (let i = match.index; i < match.index + match[0].length; i++) {
-      usedPositions.add(i)
-    }
-  }
-  
-  // Pattern 2: 《card-name》 - exact name search
-  const exactPattern = /《([^》]+)》/g
-  while ((match = exactPattern.exec(text)) !== null) {
-    // Check if this position is already used
-    if (usedPositions.has(match.index)) continue
-    
-    patterns.push({
-      pattern: match[0],
-      type: 'exact',
-      query: match[1].trim()
-    })
-    for (let i = match.index; i < match.index + match[0].length; i++) {
-      usedPositions.add(i)
-    }
-  }
-  
-  // Pattern 3: {card-name} - flexible name search
-  const flexiblePattern = /\{([^}]+)\}/g
-  while ((match = flexiblePattern.exec(text)) !== null) {
-    // Check if this position is already used (inside {{...}})
-    if (usedPositions.has(match.index)) continue
-    
-    patterns.push({
-      pattern: match[0],
-      type: 'flexible',
-      query: match[1].trim()
-    })
-    for (let i = match.index; i < match.index + match[0].length; i++) {
-      usedPositions.add(i)
-    }
-  }
-  
-  return patterns
-}
-
 // Execute search for a single pattern
-async function searchCard(pattern: {pattern: string, type: string, query: string}): Promise<CardMatch> {
+async function searchCard(pattern: {pattern: string, type: PatternType, query: string}): Promise<CardMatch> {
   const args: string[] = []
   
   if (pattern.type === 'cardId') {
@@ -135,14 +75,14 @@ async function searchCard(pattern: {pattern: string, type: string, query: string
         const result = JSON.parse(stdout)
         resolve({
           pattern: pattern.pattern,
-          type: pattern.type as any,
+          type: pattern.type,
           query: pattern.query,
           results: result
         })
       } catch (e) {
         resolve({
           pattern: pattern.pattern,
-          type: pattern.type as any,
+          type: pattern.type,
           query: pattern.query,
           results: []
         })
