@@ -1,0 +1,24 @@
+{
+  "name": "ygo-search-card-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Yu-Gi-Oh card search",
+  "type": "module",
+  "main": "ygo-search-card-server.js",
+  "bin": {
+    "ygo-search-card-server": "./ygo-search-card-server.js"
+  },
+  "scripts": {
+    "start": "node ygo-search-card-server.js"
+  },
+  "keywords": [
+    "mcp",
+    "yugioh"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "tsx": "^4.20.6",
+    "zod": "^3.25.76"
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "search-cards CLI input",
+  "description": "Schema for invoking the `search-cards.ts` CLI: describes `filter`, `cols`, and `mode`.",
+  "type": "object",
+  "properties": {
+    "filter": {
+      "type": "object",
+      "description": "Object mapping field names to filter values. Field keys are card column names (e.g. 'name', 'cardId', ...).",
+      "patternProperties": {
+        "^.*$": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "array", "items": { "anyOf": [ { "type": "string" }, { "type": "number" } ] } },
+            {
+              "type": "object",
+              "properties": {
+                "op": { "type": "string", "enum": ["and", "or"] },
+                "cond": { "type": "array", "items": { "anyOf": [ { "type": "string" }, { "type": "number" } ] } }
+              },
+              "required": ["cond"],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "cols": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional list of columns to return. If omitted, the merged record (cards + detail) is returned."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["exact", "partial"],
+      "description": "Search mode. 'exact' (default). 'partial' is intended for the `name` field only. Regex is not supported."
+    }
+  },
+  "required": ["filter"],
+  "additionalProperties": false
+}

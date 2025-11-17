@@ -1,0 +1,38 @@
+[
+  {
+    "description": "Exact match by cardId",
+    "input": { "filter": { "cardId": "22178" }, "cols": ["name", "cardId"] }
+  },
+  {
+    "description": "Name partial match (OR of substrings)",
+    "input": { "filter": { "name": { "op": "or", "cond": ["ヴァレット", "ローダー"] } }, "cols": ["name","cardId"] , "mode": "partial", "flagAllowWild": false }
+  },
+  {
+    "description": "Multiple cardId values (OR)",
+    "input": { "filter": { "cardId": ["22107", "22109"] }, "cols": ["name","cardId"] }
+  },
+  {
+    "description": "Name partial match with symbol",
+    "input": { "filter": { "name": { "op": "or", "cond": ["★","！"] } }, "cols": ["name","cardId"], "mode": "partial", "flagAllowWild": false }
+  },
+  {
+    "description": "Wildcard: cards starting with 'ブルーアイズ'",
+    "input": { "filter": { "name": "ブルーアイズ*" }, "cols": ["name","cardId"] }
+  },
+  {
+    "description": "Wildcard: cards ending with 'ドラゴン'",
+    "input": { "filter": { "name": "*ドラゴン" }, "cols": ["name","atk"] }
+  },
+  {
+    "description": "Wildcard: cards matching 'Evil*Twin*' pattern",
+    "input": { "filter": { "name": "Evil*Twin*" }, "cols": ["name"] }
+  },
+  {
+    "description": "Normalized wildcard: hiragana input matches katakana",
+    "input": { "filter": { "name": "ぶるーあいず*" }, "cols": ["name"] }
+  },
+  {
+    "description": "Disable wildcard to search for literal '*'",
+    "input": { "filter": { "name": "*" }, "cols": ["name"], "flagAllowWild": false }
+  }
+]

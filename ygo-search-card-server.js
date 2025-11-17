@@ -1,0 +1,160 @@
+#!/usr/bin/env node
+// scripts/mcp/ygo-search-card-server.js
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { spawn } from "child_process";
+import path from "path";
+import url from "url";
+
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+const cliScript = path.join(__dirname, "search-cards.ts");
+const bulkScript = path.join(__dirname, "bulk-search-cards.ts");
+const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.ts");
+const npxPath = "npx";
+const tsxArgs = ["tsx", cliScript];
+
+const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
+
+// Available field names
+const availableFields = [
+  "cardType", "name", "ruby", "cardId", "ciid", "imgs",
+  "text", "attribute", "levelType", "levelValue", "race", "monsterTypes",
+  "atk", "def", "linkMarkers", "pendulumScale", "pendulumText",
+  "isExtraDeck", "spellEffectType", "trapEffectType",
+  "supplementInfo", "supplementDate", "pendulumSupplementInfo", "pendulumSupplementDate"
+];
+
+const paramsSchema = {
+  filter: z.record(z.any()).describe("Filter conditions. Example: {name: 'Blue-Eyes White Dragon'} or {attribute: 'light', race: 'dragon'}"),
+  cols: z.array(z.string()).optional().describe(`Columns to return. Available: ${availableFields.join(", ")}. Use 'text' for card effects.`),
+  mode: z.enum(["exact", "partial"]).optional().describe("Search mode: 'exact' (default) or 'partial' (substring match)"),
+  includeRuby: z.boolean().optional().describe("Include ruby (reading) field in name searches (default: true)"),
+  flagAutoPend: z.boolean().optional().describe("Auto-include pendulumText/pendulumSupplementInfo for pendulum monsters when requesting 'text' (default: true)"),
+  flagAutoSupply: z.boolean().optional().describe("Always auto-include supplementInfo even if empty (default: true)"),
+  flagAutoRuby: z.boolean().optional().describe("Auto-include ruby when requesting 'name' (default: true)"),
+  flagAutoModify: z.boolean().optional().describe("Normalize name for flexible matching (default: true)"),
+  flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name searches (default: true)"),
+  flagNearly: z.boolean().optional().describe("Fuzzy matching - not yet implemented (default: false)"),
+};
+
+server.tool(
+  "search_cards",
+  `Search Yu-Gi-Oh cards database. Available fields: name, ruby, cardId, text (card effect), attribute, race, monsterTypes, atk, def, levelValue, pendulumText, supplementInfo. Use 'text' for card effects, not 'desc'.`,
+  paramsSchema,
+  async ({ filter, cols, mode, includeRuby, flagAutoPend, flagAutoSupply, flagAutoRuby, flagAutoModify, flagAllowWild, flagNearly }) => {
+    const args = [...tsxArgs, JSON.stringify(filter)];
+    if (cols && cols.length) args.push(`cols=${cols.join(",")}`);
+    args.push(`mode=${mode || "exact"}`);
+    if (includeRuby === false) args.push(`includeRuby=false`);
+    if (flagAutoPend === false) args.push(`flagAutoPend=false`);
+    if (flagAutoSupply === false) args.push(`flagAutoSupply=false`);
+    if (flagAutoRuby === false) args.push(`flagAutoRuby=false`);
+    if (flagAutoModify === false) args.push(`flagAutoModify=false`);
+    if (flagAllowWild === false) args.push(`flagAllowWild=false`);
+    if (flagNearly === true) args.push(`flagNearly=true`);
+
+    return await new Promise((resolve) => {
+      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      child.stdout.on("data", (b) => (out += b.toString()));
+      child.stderr.on("data", (b) => (err += b.toString()));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          resolve({ content: [{ type: "text", text: `error: ${err || `exit ${code}`}` }] });
+          return;
+        }
+        resolve({ content: [{ type: "text", text: out }] });
+      });
+    });
+  }
+);
+
+// Bulk search tool
+const querySchema = {
+  filter: z.record(z.any()),
+  cols: z.array(z.string()).optional(),
+  mode: z.enum(["exact", "partial"]).optional(),
+  includeRuby: z.boolean().optional(),
+  flagAutoPend: z.boolean().optional(),
+  flagAutoSupply: z.boolean().optional(),
+  flagAutoRuby: z.boolean().optional(),
+  flagAutoModify: z.boolean().optional(),
+  flagAllowWild: z.boolean().optional(),
+};
+
+const bulkParamsSchema = {
+  queries: z.array(z.object(querySchema))
+    .min(1)
+    .max(50)
+    .describe("Array of search queries (max 50). Each query has the same structure as search_cards.")
+};
+
+server.tool(
+  "bulk_search_cards",
+  `Bulk search multiple cards at once. More efficient than calling search_cards multiple times. Returns array of result arrays.`,
+  bulkParamsSchema,
+  async ({ queries }) => {
+    const args = ["tsx", bulkScript, JSON.stringify(queries)];
+
+    return await new Promise((resolve) => {
+      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      child.stdout.on("data", (b) => (out += b.toString()));
+      child.stderr.on("data", (b) => (err += b.toString()));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          resolve({
+            content: [{
+              type: "text",
+              text: `error: ${err || `exit ${code}`}`
+            }]
+          });
+          return;
+        }
+        resolve({ content: [{ type: "text", text: out }] });
+      });
+    });
+  }
+);
+
+// Extract and search tool
+server.tool(
+  "extract_and_search_cards",
+  `Extract card name patterns from text and search for them. Supports {card-name} (flexible/wildcard), 《card-name》 (exact), and {{card-name|cardId}} (by ID).`,
+  {
+    text: z.string().describe("Text containing card name patterns: {flexible}, 《exact》, or {{name|cardId}}")
+  },
+  async ({ text }) => {
+    const args = ["tsx", extractAndSearchScript, text];
+
+    return await new Promise((resolve) => {
+      const child = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      child.stdout.on("data", (b) => (out += b.toString()));
+      child.stderr.on("data", (b) => (err += b.toString()));
+      child.on("close", (code) => {
+        if (code !== 0) {
+          resolve({
+            content: [{
+              type: "text",
+              text: `error: ${err || `exit ${code}`}`
+            }]
+          });
+          return;
+        }
+        resolve({ content: [{ type: "text", text: out }] });
+      });
+    });
+  }
+);
+
+const transport = new StdioServerTransport();
+await server.connect(transport);
+
+process.on("SIGINT", async () => { await server.close(); process.exit(0); });
+process.on("SIGTERM", async () => { await server.close(); process.exit(0); });
+
+console.error("ygo-search-card MCP server started");
+
+
