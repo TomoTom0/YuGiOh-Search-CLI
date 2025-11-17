@@ -22,3 +22,4 @@ Thumbs.db
 # Temp files
 *.tmp
 .cache/
+tmp/

@@ -39,9 +39,20 @@ columns:
     file: "cards-all.tsv"
     type: "string"
     required: true
-    description: "Normalized name for searching (symbols removed, kana→katakana, 竜→龍)"
+    description: "Normalized name for searching (symbols removed, hiragana→katakana, 竜→龍)"
     searchable: false
     internal: true
+    normalization_rules:
+      - "Remove whitespace and symbols (・★☆ etc)"
+      - "Convert hiragana to katakana"
+      - "Convert full-width alphanumeric to half-width"
+      - "Convert to lowercase"
+      - "Normalize kanji variants (竜→龍)"
+    examples:
+      - original: "青眼の白龍"
+        normalized: "青眼ノ白龍"
+      - original: "アシスト★ヤミー！"
+        normalized: "アシストヤミー"
     
   ruby:
     file: "cards-all.tsv"
