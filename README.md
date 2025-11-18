@@ -11,6 +11,14 @@ Model Context Protocol (MCP) server for searching Yu-Gi-Oh! card database locall
 3. **extract_and_search_cards** - Extract card patterns from text and search automatically
 4. **judge_and_replace_cards** - Extract, search, and intelligently replace patterns with card IDs
 
+### 🎲 Random Card Retrieval
+
+- **ygo_seek** - Get random or range-specific card information
+  - Random selection with configurable count
+  - CardId range filtering
+  - Multiple output formats (JSON, CSV, TSV, JSONL)
+  - Flexible column selection
+
 ### 📝 Card Name Patterns
 
 - `{card-name}` - Flexible search with wildcards (*) and normalization
@@ -58,6 +66,36 @@ bash scripts/setup/setup-data.sh
 npm link
 ```
 
+### CLI Commands
+
+After `npm link`, you can use these commands:
+
+```bash
+# Search cards
+ygo_search '{"name":"青眼の白龍"}' cols=name,cardId
+
+# Bulk search
+ygo_bulk_search '[{"filter":{"name":"青眼"}}]'
+
+# Extract patterns from text
+ygo_extract "Use {ブルーアイズ*} and 《青眼の白龍》"
+
+# Replace patterns with card IDs
+ygo_replace "{青眼の白龍}を召喚" --raw
+ygo_replace "{青眼の白龍}を召喚" --mount-par --raw  # Output: 《青眼の白龍》を召喚
+
+# Get random cards
+ygo_seek --max 5
+ygo_seek --range 4000-5000 --max 20
+ygo_seek --range 4000-4100 --all --format csv
+
+# Get all columns
+ygo_seek --max 10 --col-all
+
+# Convert file formats
+ygo_convert input.json:output.jsonl
+```
+
 ## Usage
 
 ### As MCP Server
@@ -100,6 +138,22 @@ ygo_search '{"name":"ブルーアイズ*"}' cols=name,atk
 
 # Extract from text
 ygo_extract "Use {ブルーアイズ*} and 《青眼の白龍》"
+
+# Replace patterns (normal: {{name|id}})
+ygo_replace "{青眼の白龍}を召喚" --raw
+
+# Replace patterns (mount-par: 《name》)
+ygo_replace "{青眼の白龍}を召喚" --mount-par --raw
+
+# Get random cards
+ygo_seek --max 10
+ygo_seek --range 4000-5000 --max 20 --col cardId,name,atk,def
+
+# Get all cards in range
+ygo_seek --range 4000-4100 --all --format csv
+
+# Get all columns
+ygo_seek --max 10 --col-all --format jsonl
 
 # Convert file formats
 ygo_convert input.json:output.jsonl
