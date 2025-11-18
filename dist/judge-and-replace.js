@@ -93,8 +93,24 @@ async function main() {
         }
         return;
     }
-    // Bulk search all patterns at once for better performance
-    const searchResults = await bulkSearchCards(patterns);
+    // Deduplicate patterns before search for efficiency
+    const uniquePatternMap = new Map();
+    for (const pattern of patterns) {
+        const key = `${pattern.type}::${pattern.query}`;
+        if (!uniquePatternMap.has(key)) {
+            uniquePatternMap.set(key, pattern);
+        }
+    }
+    const uniquePatterns = Array.from(uniquePatternMap.values());
+    // Bulk search unique patterns only
+    const searchResults = await bulkSearchCards(uniquePatterns);
+    // Create lookup map for search results
+    const resultMap = new Map();
+    for (let i = 0; i < uniquePatterns.length; i++) {
+        const pattern = uniquePatterns[i];
+        const key = `${pattern.type}::${pattern.query}`;
+        resultMap.set(key, searchResults[i]);
+    }
     // Build result
     const result = {
         processedText: text,
@@ -103,22 +119,31 @@ async function main() {
         processedPatterns: []
     };
     // Process replacements in reverse order to maintain indices
-    const patternsWithResults = patterns.map((p, idx) => ({
-        pattern: p.pattern,
-        type: p.type,
-        query: p.query,
-        results: searchResults[idx],
-        startIndex: p.startIndex
-    }));
+    const patternsWithResults = patterns.map((p) => {
+        const key = `${p.type}::${p.query}`;
+        return {
+            pattern: p.pattern,
+            type: p.type,
+            query: p.query,
+            results: resultMap.get(key) || [],
+            startIndex: p.startIndex
+        };
+    });
     const sortedResults = patternsWithResults.sort((a, b) => b.startIndex - a.startIndex);
+    // Track processed patterns to avoid duplicates
+    const processedPatternKeys = new Set();
     for (const match of sortedResults) {
         if (match.type === 'cardId') {
             // Already processed format
-            result.processedPatterns.push({
-                original: match.pattern,
-                replaced: match.pattern,
-                status: 'already_processed'
-            });
+            const key = `${match.pattern}::${match.pattern}`;
+            if (!processedPatternKeys.has(key)) {
+                processedPatternKeys.add(key);
+                result.processedPatterns.push({
+                    original: match.pattern,
+                    replaced: match.pattern,
+                    status: 'already_processed'
+                });
+            }
             continue;
         }
         const resultCount = match.results.length;
@@ -129,11 +154,15 @@ async function main() {
             result.processedText = result.processedText.substring(0, match.startIndex) +
                 replacement +
                 result.processedText.substring(match.startIndex + match.pattern.length);
-            result.processedPatterns.push({
-                original: match.pattern,
-                replaced: replacement,
-                status: 'resolved'
-            });
+            const key = `${match.pattern}::${replacement}`;
+            if (!processedPatternKeys.has(key)) {
+                processedPatternKeys.add(key);
+                result.processedPatterns.push({
+                    original: match.pattern,
+                    replaced: replacement,
+                    status: 'resolved'
+                });
+            }
         }
         else if (resultCount > 1) {
             // Multiple results - format as {{`original`_`name|id`_`name|id`_...}}
@@ -144,11 +173,15 @@ async function main() {
             result.processedText = result.processedText.substring(0, match.startIndex) +
                 replacement +
                 result.processedText.substring(match.startIndex + match.pattern.length);
-            result.processedPatterns.push({
-                original: match.pattern,
-                replaced: replacement,
-                status: 'multiple'
-            });
+            const key = `${match.pattern}::${replacement}`;
+            if (!processedPatternKeys.has(key)) {
+                processedPatternKeys.add(key);
+                result.processedPatterns.push({
+                    original: match.pattern,
+                    replaced: replacement,
+                    status: 'multiple'
+                });
+            }
             result.hasUnprocessed = true;
         }
         else {
@@ -157,25 +190,18 @@ async function main() {
             result.processedText = result.processedText.substring(0, match.startIndex) +
                 replacement +
                 result.processedText.substring(match.startIndex + match.pattern.length);
-            result.processedPatterns.push({
-                original: match.pattern,
-                replaced: replacement,
-                status: 'notfound'
-            });
+            const key = `${match.pattern}::${replacement}`;
+            if (!processedPatternKeys.has(key)) {
+                processedPatternKeys.add(key);
+                result.processedPatterns.push({
+                    original: match.pattern,
+                    replaced: replacement,
+                    status: 'notfound'
+                });
+            }
             result.hasUnprocessed = true;
         }
     }
-    // Deduplicate processedPatterns (keep unique combinations of original + replaced)
-    const seenPatterns = new Set();
-    const uniquePatterns = [];
-    for (const pattern of result.processedPatterns) {
-        const key = `${pattern.original}::${pattern.replaced}`;
-        if (!seenPatterns.has(key)) {
-            seenPatterns.add(key);
-            uniquePatterns.push(pattern);
-        }
-    }
-    result.processedPatterns = uniquePatterns;
     // Check for unprocessed markers
     if (result.hasUnprocessed) {
         result.warnings.push('⚠️ Text contains unprocessed patterns that require manual review');
