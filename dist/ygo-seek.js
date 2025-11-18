@@ -41,7 +41,13 @@ Examples:
             process.exit(0);
         }
         else if (arg.startsWith('--max')) {
-            const maxValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            const maxValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
+            if (!maxValue || maxValue.startsWith('--')) {
+                console.error('Error: Missing value for --max option');
+                process.exit(2);
+            }
+            if (!arg.includes('='))
+                i++;
             options.max = parseInt(maxValue);
         }
         else if (arg === '--no-random') {
@@ -51,7 +57,13 @@ Examples:
             options.random = true;
         }
         else if (arg.startsWith('--range')) {
-            const rangeValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            const rangeValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
+            if (!rangeValue || rangeValue.startsWith('--')) {
+                console.error('Error: Missing value for --range option');
+                process.exit(2);
+            }
+            if (!arg.includes('='))
+                i++;
             const [start, end] = rangeValue.split('-').map(Number);
             if (isNaN(start) || isNaN(end)) {
                 console.error(`Invalid range: ${rangeValue}`);
@@ -66,11 +78,23 @@ Examples:
             options.colAll = true;
         }
         else if (arg.startsWith('--col')) {
-            const colValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            const colValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
+            if (!colValue || colValue.startsWith('--')) {
+                console.error('Error: Missing value for --col option');
+                process.exit(2);
+            }
+            if (!arg.includes('='))
+                i++;
             options.cols = colValue.split(',');
         }
         else if (arg.startsWith('--format')) {
-            const formatValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            const formatValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
+            if (!formatValue || formatValue.startsWith('--')) {
+                console.error('Error: Missing value for --format option');
+                process.exit(2);
+            }
+            if (!arg.includes('='))
+                i++;
             const format = formatValue;
             if (!['json', 'csv', 'tsv', 'jsonl'].includes(format)) {
                 console.error(`Invalid format: ${format}`);

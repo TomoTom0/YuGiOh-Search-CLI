@@ -457,9 +457,9 @@ CSV:
 
 TSV:
 ```
-cardIdnameatk
-4007青眼の白龍3000
-4088真紅眼の黒竜2400
+cardId	name	atk
+4007	青眼の白龍	3000
+4088	真紅眼の黒竜	2400
 ```
 
 JSONL:
