@@ -11,8 +11,8 @@
 - ✅ **GitHub Actions `test`の成功が必須**
 - ✅ **レビューコメントの解消が必須**
 - ❌ **Approve（承認）は不要**
-- ❌ **Force push禁止**
-- ❌ **ブランチ削除禁止**
+- ✅ **Force push禁止**
+- ✅ **ブランチ削除禁止**
 
 ### `dev` ブランチ
 - ✅ **直接push禁止**
@@ -21,8 +21,8 @@
 - ✅ **GitHub Actions `test`の成功が必須**
 - ✅ **レビューコメントの解消が必須**
 - ❌ **Approve（承認）は不要**
-- ❌ **Force push禁止**
-- ❌ **ブランチ削除禁止**
+- ✅ **Force push禁止**
+- ✅ **ブランチ削除禁止**
 
 ## ワークフロー
 
@@ -80,16 +80,16 @@ feature/* → dev → main
 - 管理者も含めてすべてのユーザーにルールが適用されます
 
 ### restrictions
-- ブランチへのpush制限なし（PRは必須）
+- 特定のユーザーやチームに限定したpush許可は設定していません
 
 ## 設定確認
 
 ```bash
 # main ブランチの保護設定を確認
-gh api repos/TomoTom0/ygo-db-local-mcp/branches/main/protection
+gh api repos/{owner}/{repo}/branches/main/protection
 
 # dev ブランチの保護設定を確認
-gh api repos/TomoTom0/ygo-db-local-mcp/branches/dev/protection
+gh api repos/{owner}/{repo}/branches/dev/protection
 ```
 
 ## トラブルシューティング
