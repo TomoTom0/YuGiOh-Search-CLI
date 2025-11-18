@@ -326,7 +326,11 @@ async function main(){
     }
   }
 
-  console.log(JSON.stringify(results,null,2))
+  // Output as JSONL (one JSON object per line)
+  if (Array.isArray(results) && results.length > 0) {
+    results.forEach(item => console.log(JSON.stringify(item)))
+  }
+  // No output for empty results
 }
 
 main().catch(e=>{ console.error(e); process.exit(2) })

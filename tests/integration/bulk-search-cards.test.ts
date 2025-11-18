@@ -26,6 +26,14 @@ function runBulkSearch(queries: any[]): Promise<{ stdout: string; stderr: string
   })
 }
 
+function parseJSONL(jsonl: string): any[] {
+  return jsonl
+    .trim()
+    .split('\n')
+    .filter(line => line.trim())
+    .map(line => JSON.parse(line))
+}
+
 describe('bulk-search-cards', () => {
   it('should search multiple cards at once', async () => {
     const queries = [
@@ -37,7 +45,7 @@ describe('bulk-search-cards', () => {
     const result = await runBulkSearch(queries)
 
     expect(result.exitCode).toBe(0)
-    const results = JSON.parse(result.stdout)
+    const results = parseJSONL(result.stdout)
     expect(results).toBeInstanceOf(Array)
     expect(results.length).toBe(3)
 
@@ -60,7 +68,7 @@ describe('bulk-search-cards', () => {
     const result = await runBulkSearch(queries)
 
     expect(result.exitCode).toBe(0)
-    const results = JSON.parse(result.stdout)
+    const results = parseJSONL(result.stdout)
     expect(results).toBeInstanceOf(Array)
     expect(results.length).toBe(2)
     expect(results[0]).toEqual([])
@@ -76,7 +84,7 @@ describe('bulk-search-cards', () => {
     const result = await runBulkSearch(queries)
 
     expect(result.exitCode).toBe(0)
-    const results = JSON.parse(result.stdout)
+    const results = parseJSONL(result.stdout)
     expect(results).toBeInstanceOf(Array)
     expect(results.length).toBe(2)
     expect(results[0].length).toBeGreaterThan(0)
@@ -100,7 +108,7 @@ describe('bulk-search-cards', () => {
     const result = await runBulkSearch(queries)
 
     expect(result.exitCode).toBe(0)
-    const results = JSON.parse(result.stdout)
+    const results = parseJSONL(result.stdout)
     expect(results).toBeInstanceOf(Array)
     expect(results.length).toBe(1)
     expect(results[0][0]).toHaveProperty('atk')

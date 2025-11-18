@@ -26,6 +26,14 @@ function runSearch(args: string[]): Promise<{ stdout: string; stderr: string; ex
   })
 }
 
+function parseJSONL(jsonl: string): any[] {
+  return jsonl
+    .trim()
+    .split('\n')
+    .filter(line => line.trim())
+    .map(line => JSON.parse(line))
+}
+
 describe('search-cards', () => {
   it('should search by exact card name', async () => {
     const result = await runSearch([
@@ -34,7 +42,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBeGreaterThan(0)
     expect(cards[0]).toHaveProperty('name', '青眼の白龍')
@@ -49,7 +57,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBeGreaterThan(1)
     expect(cards.some((c: any) => c.name.includes('ブルーアイズ'))).toBe(true)
@@ -62,7 +70,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBe(1)
     expect(cards[0]).toHaveProperty('cardId', '4007')
@@ -77,7 +85,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBeGreaterThan(0)
     expect(cards.every((c: any) => c.name.includes('青眼'))).toBe(true)
@@ -91,7 +99,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBeGreaterThan(0)
     expect(cards.some((c: any) => c.name === '青眼の白龍')).toBe(true)
@@ -104,7 +112,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBe(0)
   })
@@ -117,7 +125,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards[0]).toHaveProperty('name')
     expect(cards[0]).toHaveProperty('ruby')
   })
@@ -129,7 +137,7 @@ describe('search-cards', () => {
     ])
 
     expect(result.exitCode).toBe(0)
-    const cards = JSON.parse(result.stdout)
+    const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBeGreaterThan(0)
     expect(cards.every((c: any) => c.attribute === '光' && c.race === 'ドラゴン族')).toBe(true)
