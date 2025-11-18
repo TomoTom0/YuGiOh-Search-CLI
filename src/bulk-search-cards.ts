@@ -5,7 +5,7 @@ import path from 'path'
 import url from 'url'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const searchScript = path.join(__dirname, 'search-cards.ts')
+const searchScript = path.join(__dirname, 'search-cards.js')
 
 interface QueryParams {
   filter: Record<string, any>

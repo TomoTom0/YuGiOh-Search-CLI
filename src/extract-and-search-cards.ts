@@ -3,10 +3,10 @@ import { spawn } from 'child_process'
 import path from 'path'
 import url from 'url'
 import type { Card, CardMatch, PatternType } from './types/card'
-import { extractCardPatterns } from './utils/pattern-extractor'
+import { extractCardPatterns } from './utils/pattern-extractor.js'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const searchScript = path.join(__dirname, 'search-cards.ts')
+const searchScript = path.join(__dirname, 'search-cards.js')
 
 interface SearchResult {
   cards: CardMatch[]

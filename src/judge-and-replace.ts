@@ -3,10 +3,10 @@ import { spawn } from 'child_process'
 import path from 'path'
 import url from 'url'
 import type { Card, PatternType, ReplacementResult, ReplacementStatus } from './types/card'
-import { extractCardPatterns } from './utils/pattern-extractor'
+import { extractCardPatterns } from './utils/pattern-extractor.js'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const bulkSearchScript = path.join(__dirname, 'bulk-search-cards.ts')
+const bulkSearchScript = path.join(__dirname, 'bulk-search-cards.js')
 
 interface CardMatchWithIndex {
   pattern: string
