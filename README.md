@@ -89,6 +89,9 @@ ygo_seek --max 5
 ygo_seek --range 4000-5000 --max 20
 ygo_seek --range 4000-4100 --all --format csv
 
+# Get all columns
+ygo_seek --max 10 --col-all
+
 # Convert file formats
 ygo_convert input.json:output.jsonl
 ```
@@ -148,6 +151,9 @@ ygo_seek --range 4000-5000 --max 20 --col cardId,name,atk,def
 
 # Get all cards in range
 ygo_seek --range 4000-4100 --all --format csv
+
+# Get all columns
+ygo_seek --max 10 --col-all --format jsonl
 
 # Convert file formats
 ygo_convert input.json:output.jsonl

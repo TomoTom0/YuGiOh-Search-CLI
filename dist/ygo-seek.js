@@ -11,6 +11,7 @@ async function main() {
         random: true,
         all: false,
         cols: ['cardId', 'name'],
+        colAll: false,
         format: 'json'
     };
     for (let i = 0; i < args.length; i++) {
@@ -27,6 +28,7 @@ Options:
   --range start-end   Specify cardId range (e.g., --range 4000-5000)
   --all               Get all cards in range (overrides --max, requires --range)
   --col a,b,c         Columns to retrieve (default: cardId,name)
+  --col-all           Include all columns (overrides --col)
   --format FORMAT     Output format: json|csv|tsv|jsonl (default: json)
 
 Examples:
@@ -59,6 +61,9 @@ Examples:
         }
         else if (arg === '--all') {
             options.all = true;
+        }
+        else if (arg === '--col-all') {
+            options.colAll = true;
         }
         else if (arg.startsWith('--col')) {
             const colValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
@@ -113,6 +118,10 @@ Examples:
             continue;
         if (headers.length === 0) {
             headers = line.split('\t');
+            // If --col-all is specified, use all headers
+            if (options.colAll) {
+                options.cols = headers;
+            }
             continue;
         }
         const values = line.split('\t');

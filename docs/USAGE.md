@@ -468,3 +468,23 @@ JSONL:
 {"cardId":"4088","name":"真紅眼の黒竜"}
 ```
 
+
+**Available Columns:**
+```
+cardType, name, nameModified, ruby, cardId, ciid, imgs, text, 
+attribute, levelType, levelValue, race, monsterTypes, atk, def, 
+linkMarkers, pendulumScale, pendulumText, isExtraDeck, 
+spellEffectType, trapEffectType
+```
+
+**Getting all columns:**
+```bash
+# All columns in JSON format
+ygo_seek --max 5 --col-all
+
+# All columns in CSV format (good for spreadsheet import)
+ygo_seek --range 4000-4100 --all --col-all --format csv > cards.csv
+
+# All columns in TSV format
+ygo_seek --max 100 --col-all --format tsv > cards.tsv
+```
