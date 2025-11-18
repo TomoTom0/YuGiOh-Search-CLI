@@ -469,13 +469,23 @@ JSONL:
 ```
 
 
-**Available Columns:**
+**Available Columns (26 total):**
+
+From cards-all.tsv (21 columns):
 ```
 cardType, name, nameModified, ruby, cardId, ciid, imgs, text, 
 attribute, levelType, levelValue, race, monsterTypes, atk, def, 
 linkMarkers, pendulumScale, pendulumText, isExtraDeck, 
 spellEffectType, trapEffectType
 ```
+
+From detail-all.tsv (5 additional columns):
+```
+cardName, supplementInfo, supplementDate, 
+pendulumSupplementInfo, pendulumSupplementDate
+```
+
+Note: cardId appears in both files but is not duplicated in output.
 
 **Getting all columns:**
 ```bash

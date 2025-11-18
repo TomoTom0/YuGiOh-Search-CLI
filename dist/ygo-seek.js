@@ -102,32 +102,29 @@ Examples:
     }
     const dataDir = path.join(projectRoot, 'data');
     const cardsFile = path.join(dataDir, 'cards-all.tsv');
+    const detailFile = path.join(dataDir, 'detail-all.tsv');
     if (!fs.existsSync(cardsFile)) {
         console.error(`Data file not found: ${cardsFile}`);
         process.exit(2);
     }
-    // Read cards
-    const rl = readline.createInterface({
+    // Read cards-all.tsv
+    const rlCards = readline.createInterface({
         input: fs.createReadStream(cardsFile),
         crlfDelay: Infinity
     });
-    let headers = [];
+    let cardsHeaders = [];
     const allCards = [];
-    for await (const line of rl) {
+    for await (const line of rlCards) {
         if (!line)
             continue;
-        if (headers.length === 0) {
-            headers = line.split('\t');
-            // If --col-all is specified, use all headers
-            if (options.colAll) {
-                options.cols = headers;
-            }
+        if (cardsHeaders.length === 0) {
+            cardsHeaders = line.split('\t');
             continue;
         }
         const values = line.split('\t');
         const card = {};
-        for (let i = 0; i < headers.length; i++) {
-            card[headers[i]] = values[i] || '';
+        for (let i = 0; i < cardsHeaders.length; i++) {
+            card[cardsHeaders[i]] = values[i] || '';
         }
         // Filter by range if specified
         if (options.range) {
@@ -137,6 +134,62 @@ Examples:
             }
         }
         allCards.push(card);
+    }
+    // Read detail-all.tsv and merge by cardId
+    if (fs.existsSync(detailFile)) {
+        const rlDetail = readline.createInterface({
+            input: fs.createReadStream(detailFile),
+            crlfDelay: Infinity
+        });
+        let detailHeaders = [];
+        const detailMap = new Map();
+        for await (const line of rlDetail) {
+            if (!line)
+                continue;
+            if (detailHeaders.length === 0) {
+                detailHeaders = line.split('\t');
+                continue;
+            }
+            const values = line.split('\t');
+            const detail = {};
+            let cardId = '';
+            for (let i = 0; i < detailHeaders.length; i++) {
+                const header = detailHeaders[i];
+                detail[header] = values[i] || '';
+                if (header === 'cardId') {
+                    cardId = values[i];
+                }
+            }
+            if (cardId) {
+                detailMap.set(cardId, detail);
+            }
+        }
+        // Merge detail info into cards (skip duplicate columns)
+        for (const card of allCards) {
+            const detail = detailMap.get(card.cardId);
+            if (detail) {
+                for (const [key, value] of Object.entries(detail)) {
+                    // Skip if column already exists in card (avoid duplicates)
+                    if (!card.hasOwnProperty(key)) {
+                        card[key] = value;
+                    }
+                }
+            }
+        }
+        // Update available columns for --col-all
+        if (options.colAll) {
+            // Get all unique column names from merged data
+            const allColumnNames = new Set();
+            cardsHeaders.forEach(h => allColumnNames.add(h));
+            detailHeaders.forEach(h => allColumnNames.add(h));
+            options.cols = Array.from(allColumnNames);
+        }
+    }
+    else {
+        // If detail file doesn't exist, just use cards headers
+        if (options.colAll) {
+            options.cols = cardsHeaders;
+        }
     }
     // Select cards
     let selectedCards;
