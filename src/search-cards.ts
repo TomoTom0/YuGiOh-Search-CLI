@@ -214,11 +214,21 @@ async function main(){
     process.exit(2)
   }
 
+  // Find project root (where package.json is)
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const dataDir = path.join(__dirname,'../data')
+  let projectRoot = __dirname
+  while (projectRoot !== path.dirname(projectRoot)) {
+    if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
+      const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'))
+      if (pkg.name === 'ygo-search-card-mcp') break
+    }
+    projectRoot = path.dirname(projectRoot)
+  }
+  
+  const dataDir = path.join(projectRoot, 'data')
   const cardsFile = path.join(dataDir,'cards-all.tsv')
   const detailFile = path.join(dataDir,'detail-all.tsv')
-  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error('data files not found'); process.exit(2) }
+  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error(`data files not found at ${dataDir}`); process.exit(2) }
 
   const rl = readline.createInterface({ input: fs.createReadStream(cardsFile), crlfDelay: Infinity })
   let headers: string[] = []

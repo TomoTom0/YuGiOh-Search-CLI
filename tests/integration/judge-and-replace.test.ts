@@ -4,11 +4,11 @@ import path from 'path'
 import url from 'url'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const judgeScript = path.join(__dirname, '..', 'src', 'judge-and-replace.ts')
+const judgeScript = path.join(__dirname, '..', '..', 'dist', 'judge-and-replace.js')
 
 function runJudgeReplace(text: string): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', judgeScript, text])
+    const child = spawn('node', [judgeScript, text])
     let stdout = ''
     let stderr = ''
 

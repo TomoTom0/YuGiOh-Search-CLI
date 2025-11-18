@@ -76,4 +76,26 @@ npm install --save-dev @types/js-yaml
 - [x] レビュー指摘3 (Medium) - JSONC
 - [x] レビュー指摘4 (Medium) - リファクタリング
 - [x] テスト実行確認
-- [ ] レビュー指摘にコメント返信
+- [x] レビュー指摘にコメント返信
+- [x] PR4マージ完了
+
+## 追加対応 (2025-11-18)
+
+### tsx依存の完全削除
+
+**問題:**
+- ERR_MODULE_NOT_FOUND: pattern-extractorモジュールが見つからない
+- 実行時にtsxが必要だった
+- ES Modulesでは相対importに`.js`拡張子が必須
+
+**対応:**
+- [x] すべての相対importに`.js`拡張子を追加
+- [x] スクリプトパスを`.ts`→`.js`に変更
+- [x] MCP server: `npx tsx` → `node`に変更
+- [x] ビルド確認・動作テスト
+- [x] コミット: f47614a
+
+**結果:**
+- ✅ `npm run build`後、tsxなしで全コマンド動作
+- ✅ `ygo_extract`、`ygo_search`、`ygo_convert`正常動作
+- ✅ MCPサーバーからも正常に各スクリプトを呼び出せる
