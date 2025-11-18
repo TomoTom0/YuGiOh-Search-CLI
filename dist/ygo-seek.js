@@ -13,7 +13,8 @@ async function main() {
         cols: ['cardId', 'name'],
         format: 'json'
     };
-    for (const arg of args) {
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
         if (arg === '--help' || arg === '-h') {
             console.log(`Usage: ygo_seek [options]
 
@@ -37,8 +38,9 @@ Examples:
 `);
             process.exit(0);
         }
-        else if (arg.startsWith('--max=') || arg.startsWith('--max ')) {
-            options.max = parseInt(arg.split(/[= ]/)[1]);
+        else if (arg.startsWith('--max')) {
+            const maxValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            options.max = parseInt(maxValue);
         }
         else if (arg === '--no-random') {
             options.random = false;
@@ -46,11 +48,11 @@ Examples:
         else if (arg === '--random') {
             options.random = true;
         }
-        else if (arg.startsWith('--range=') || arg.startsWith('--range ')) {
-            const rangeStr = arg.split(/[= ]/)[1];
-            const [start, end] = rangeStr.split('-').map(Number);
+        else if (arg.startsWith('--range')) {
+            const rangeValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            const [start, end] = rangeValue.split('-').map(Number);
             if (isNaN(start) || isNaN(end)) {
-                console.error(`Invalid range: ${rangeStr}`);
+                console.error(`Invalid range: ${rangeValue}`);
                 process.exit(2);
             }
             options.range = [start, end];
@@ -58,11 +60,13 @@ Examples:
         else if (arg === '--all') {
             options.all = true;
         }
-        else if (arg.startsWith('--col=') || arg.startsWith('--col ')) {
-            options.cols = arg.split(/[= ]/)[1].split(',');
+        else if (arg.startsWith('--col')) {
+            const colValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            options.cols = colValue.split(',');
         }
-        else if (arg.startsWith('--format=') || arg.startsWith('--format ')) {
-            const format = arg.split(/[= ]/)[1];
+        else if (arg.startsWith('--format')) {
+            const formatValue = arg.includes('=') ? arg.split('=')[1] : args[++i];
+            const format = formatValue;
             if (!['json', 'csv', 'tsv', 'jsonl'].includes(format)) {
                 console.error(`Invalid format: ${format}`);
                 process.exit(2);
