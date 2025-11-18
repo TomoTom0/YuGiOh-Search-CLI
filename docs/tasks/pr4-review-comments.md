@@ -99,3 +99,16 @@ npm install --save-dev @types/js-yaml
 - ✅ `npm run build`後、tsxなしで全コマンド動作
 - ✅ `ygo_extract`、`ygo_search`、`ygo_convert`正常動作
 - ✅ MCPサーバーからも正常に各スクリプトを呼び出せる
+
+## 現在のタスク (2025-11-18)
+
+### ビルドとテストの状況
+- [x] `npm run build` - 成功
+- [x] dist/に全ファイル生成完了
+- [ ] テストの修正が必要 (17 failed / 68 passed)
+  - integration/search-cards.test.ts: 部分一致、正規化、複数属性検索のテストが失敗
+
+### 次のステップ
+- [ ] ドキュメント更新
+- [ ] テスト更新/修正
+- [ ] git pushしてdevにPR作成
