@@ -350,3 +350,121 @@ npx tsx src/judge-and-replace.ts "Use {ブルーアイズ*} and 《青眼の白�
 - By default (flagAutoSupply=true), requesting `text` will automatically include `supplementInfo`, and requesting `pendulumText` will include `pendulumSupplementInfo`
 - flagAutoPend only includes supplement fields if they are not empty, while flagAutoSupply always includes them when text/pendulumText is requested
 - `mode=partial` and `flagAllowWild=true` cannot be used together
+
+### ygo_replace - Replace Card Patterns
+
+Extract card name patterns and replace with verified card IDs or exact names.
+
+**Basic Usage:**
+```bash
+ygo_replace "{青眼の白龍}を召喚して攻撃"
+# Output: {"processedText":"{{青眼の白龍|4007}}を召喚して攻撃",...}
+```
+
+**Options:**
+- `--raw`: Output only the processed text (no JSON)
+- `--mount-par`: Use 《name》 format instead of {{name|id}}
+
+**Examples:**
+```bash
+# Normal mode with JSON output
+ygo_replace "{青眼の白龍}を召喚"
+
+# Raw text output
+ygo_replace "{青眼の白龍}を召喚" --raw
+# Output: {{青眼の白龍|4007}}を召喚
+
+# Mount-par mode (exact name format)
+ygo_replace "{青眼の白龍}を召喚" --mount-par --raw
+# Output: 《青眼の白龍》を召喚
+
+# Multiple cards
+ygo_replace "デッキ: {青眼の白龍} x3, {真紅眼の黒竜} x2" --raw
+# Output: デッキ: {{青眼の白龍|4007}} x3, {{真紅眼の黒竜|4088}} x2
+
+# With wildcards
+ygo_replace "{ブルーアイズ*}を使う" --mount-par --raw
+```
+
+### ygo_seek - Random Card Retrieval
+
+Get random or range-specific card information from the database.
+
+**Basic Usage:**
+```bash
+# Get 10 random cards (default)
+ygo_seek
+
+# Get 5 random cards
+ygo_seek --max 5
+```
+
+**Options:**
+- `--max N`: Maximum number of cards (default: 10)
+- `--random`: Enable random selection (default: true)
+- `--no-random`: Disable random selection (sequential)
+- `--range start-end`: Filter by cardId range
+- `--all`: Get all cards in range (overrides --max, requires --range)
+- `--col a,b,c`: Columns to retrieve (default: cardId,name)
+- `--format FORMAT`: Output format - json|csv|tsv|jsonl (default: json)
+
+**Examples:**
+```bash
+# Random 5 cards with specific columns
+ygo_seek --max=5 --col=cardId,name,atk,def
+
+# Cards in range 4000-5000 (random 20)
+ygo_seek --range=4000-5000 --max=20
+
+# All cards in range
+ygo_seek --range=4000-4100 --all
+
+# CSV format output
+ygo_seek --max=10 --format=csv --col=cardId,name,atk,def
+
+# TSV format for range
+ygo_seek --range=4000-4050 --all --format=tsv
+
+# JSONL format (one JSON per line)
+ygo_seek --max=5 --format=jsonl
+
+# Non-random (sequential) selection
+ygo_seek --range=4000-4100 --no-random --max=10
+```
+
+**Output Examples:**
+
+JSON (default):
+```json
+[
+  {
+    "cardId": "4007",
+    "name": "青眼の白龍"
+  },
+  {
+    "cardId": "4088",
+    "name": "真紅眼の黒竜"
+  }
+]
+```
+
+CSV:
+```csv
+"cardId","name","atk"
+"4007","青眼の白龍","3000"
+"4088","真紅眼の黒竜","2400"
+```
+
+TSV:
+```
+cardIdnameatk
+4007青眼の白龍3000
+4088真紅眼の黒竜2400
+```
+
+JSONL:
+```
+{"cardId":"4007","name":"青眼の白龍"}
+{"cardId":"4088","name":"真紅眼の黒竜"}
+```
+

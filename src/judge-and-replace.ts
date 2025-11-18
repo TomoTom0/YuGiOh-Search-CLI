@@ -90,21 +90,30 @@ async function main() {
   const args = process.argv.slice(2)
   
   if (args.length === 0) {
-    console.error('Usage: judge-and-replace.ts <text>')
+    console.error('Usage: judge-and-replace.ts <text> [--raw] [--mount-par]')
     console.error('Example: judge-and-replace.ts "I use {ブルーアイズ*} and 《青眼の白龍》 cards"')
+    console.error('Options:')
+    console.error('  --raw         Output only processedText (no JSON)')
+    console.error('  --mount-par   Replace with 《official card name》 format')
     process.exit(2)
   }
   
-  const text = args[0]
+  const rawMode = args.includes('--raw')
+  const mountParMode = args.includes('--mount-par')
+  const text = args.filter(arg => !arg.startsWith('--'))[0]
   const patterns = extractCardPatterns(text, { includeStartIndex: true })
   
   if (patterns.length === 0) {
-    console.log(JSON.stringify({
-      processedText: text,
-      hasUnprocessed: false,
-      warnings: [],
-      processedPatterns: []
-    } as ReplacementResult, null, 2))
+    if (rawMode) {
+      console.log(text)
+    } else {
+      console.log(JSON.stringify({
+        processedText: text,
+        hasUnprocessed: false,
+        warnings: [],
+        processedPatterns: []
+      } as ReplacementResult, null, 2))
+    }
     return
   }
   
@@ -144,9 +153,9 @@ async function main() {
     const resultCount = match.results.length
     
     if (resultCount === 1) {
-      // Exactly one result - replace with {{name|cardId}}
+      // Exactly one result - replace with {{name|cardId}} or 《name》
       const card = match.results[0]
-      const replacement = `{{${card.name}|${card.cardId}}}`
+      const replacement = mountParMode ? `《${card.name}》` : `{{${card.name}|${card.cardId}}}`
       result.processedText = result.processedText.substring(0, match.startIndex) + 
                             replacement + 
                             result.processedText.substring(match.startIndex + match.pattern.length)
@@ -203,8 +212,13 @@ async function main() {
     }
   }
   
-  // Output as JSONL (single object on one line)
-  console.log(JSON.stringify(result))
+  // Output result
+  if (rawMode) {
+    console.log(result.processedText)
+  } else {
+    // Output as JSONL (single object on one line)
+    console.log(JSON.stringify(result))
+  }
 }
 
 main().catch(e => {

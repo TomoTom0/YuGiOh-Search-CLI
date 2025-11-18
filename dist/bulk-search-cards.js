@@ -51,7 +51,8 @@ async function executeQuery(query) {
             }
             try {
                 const result = JSON.parse(stdout);
-                resolve(result);
+                // Wrap single object in array
+                resolve(Array.isArray(result) ? result : [result]);
             }
             catch (e) {
                 resolve([]);
@@ -89,12 +90,8 @@ async function main() {
     }
     // Execute all queries
     const results = await Promise.all(queries.map(q => executeQuery(q)));
-    // Output as JSONL (one JSON object per line)
-    results.forEach(resultArray => {
-        if (Array.isArray(resultArray) && resultArray.length > 0) {
-            resultArray.forEach(item => console.log(JSON.stringify(item)));
-        }
-    });
+    // Output as JSON array of arrays
+    console.log(JSON.stringify(results));
 }
 main().catch(e => {
     console.error(e);
