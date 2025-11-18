@@ -197,6 +197,20 @@ async function main() {
     }
   }
   
+  // Deduplicate processedPatterns (keep unique combinations of original + replaced)
+  const seenPatterns = new Set<string>()
+  const uniquePatterns: typeof result.processedPatterns = []
+  
+  for (const pattern of result.processedPatterns) {
+    const key = `${pattern.original}::${pattern.replaced}`
+    if (!seenPatterns.has(key)) {
+      seenPatterns.add(key)
+      uniquePatterns.push(pattern)
+    }
+  }
+  
+  result.processedPatterns = uniquePatterns
+  
   // Check for unprocessed markers
   if (result.hasUnprocessed) {
     result.warnings.push('⚠️ Text contains unprocessed patterns that require manual review')
