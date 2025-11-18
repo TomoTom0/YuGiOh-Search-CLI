@@ -3,16 +3,27 @@
   "version": "1.0.0",
   "description": "MCP server for Yu-Gi-Oh card search",
   "type": "module",
-  "main": "src/ygo-search-card-server.ts",
+  "main": "./dist/ygo-search-card-server.js",
   "bin": {
-    "ygo-search-card-server": "./src/ygo-search-card-server.ts",
-    "ygo_search": "./src/cli/ygo_search.ts",
-    "ygo_bulk_search": "./src/cli/ygo_bulk_search.ts",
-    "ygo_extract": "./src/cli/ygo_extract.ts",
-    "ygo_convert": "./src/cli/ygo_convert.ts"
+    "ygo-search-card-server": "./dist/ygo-search-card-server.js",
+    "ygo_search": "./dist/cli/ygo_search.js",
+    "ygo_bulk_search": "./dist/cli/ygo_bulk_search.js",
+    "ygo_extract": "./dist/cli/ygo_extract.js",
+    "ygo_convert": "./dist/cli/ygo_convert.js"
   },
+  "types": "./dist/ygo-search-card-server.d.ts",
+  "files": [
+    "dist",
+    "data",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "start": "npx tsx src/ygo-search-card-server.ts",
+    "dev": "tsx src/ygo-search-card-server.ts",
+    "build": "tsc",
+    "start": "node dist/ygo-search-card-server.js",
+    "prebuild": "rm -rf dist",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -35,6 +46,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
+    "typescript": "^5.7.3",
     "vitest": "^4.0.10"
   }
 }

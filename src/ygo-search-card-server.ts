@@ -52,7 +52,7 @@ async function executeAndSave(
   cliArgs: string[],
   outputPath?: string,
   outputDir?: string
-): Promise<{ content: Array<{ type: string; text: string }> }> {
+): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   const result = await executeCLI(cliArgs);
   const resolvedPath = resolveOutputPath(outputPath, outputDir);
 
@@ -62,7 +62,7 @@ async function executeAndSave(
       await saveOutput(resolvedPath, outputContent);
       return {
         content: [{
-          type: "text",
+          type: "text" as const,
           text: `${outputContent}\n\n✅ Saved to: ${resolvedPath}`
         }]
       };
@@ -73,7 +73,7 @@ async function executeAndSave(
 }
 
 // Helper function to execute CLI script with type safety
-async function executeCLI(args: string[]): Promise<{ content: Array<{ type: string; text: string }> }> {
+async function executeCLI(args: string[]): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   return new Promise((resolve) => {
     const child: ChildProcess = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
     let out = "", err = "";
@@ -82,12 +82,12 @@ async function executeCLI(args: string[]): Promise<{ content: Array<{ type: stri
     child.stderr?.on("data", (b: Buffer) => (err += b.toString()));
     
     child.on("error", (error: Error) => {
-      resolve({ content: [{ type: "text", text: `spawn error: ${error.message}` }] });
+      resolve({ content: [{ type: "text" as const, text: `spawn error: ${error.message}` }] });
     });
     
     child.on("close", (code: number | null) => {
       if (code !== 0) {
-        resolve({ content: [{ type: "text", text: `error: ${err || `exit ${code}`}` }] });
+        resolve({ content: [{ type: "text" as const, text: `error: ${err || `exit ${code}`}` }] });
         return;
       }
       resolve({ content: [{ type: "text", text: out }] });
