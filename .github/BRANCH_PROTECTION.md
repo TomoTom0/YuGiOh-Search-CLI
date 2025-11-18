@@ -86,10 +86,10 @@ feature/* → dev → main
 
 ```bash
 # main ブランチの保護設定を確認
-gh api repos/{owner}/{repo}/branches/main/protection
+gh api branches/main/protection
 
 # dev ブランチの保護設定を確認
-gh api repos/{owner}/{repo}/branches/dev/protection
+gh api branches/dev/protection
 ```
 
 ## トラブルシューティング
