@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import readline from 'readline';
+import { findProjectRoot } from './utils/project-root.js';
 async function main() {
     const args = process.argv.slice(2);
     // Parse options
@@ -110,20 +111,7 @@ Examples:
     }
     // Find project root
     const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-    let projectRoot = __dirname;
-    while (true) {
-        if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
-            const pkg = JSON.parse(await fs.promises.readFile(path.join(projectRoot, 'package.json'), 'utf8'));
-            if (pkg.name === 'ygo-search-card-mcp') {
-                break;
-            }
-        }
-        const parentDir = path.dirname(projectRoot);
-        if (parentDir === projectRoot) {
-            throw new Error('Could not find project root');
-        }
-        projectRoot = parentDir;
-    }
+    const projectRoot = await findProjectRoot(__dirname);
     const dataDir = path.join(projectRoot, 'data');
     const cardsFile = path.join(dataDir, 'cards-all.tsv');
     const detailFile = path.join(dataDir, 'detail-all.tsv');

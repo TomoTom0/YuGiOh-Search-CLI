@@ -2,6 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import url from 'url'
+import { findProjectRoot } from './utils/project-root.js'
 
 // Usage:
 // Single mode: node search-cards.ts '{"name":"アシスト"}' cols=name,cardId mode=exact
@@ -216,21 +217,7 @@ async function main(){
 
   // Find project root (where package.json is)
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  let projectRoot = __dirname
-  while (true) {
-    if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
-      const pkg = JSON.parse(await fs.promises.readFile(path.join(projectRoot, 'package.json'), 'utf8'))
-      if (pkg.name === 'ygo-search-card-mcp') {
-        break // Found project root
-      }
-    }
-    const parentDir = path.dirname(projectRoot)
-    if (parentDir === projectRoot) {
-      // Reached filesystem root without finding package.json
-      throw new Error('Could not find project root containing package.json with name "ygo-search-card-mcp".')
-    }
-    projectRoot = parentDir
-  }
+  const projectRoot = await findProjectRoot(__dirname)
   
   const dataDir = path.join(projectRoot, 'data')
   const cardsFile = path.join(dataDir,'cards-all.tsv')

@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "dev": "tsx src/ygo-search-card-server.ts",
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/cli/*.js dist/ygo-search-card-server.js",
     "start": "node dist/ygo-search-card-server.js",
     "prebuild": "rm -rf dist",
     "prepublishOnly": "npm run build",

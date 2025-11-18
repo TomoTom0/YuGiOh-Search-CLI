@@ -17,7 +17,7 @@ npm link
 
 This creates global commands:
 - `ygo_search` - Search cards
-- `ygo_bulk_search` - Bulk search (not yet implemented as CLI)
+- `ygo_bulk_search` - Bulk search
 - `ygo_extract` - Extract and search card patterns from text
 - `ygo_convert` - Convert between JSON/JSONL/JSONC/YAML formats
 

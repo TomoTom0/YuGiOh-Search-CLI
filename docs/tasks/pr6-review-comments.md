@@ -34,13 +34,17 @@ PR #6 に対するレビューコメントへの対応タスクリスト。
 
 ## 対応後の確認
 
-- [x] npm run build が成功する
-- [ ] npm test が成功する (integration testはdata filesが必要)
-- [ ] 各レビューコメントに対して返信済み
-- [ ] GitHub Actions が成功する
+- [x] npm run build が成功する (2025-11-18)
+- [x] 各レビューコメントに対して返信済み (2025-11-18)
+- [x] PR #6 マージ完了 (2025-11-18)
+- [ ] npm test で integration tests が失敗中 (data filesがない環境での実行)
+  - Unit tests: 55 passed
+  - Integration tests: 17 failed (bulk-search, search-cards, extract-and-search, judge-and-replace)
+- [ ] GitHub Actions が成功する (保留中: 1 expected check)
 
 ## 備考
 
-- Integration テストは data files が必要なため、ローカル環境では失敗する可能性がある
+- Integration テストは data files が必要なため、ローカル環境では失敗する
 - Unit テストはすべてパス (55 passed)
-- GitHub Actions でのテスト実行で確認予定
+- GitHub Actions での 1 expected check が pending 状態
+- dev branch にマージ済み、さらなる修正が必要な場合は新しいPRを作成

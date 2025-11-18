@@ -71,9 +71,13 @@ async function executeQuery(query: QueryParams): Promise<any[]> {
       }
       
       try {
-        const result = JSON.parse(stdout)
-        // Wrap single object in array
-        resolve(Array.isArray(result) ? result : [result])
+        if (!stdout.trim()) {
+          resolve([])
+          return
+        }
+        const lines = stdout.trim().split('\n')
+        const result = lines.map(line => JSON.parse(line))
+        resolve(result)
       } catch (e) {
         resolve([])
       }
