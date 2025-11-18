@@ -200,13 +200,19 @@ async function main() {
     // Find project root (where package.json is)
     const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
     let projectRoot = __dirname;
-    while (projectRoot !== path.dirname(projectRoot)) {
+    while (true) {
         if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
-            const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
-            if (pkg.name === 'ygo-search-card-mcp')
-                break;
+            const pkg = JSON.parse(await fs.promises.readFile(path.join(projectRoot, 'package.json'), 'utf8'));
+            if (pkg.name === 'ygo-search-card-mcp') {
+                break; // Found project root
+            }
         }
-        projectRoot = path.dirname(projectRoot);
+        const parentDir = path.dirname(projectRoot);
+        if (parentDir === projectRoot) {
+            // Reached filesystem root without finding package.json
+            throw new Error('Could not find project root containing package.json with name "ygo-search-card-mcp".');
+        }
+        projectRoot = parentDir;
     }
     const dataDir = path.join(projectRoot, 'data');
     const cardsFile = path.join(dataDir, 'cards-all.tsv');

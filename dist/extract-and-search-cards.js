@@ -36,7 +36,7 @@ async function searchCard(pattern) {
     }
     // cardId search doesn't need these flags
     return new Promise((resolve) => {
-        const child = spawn('npx', ['tsx', searchScript, ...args], {
+        const child = spawn('node', [searchScript, ...args], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         let stdout = '';

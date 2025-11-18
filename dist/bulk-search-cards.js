@@ -32,7 +32,7 @@ async function executeQuery(query) {
         args.push(`flagNearly=true`);
     }
     return new Promise((resolve, reject) => {
-        const child = spawn('npx', ['tsx', searchScript, ...args], {
+        const child = spawn('node', [searchScript, ...args], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         let stdout = '';

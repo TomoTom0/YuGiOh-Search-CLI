@@ -50,7 +50,7 @@ async function bulkSearchCards(patterns: Array<{type: PatternType, query: string
   })
   
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', bulkSearchScript, JSON.stringify(queries)], {
+    const child = spawn('node', [bulkSearchScript, JSON.stringify(queries)], {
       stdio: ['ignore', 'pipe', 'pipe']
     })
     

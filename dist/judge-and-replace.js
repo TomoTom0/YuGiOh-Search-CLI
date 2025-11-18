@@ -35,7 +35,7 @@ async function bulkSearchCards(patterns) {
         return query;
     });
     return new Promise((resolve) => {
-        const child = spawn('npx', ['tsx', bulkSearchScript, JSON.stringify(queries)], {
+        const child = spawn('node', [bulkSearchScript, JSON.stringify(queries)], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         let stdout = '';
