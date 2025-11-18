@@ -2,6 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import url from 'url'
+import { findProjectRoot } from './utils/project-root.js'
 
 // Usage:
 // Single mode: node search-cards.ts '{"name":"アシスト"}' cols=name,cardId mode=exact
@@ -12,8 +13,9 @@ import url from 'url'
 // flagAutoSupply: true (default) | false - when true and cols includes 'text', automatically includes supplementInfo (always, even if empty)
 // flagAutoRuby: true (default) | false - when true and cols includes 'name', automatically includes ruby
 // flagAutoModify: true (default) | false - when filtering by name, normalizes input to ignore whitespace, symbols, case, half/full width, hiragana/katakana differences (uses pre-computed nameModified column for efficiency)
-// flagAllowWild: true (default) | false - when true, treats * as wildcard (matches any characters) in name searches
+// flagAllowWild: true (default) | false - when true, treats * as wildcard (matches any characters) in name and text fields
 // flagNearly: false (default) | true - (TODO) when true, uses fuzzy matching for name search to handle typos and minor variations
+// Negative search: Use -(space|　)-"phrase" or -'phrase' or -`phrase` to exclude cards containing the phrase (works with text fields)
 
 import readline from 'readline'
 
@@ -48,22 +50,60 @@ function normalizeForSearch(str: string): string {
     .replace(/[\u3041-\u3096]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0x60))
 }
 
-function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: boolean = false, isNameField: boolean = false, normalizedVal?: string, flagAllowWild: boolean = false) {
+// Parse negative search patterns from text: -(space|　)-"phrase" or -'phrase' or -`phrase`
+function parseNegativePatterns(patternStr: string): { positive: string; negative: string[] } {
+  const negativePatterns: string[] = []
+  let positivePattern = patternStr
+  
+  // Match patterns: (^ or space or fullwidth space) followed by - followed by quoted phrase
+  const negativeRegex = /(^|[\s\u3000])-["'`]([^"'`]+)["'`]/g
+  let match: RegExpExecArray | null
+  
+  while ((match = negativeRegex.exec(patternStr)) !== null) {
+    negativePatterns.push(match[2])
+  }
+  
+  // Remove negative patterns from the positive search
+  if (negativePatterns.length > 0) {
+    positivePattern = patternStr.replace(/(^|[\s\u3000])-["'`]([^"'`]+)["'`]/g, '').trim()
+  }
+  
+  return { positive: positivePattern, negative: negativePatterns }
+}
+
+function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: boolean = false, isNameField: boolean = false, normalizedVal?: string, flagAllowWild: boolean = false, isTextField: boolean = false) {
   val = val === undefined || val === null ? '' : String(val)
   if(pattern === null || pattern === undefined) return true
   
   const patternStr = String(pattern)
   
-  // Apply wildcard matching if flagAllowWild is true and pattern contains *
-  if(isNameField && flagAllowWild && patternStr.includes('*')) {
+  // Parse negative patterns (for text fields and name field)
+  const { positive: positivePattern, negative: negativePatterns } = parseNegativePatterns(patternStr)
+  
+  // Check negative patterns first - if any match, exclude this card
+  if (negativePatterns.length > 0) {
+    for (const negPattern of negativePatterns) {
+      if (val.includes(negPattern)) {
+        return false
+      }
+    }
+  }
+  
+  // If only negative patterns (no positive pattern), and we passed negative check, return true
+  if (!positivePattern || positivePattern === '') {
+    return negativePatterns.length > 0
+  }
+  
+  // Apply wildcard matching for name and text fields if flagAllowWild is true and pattern contains *
+  if((isNameField || isTextField) && flagAllowWild && positivePattern.includes('*')) {
     // Protect * from normalization by temporarily replacing it
     const placeholder = '\uFFFF' // Use a character unlikely to appear in card names
-    const protectedPattern = patternStr.replace(/\*/g, placeholder)
+    const protectedPattern = positivePattern.replace(/\*/g, placeholder)
     
-    const targetVal = flagAutoModify 
+    const targetVal = (isNameField && flagAutoModify)
       ? (normalizedVal !== undefined ? normalizedVal : normalizeForSearch(val))
       : val
-    const normalizedPattern = flagAutoModify 
+    const normalizedPattern = (isNameField && flagAutoModify)
       ? normalizeForSearch(protectedPattern)
       : protectedPattern
     
@@ -72,7 +112,7 @@ function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: b
       .replace(/[.+?^${}()|[\]\\]/g, '\\$&') // Escape regex special chars
       .replace(new RegExp(placeholder, 'g'), '.*') // Convert placeholder to .*
     
-    const regex = new RegExp(`^${regexPattern}$`)
+    const regex = isTextField ? new RegExp(regexPattern) : new RegExp(`^${regexPattern}$`)
     return regex.test(targetVal)
   }
   
@@ -80,13 +120,18 @@ function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: b
   if(isNameField && flagAutoModify) {
     // Use pre-computed nameModified if available, otherwise compute on the fly
     const normalized = normalizedVal !== undefined ? normalizedVal : normalizeForSearch(val)
-    const normalizedPattern = normalizeForSearch(patternStr)
+    const normalizedPattern = normalizeForSearch(positivePattern)
     if(mode === 'partial') return normalized.indexOf(normalizedPattern) !== -1
     return normalized === normalizedPattern
   }
   
-  if(mode === 'partial') return val.indexOf(patternStr) !== -1
-  return val === patternStr
+  // For text fields, always use substring matching
+  if(isTextField) {
+    return val.includes(positivePattern)
+  }
+  
+  if(mode === 'partial') return val.indexOf(positivePattern) !== -1
+  return val === positivePattern
 }
 
 async function main(){
@@ -170,11 +215,14 @@ async function main(){
     process.exit(2)
   }
 
+  // Find project root (where package.json is)
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const dataDir = path.join(__dirname,'../data')
+  const projectRoot = await findProjectRoot(__dirname)
+  
+  const dataDir = path.join(projectRoot, 'data')
   const cardsFile = path.join(dataDir,'cards-all.tsv')
   const detailFile = path.join(dataDir,'detail-all.tsv')
-  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error('data files not found'); process.exit(2) }
+  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error(`data files not found at ${dataDir}`); process.exit(2) }
 
   const rl = readline.createInterface({ input: fs.createReadStream(cardsFile), crlfDelay: Infinity })
   let headers: string[] = []
@@ -201,14 +249,15 @@ async function main(){
         const useMode = (k === 'name') ? mode : 'exact'
         const fieldValue = obj[k] === undefined ? '' : obj[k]
         const isNameField = (k === 'name')
+        const isTextField = ['text', 'pendulumText', 'supplementInfo', 'pendulumSupplementInfo'].includes(k)
         // Use pre-computed nameModified if available
         const normalizedVal = (isNameField && nameModifiedIndex >= 0) ? obj['nameModified'] : undefined
-        const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild)
+        const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField)
         
         // If searching by name and includeRuby is true, also check ruby field
         if(k === 'name' && includeRuby && !matchesField){
           const rubyValue = obj['ruby'] === undefined ? '' : obj['ruby']
-          return valueMatches(rubyValue, cond, useMode, flagAutoModify, true, undefined, flagAllowWild)
+          return valueMatches(rubyValue, cond, useMode, flagAutoModify, true, undefined, flagAllowWild, false)
         }
         
         return matchesField
@@ -281,7 +330,11 @@ async function main(){
     }
   }
 
-  console.log(JSON.stringify(results,null,2))
+  // Output as JSONL (one JSON object per line)
+  if (Array.isArray(results) && results.length > 0) {
+    results.forEach(item => console.log(JSON.stringify(item)))
+  }
+  // No output for empty results
 }
 
 main().catch(e=>{ console.error(e); process.exit(2) })

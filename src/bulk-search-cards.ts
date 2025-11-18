@@ -5,7 +5,7 @@ import path from 'path'
 import url from 'url'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const searchScript = path.join(__dirname, 'search-cards.ts')
+const searchScript = path.join(__dirname, 'search-cards.js')
 
 interface QueryParams {
   filter: Record<string, any>
@@ -48,7 +48,7 @@ async function executeQuery(query: QueryParams): Promise<any[]> {
   }
   
   return new Promise((resolve, reject) => {
-    const child = spawn('npx', ['tsx', searchScript, ...args], {
+    const child = spawn('node', [searchScript, ...args], {
       stdio: ['ignore', 'pipe', 'pipe']
     })
     
@@ -71,7 +71,12 @@ async function executeQuery(query: QueryParams): Promise<any[]> {
       }
       
       try {
-        const result = JSON.parse(stdout)
+        if (!stdout.trim()) {
+          resolve([])
+          return
+        }
+        const lines = stdout.trim().split('\n')
+        const result = lines.map(line => JSON.parse(line))
         resolve(result)
       } catch (e) {
         resolve([])
@@ -104,7 +109,7 @@ async function main() {
   }
   
   if (queries.length === 0) {
-    console.log('[]')
+    // No output for empty queries
     return
   }
   
@@ -116,7 +121,8 @@ async function main() {
   // Execute all queries
   const results = await Promise.all(queries.map(q => executeQuery(q)))
   
-  console.log(JSON.stringify(results, null, 2))
+  // Output as JSON array of arrays
+  console.log(JSON.stringify(results))
 }
 
 main().catch(e => {
