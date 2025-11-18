@@ -4,7 +4,7 @@ import path from 'path';
 import url from 'url';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const scriptPath = path.join(__dirname, '..', 'bulk-search-cards.ts');
+const scriptPath = path.join(__dirname, '..', 'bulk-search-cards.js');
 
 async function main() {
   const args = process.argv.slice(2);
@@ -30,7 +30,7 @@ Examples:
     process.exit(0);
   }
 
-  const proc = spawn('npx', ['tsx', scriptPath, ...args], {
+  const proc = spawn('node', [scriptPath, ...args], {
     stdio: 'inherit'
   });
 
