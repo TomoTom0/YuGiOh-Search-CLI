@@ -8,13 +8,13 @@ import url from "url";
 import fs from "fs/promises";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const cliScript = path.join(__dirname, "search-cards.ts");
-const bulkScript = path.join(__dirname, "bulk-search-cards.ts");
-const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.ts");
-const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.ts");
-const formatConverterScript = path.join(__dirname, "format-converter.ts");
-const npxPath = "npx";
-const tsxArgs = ["tsx", cliScript];
+const cliScript = path.join(__dirname, "search-cards.js");
+const bulkScript = path.join(__dirname, "bulk-search-cards.js");
+const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.js");
+const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.js");
+const formatConverterScript = path.join(__dirname, "format-converter.js");
+const npxPath = "node";
+const tsxArgs = [cliScript];
 
 const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
 
@@ -166,7 +166,7 @@ server.tool(
   `Bulk search multiple cards at once. More efficient than calling search_cards multiple times. Returns array of result arrays.`,
   bulkParamsSchema,
   async ({ queries, outputPath, outputDir }) => {
-    const args = ["tsx", bulkScript, JSON.stringify(queries)];
+    const args = [bulkScript, JSON.stringify(queries)];
     return executeAndSave(args, outputPath, outputDir);
   }
 );
@@ -181,7 +181,7 @@ server.tool(
     outputDir: z.string().optional().describe("Optional: Directory to save output file."),
   },
   async ({ text, outputPath, outputDir }) => {
-    const args = ["tsx", extractAndSearchScript, text];
+    const args = [extractAndSearchScript, text];
     return executeAndSave(args, outputPath, outputDir);
   }
 );
@@ -196,7 +196,7 @@ server.tool(
     outputDir: z.string().optional().describe("Optional: Directory to save output file."),
   },
   async ({ text, outputPath, outputDir }) => {
-    const args = ["tsx", judgeAndReplaceScript, text];
+    const args = [judgeAndReplaceScript, text];
     return executeAndSave(args, outputPath, outputDir);
   }
 );
@@ -213,7 +213,6 @@ server.tool(
   },
   async ({ conversions }) => {
     const args = [
-      "tsx",
       formatConverterScript,
       ...conversions.map(c => `${c.input}:${c.output}`)
     ];

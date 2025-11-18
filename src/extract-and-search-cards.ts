@@ -3,10 +3,10 @@ import { spawn } from 'child_process'
 import path from 'path'
 import url from 'url'
 import type { Card, CardMatch, PatternType } from './types/card'
-import { extractCardPatterns } from './utils/pattern-extractor'
+import { extractCardPatterns } from './utils/pattern-extractor.js'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const searchScript = path.join(__dirname, 'search-cards.ts')
+const searchScript = path.join(__dirname, 'search-cards.js')
 
 interface SearchResult {
   cards: CardMatch[]
@@ -45,7 +45,7 @@ async function searchCard(pattern: {pattern: string, type: PatternType, query: s
   // cardId search doesn't need these flags
   
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', searchScript, ...args], {
+    const child = spawn('node', [searchScript, ...args], {
       stdio: ['ignore', 'pipe', 'pipe']
     })
     

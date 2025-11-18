@@ -4,11 +4,11 @@ import path from 'path'
 import url from 'url'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const searchScript = path.join(__dirname, '..', 'src', 'search-cards.ts')
+const searchScript = path.join(__dirname, '..', '..', 'dist', 'search-cards.js')
 
 function runSearch(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', searchScript, ...args])
+    const child = spawn('node', [searchScript, ...args])
     let stdout = ''
     let stderr = ''
 

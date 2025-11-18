@@ -4,7 +4,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import url from 'url';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const searchScript = path.join(__dirname, 'search-cards.ts');
+const searchScript = path.join(__dirname, 'search-cards.js');
 async function executeQuery(query) {
     const args = [JSON.stringify(query.filter)];
     if (query.cols && query.cols.length > 0) {
@@ -32,7 +32,7 @@ async function executeQuery(query) {
         args.push(`flagNearly=true`);
     }
     return new Promise((resolve, reject) => {
-        const child = spawn('npx', ['tsx', searchScript, ...args], {
+        const child = spawn('node', [searchScript, ...args], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         let stdout = '';

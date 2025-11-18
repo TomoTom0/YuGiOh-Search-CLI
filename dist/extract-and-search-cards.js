@@ -2,9 +2,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import url from 'url';
-import { extractCardPatterns } from './utils/pattern-extractor';
+import { extractCardPatterns } from './utils/pattern-extractor.js';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const searchScript = path.join(__dirname, 'search-cards.ts');
+const searchScript = path.join(__dirname, 'search-cards.js');
 // Execute search for a single pattern
 async function searchCard(pattern) {
     const args = [];
@@ -36,7 +36,7 @@ async function searchCard(pattern) {
     }
     // cardId search doesn't need these flags
     return new Promise((resolve) => {
-        const child = spawn('npx', ['tsx', searchScript, ...args], {
+        const child = spawn('node', [searchScript, ...args], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         let stdout = '';

@@ -214,11 +214,28 @@ async function main(){
     process.exit(2)
   }
 
+  // Find project root (where package.json is)
   const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const dataDir = path.join(__dirname,'../data')
+  let projectRoot = __dirname
+  while (true) {
+    if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
+      const pkg = JSON.parse(await fs.promises.readFile(path.join(projectRoot, 'package.json'), 'utf8'))
+      if (pkg.name === 'ygo-search-card-mcp') {
+        break // Found project root
+      }
+    }
+    const parentDir = path.dirname(projectRoot)
+    if (parentDir === projectRoot) {
+      // Reached filesystem root without finding package.json
+      throw new Error('Could not find project root containing package.json with name "ygo-search-card-mcp".')
+    }
+    projectRoot = parentDir
+  }
+  
+  const dataDir = path.join(projectRoot, 'data')
   const cardsFile = path.join(dataDir,'cards-all.tsv')
   const detailFile = path.join(dataDir,'detail-all.tsv')
-  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error('data files not found'); process.exit(2) }
+  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error(`data files not found at ${dataDir}`); process.exit(2) }
 
   const rl = readline.createInterface({ input: fs.createReadStream(cardsFile), crlfDelay: Infinity })
   let headers: string[] = []

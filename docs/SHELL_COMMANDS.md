@@ -4,14 +4,24 @@
 
 ```bash
 cd /home/tomo/work/prac/ts/ygo-db-local-mcp
+
+# 1. Install dependencies
+npm install
+
+# 2. Build project (required!)
+npm run build
+
+# 3. Install global commands (optional)
 npm link
 ```
 
 This creates global commands:
-- `ygo_search`
-- `ygo_bulk_search`
-- `ygo_extract`
-- `ygo_convert`
+- `ygo_search` - Search cards
+- `ygo_bulk_search` - Bulk search (not yet implemented as CLI)
+- `ygo_extract` - Extract and search card patterns from text
+- `ygo_convert` - Convert between JSON/JSONL/JSONC/YAML formats
+
+**Note**: After build, scripts work without tsx!
 
 ## PATH Setup
 
@@ -62,11 +72,14 @@ ygo_bulk_search '{"race":"ドラゴン族"}' '{"race":"魔法使い族"}' \
 ### ygo_extract - Extract card names from text
 
 ```bash
-# Extract and search
-ygo_extract "青眼の白龍とブラック・マジシャンを召喚"
+# Extract patterns: {flexible}, 《exact》, {{name|id}}
+ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
 
-# With options
-ygo_extract "青眼の白龍で攻撃" cols=name,cardId,atk outputPath=extracted.jsonl
+# With multiple pattern types
+ygo_extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
+
+# Output to file
+ygo_extract "{青眼}で攻撃" outputPath=extracted.jsonl
 ```
 
 ### ygo_convert - Convert file formats

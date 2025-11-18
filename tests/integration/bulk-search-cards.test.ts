@@ -4,11 +4,11 @@ import path from 'path'
 import url from 'url'
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const bulkScript = path.join(__dirname, '..', 'src', 'bulk-search-cards.ts')
+const bulkScript = path.join(__dirname, '..', '..', 'dist', 'bulk-search-cards.js')
 
 function runBulkSearch(queries: any[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', bulkScript, JSON.stringify(queries)])
+    const child = spawn('node', [bulkScript, JSON.stringify(queries)])
     let stdout = ''
     let stderr = ''
 

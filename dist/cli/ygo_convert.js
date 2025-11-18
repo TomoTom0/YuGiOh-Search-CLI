@@ -3,7 +3,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import url from 'url';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const scriptPath = path.join(__dirname, '..', 'format-converter.ts');
+const scriptPath = path.join(__dirname, '..', 'format-converter.js');
 async function main() {
     const args = process.argv.slice(2);
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
@@ -28,7 +28,7 @@ Examples:
 `);
         process.exit(0);
     }
-    const proc = spawn('npx', ['tsx', scriptPath, ...args], {
+    const proc = spawn('node', [scriptPath, ...args], {
         stdio: 'inherit'
     });
     proc.on('exit', (code) => {

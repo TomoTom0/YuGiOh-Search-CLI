@@ -7,13 +7,13 @@ import path from "path";
 import url from "url";
 import fs from "fs/promises";
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const cliScript = path.join(__dirname, "search-cards.ts");
-const bulkScript = path.join(__dirname, "bulk-search-cards.ts");
-const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.ts");
-const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.ts");
-const formatConverterScript = path.join(__dirname, "format-converter.ts");
-const npxPath = "npx";
-const tsxArgs = ["tsx", cliScript];
+const cliScript = path.join(__dirname, "search-cards.js");
+const bulkScript = path.join(__dirname, "bulk-search-cards.js");
+const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.js");
+const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.js");
+const formatConverterScript = path.join(__dirname, "format-converter.js");
+const npxPath = "node";
+const tsxArgs = [cliScript];
 const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
 // Helper function to generate timestamp-based filename
 function generateTimestampFilename(extension = "jsonl") {
@@ -140,7 +140,7 @@ const bulkParamsSchema = {
     outputDir: z.string().optional().describe("Optional: Directory to save output file. Uses YGO_OUTPUT_DIR env var or current directory if not specified."),
 };
 server.tool("bulk_search_cards", `Bulk search multiple cards at once. More efficient than calling search_cards multiple times. Returns array of result arrays.`, bulkParamsSchema, async ({ queries, outputPath, outputDir }) => {
-    const args = ["tsx", bulkScript, JSON.stringify(queries)];
+    const args = [bulkScript, JSON.stringify(queries)];
     return executeAndSave(args, outputPath, outputDir);
 });
 // Extract and search tool
@@ -149,7 +149,7 @@ server.tool("extract_and_search_cards", `Extract card name patterns from text an
     outputPath: z.string().optional().describe("Optional: Save results to file. Filename or absolute path."),
     outputDir: z.string().optional().describe("Optional: Directory to save output file."),
 }, async ({ text, outputPath, outputDir }) => {
-    const args = ["tsx", extractAndSearchScript, text];
+    const args = [extractAndSearchScript, text];
     return executeAndSave(args, outputPath, outputDir);
 });
 // Judge and replace tool
@@ -158,7 +158,7 @@ server.tool("judge_and_replace_cards", `Extract card patterns, search, and repla
     outputPath: z.string().optional().describe("Optional: Save results to file. Filename or absolute path."),
     outputDir: z.string().optional().describe("Optional: Directory to save output file."),
 }, async ({ text, outputPath, outputDir }) => {
-    const args = ["tsx", judgeAndReplaceScript, text];
+    const args = [judgeAndReplaceScript, text];
     return executeAndSave(args, outputPath, outputDir);
 });
 // Format converter tool
@@ -169,7 +169,6 @@ server.tool("convert_file_formats", `Convert between JSON, JSONL, JSONC, and YAM
     })).min(1).describe("Array of conversion pairs. Each pair specifies input and output file paths.")
 }, async ({ conversions }) => {
     const args = [
-        "tsx",
         formatConverterScript,
         ...conversions.map(c => `${c.input}:${c.output}`)
     ];

@@ -43,6 +43,9 @@ cd ygo-db-local-mcp
 # Install dependencies
 npm install
 
+# Build project (required!)
+npm run build
+
 # Download data files (21.2MB total)
 # Usage: bash scripts/setup/setup-data.sh [version]
 # Default version: v1.0.0
@@ -50,6 +53,9 @@ bash scripts/setup/setup-data.sh
 
 # Or specify a version:
 # bash scripts/setup/setup-data.sh v1.0.0
+
+# Optional: Install CLI commands globally
+npm link
 ```
 
 ## Usage
@@ -57,8 +63,7 @@ bash scripts/setup/setup-data.sh
 ### As MCP Server
 
 ```bash
-npx tsx src/ygo-search-card-server.ts
-# or
+# Start MCP server
 npm start
 ```
 
@@ -68,32 +73,45 @@ npm start
 {
   "mcpServers": {
     "ygo-search-card": {
-      "command": "npx",
+      "command": "node",
       "args": [
-        "tsx",
-        "<YOUR_ABSOLUTE_PATH>/ygo-db-local-mcp/src/ygo-search-card-server.ts"
+        "<YOUR_ABSOLUTE_PATH>/ygo-db-local-mcp/dist/ygo-search-card-server.js"
       ]
     }
   }
 }
 ```
 
-**Note**: Replace `<YOUR_ABSOLUTE_PATH>` with the actual absolute path to your project directory.
+**Note**: 
+- Replace `<YOUR_ABSOLUTE_PATH>` with the actual absolute path to your project directory
+- Make sure you've run `npm run build` before starting the MCP server
+- **No tsx required!** - All scripts run directly with Node.js after build
 
 ### Direct CLI
 
+After `npm link`, use the global commands:
+
 ```bash
 # Search by name
-npx tsx src/search-cards.ts '{"name":"青眼の白龍"}' cols=name,cardId
+ygo_search '{"name":"青眼の白龍"}' cols=name,cardId
 
 # Wildcard search
-npx tsx src/search-cards.ts '{"name":"ブルーアイズ*"}' cols=name,atk
+ygo_search '{"name":"ブルーアイズ*"}' cols=name,atk
 
 # Extract from text
-npx tsx src/extract-and-search-cards.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
+ygo_extract "Use {ブルーアイズ*} and 《青眼の白龍》"
 
-# Judge and replace patterns
-npx tsx src/judge-and-replace.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
+# Convert file formats
+ygo_convert input.json:output.jsonl
+```
+
+Or use node directly:
+
+```bash
+node dist/search-cards.js '{"name":"青眼の白龍"}' cols=name,cardId
+node dist/extract-and-search-cards.js "Use {ブルーアイズ*}"
+node dist/judge-and-replace.js "Summon {青眼} and attack"
+node dist/format-converter.js input.json:output.jsonl
 ```
 
 ## Database
