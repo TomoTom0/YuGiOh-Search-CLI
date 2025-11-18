@@ -5,19 +5,75 @@ import { z } from "zod";
 import { spawn, type ChildProcess } from "child_process";
 import path from "path";
 import url from "url";
+import fs from "fs/promises";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const cliScript = path.join(__dirname, "search-cards.ts");
 const bulkScript = path.join(__dirname, "bulk-search-cards.ts");
 const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.ts");
 const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.ts");
+const formatConverterScript = path.join(__dirname, "format-converter.ts");
 const npxPath = "npx";
 const tsxArgs = ["tsx", cliScript];
 
 const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
 
+// Helper function to generate timestamp-based filename
+function generateTimestampFilename(extension: string = "jsonl"): string {
+  const now = new Date();
+  const timestamp = now.toISOString().slice(0, 19).replace(/:/g, "-"); // 2025-11-17T21-12-02
+  return `ygo-search-${timestamp}.${extension}`;
+}
+
+// Helper function to resolve output path
+function resolveOutputPath(outputPath?: string, outputDir?: string): string | null {
+  if (!outputPath && !outputDir) return null;
+  
+  const dir = outputDir || process.env.YGO_OUTPUT_DIR || process.cwd();
+  const filename = outputPath || generateTimestampFilename();
+  
+  // If outputPath is absolute, use it directly
+  if (outputPath && path.isAbsolute(outputPath)) {
+    return outputPath;
+  }
+  
+  return path.join(dir, filename);
+}
+
+// Helper function to save output to file
+async function saveOutput(outputPath: string, content: string): Promise<void> {
+  const dir = path.dirname(outputPath);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(outputPath, content, "utf-8");
+}
+
+// Helper function to execute and optionally save output
+async function executeAndSave(
+  cliArgs: string[],
+  outputPath?: string,
+  outputDir?: string
+): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+  const result = await executeCLI(cliArgs);
+  const resolvedPath = resolveOutputPath(outputPath, outputDir);
+
+  if (resolvedPath) {
+    const outputContent = result.content[0]?.text;
+    if (outputContent) {
+      await saveOutput(resolvedPath, outputContent);
+      return {
+        content: [{
+          type: "text" as const,
+          text: `${outputContent}\n\n✅ Saved to: ${resolvedPath}`
+        }]
+      };
+    }
+  }
+  
+  return result;
+}
+
 // Helper function to execute CLI script with type safety
-async function executeCLI(args: string[]): Promise<{ content: Array<{ type: string; text: string }> }> {
+async function executeCLI(args: string[]): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   return new Promise((resolve) => {
     const child: ChildProcess = spawn(npxPath, args, { stdio: ["ignore", "pipe", "pipe"] });
     let out = "", err = "";
@@ -26,12 +82,12 @@ async function executeCLI(args: string[]): Promise<{ content: Array<{ type: stri
     child.stderr?.on("data", (b: Buffer) => (err += b.toString()));
     
     child.on("error", (error: Error) => {
-      resolve({ content: [{ type: "text", text: `spawn error: ${error.message}` }] });
+      resolve({ content: [{ type: "text" as const, text: `spawn error: ${error.message}` }] });
     });
     
     child.on("close", (code: number | null) => {
       if (code !== 0) {
-        resolve({ content: [{ type: "text", text: `error: ${err || `exit ${code}`}` }] });
+        resolve({ content: [{ type: "text" as const, text: `error: ${err || `exit ${code}`}` }] });
         return;
       }
       resolve({ content: [{ type: "text", text: out }] });
@@ -59,13 +115,15 @@ const paramsSchema = {
   flagAutoModify: z.boolean().optional().describe("Normalize name for flexible matching (default: true)"),
   flagAllowWild: z.boolean().optional().describe("Treat * as wildcard in name and text searches (default: true). Negative search: -(space|　)-\"phrase\" excludes cards with phrase"),
   flagNearly: z.boolean().optional().describe("Fuzzy matching - not yet implemented (default: false)"),
+  outputPath: z.string().optional().describe("Optional: Filename or absolute path to save results. If absolute path, used directly. Otherwise combined with outputDir/YGO_OUTPUT_DIR env var/cwd. If omitted with outputDir, auto-generates timestamp filename like 'ygo-search-2025-11-17T21-12-02.jsonl'."),
+  outputDir: z.string().optional().describe("Optional: Directory to save output file. Priority: 1) This parameter, 2) YGO_OUTPUT_DIR environment variable, 3) Current directory. Creates directory if not exists. Combined with outputPath or auto-generated filename."),
 };
 
 server.tool(
   "search_cards",
   `Search Yu-Gi-Oh cards database. Available fields: name, ruby, cardId, text (card effect), attribute, race, monsterTypes, atk, def, levelValue, pendulumText, supplementInfo. Use 'text' for card effects. Supports wildcard (*) in name and text fields, and negative search: -"phrase" to exclude.`,
   paramsSchema,
-  async ({ filter, cols, mode, includeRuby, flagAutoPend, flagAutoSupply, flagAutoRuby, flagAutoModify, flagAllowWild, flagNearly }) => {
+  async ({ filter, cols, mode, includeRuby, flagAutoPend, flagAutoSupply, flagAutoRuby, flagAutoModify, flagAllowWild, flagNearly, outputPath, outputDir }) => {
     const args = [...tsxArgs, JSON.stringify(filter)];
     if (cols && cols.length) args.push(`cols=${cols.join(",")}`);
     args.push(`mode=${mode || "exact"}`);
@@ -77,7 +135,7 @@ server.tool(
     if (flagAllowWild === false) args.push(`flagAllowWild=false`);
     if (flagNearly === true) args.push(`flagNearly=true`);
 
-    return executeCLI(args);
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
@@ -98,16 +156,18 @@ const bulkParamsSchema = {
   queries: z.array(z.object(querySchema))
     .min(1)
     .max(50)
-    .describe("Array of search queries (max 50). Each query has the same structure as search_cards.")
+    .describe("Array of search queries (max 50). Each query has the same structure as search_cards."),
+  outputPath: z.string().optional().describe("Optional: Save results to file. Filename or absolute path."),
+  outputDir: z.string().optional().describe("Optional: Directory to save output file. Uses YGO_OUTPUT_DIR env var or current directory if not specified."),
 };
 
 server.tool(
   "bulk_search_cards",
   `Bulk search multiple cards at once. More efficient than calling search_cards multiple times. Returns array of result arrays.`,
   bulkParamsSchema,
-  async ({ queries }) => {
+  async ({ queries, outputPath, outputDir }) => {
     const args = ["tsx", bulkScript, JSON.stringify(queries)];
-    return executeCLI(args);
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
@@ -116,11 +176,13 @@ server.tool(
   "extract_and_search_cards",
   `Extract card name patterns from text and search for them. Supports {card-name} (flexible/wildcard), 《card-name》 (exact), and {{card-name|cardId}} (by ID).`,
   {
-    text: z.string().describe("Text containing card name patterns: {flexible}, 《exact》, or {{name|cardId}}")
+    text: z.string().describe("Text containing card name patterns: {flexible}, 《exact》, or {{name|cardId}}"),
+    outputPath: z.string().optional().describe("Optional: Save results to file. Filename or absolute path."),
+    outputDir: z.string().optional().describe("Optional: Directory to save output file."),
   },
-  async ({ text }) => {
+  async ({ text, outputPath, outputDir }) => {
     const args = ["tsx", extractAndSearchScript, text];
-    return executeCLI(args);
+    return executeAndSave(args, outputPath, outputDir);
   }
 );
 
@@ -129,10 +191,32 @@ server.tool(
   "judge_and_replace_cards",
   `Extract card patterns, search, and replace them intelligently. Results: 1 match → {{name|id}}, multiple → {{` + "`query`_`name|id`_...}}, none → {{NOTFOUND_`query`}}. Warns if unprocessed patterns remain.",
   {
-    text: z.string().describe("Text with card patterns: {flexible}, 《exact》. Already processed {{name|id}} patterns are preserved.")
+    text: z.string().describe("Text with card patterns: {flexible}, 《exact》. Already processed {{name|id}} patterns are preserved."),
+    outputPath: z.string().optional().describe("Optional: Save results to file. Filename or absolute path."),
+    outputDir: z.string().optional().describe("Optional: Directory to save output file."),
   },
-  async ({ text }) => {
+  async ({ text, outputPath, outputDir }) => {
     const args = ["tsx", judgeAndReplaceScript, text];
+    return executeAndSave(args, outputPath, outputDir);
+  }
+);
+
+// Format converter tool
+server.tool(
+  "convert_file_formats",
+  `Convert between JSON, JSONL, JSONC, and YAML formats. Supports multiple file conversions in one call.`,
+  {
+    conversions: z.array(z.object({
+      input: z.string().describe("Input file path (format detected from extension: .json, .jsonl, .jsonc, .yaml, .yml)"),
+      output: z.string().describe("Output file path (format detected from extension)")
+    })).min(1).describe("Array of conversion pairs. Each pair specifies input and output file paths.")
+  },
+  async ({ conversions }) => {
+    const args = [
+      "tsx",
+      formatConverterScript,
+      ...conversions.map(c => `${c.input}:${c.output}`)
+    ];
     return executeCLI(args);
   }
 );

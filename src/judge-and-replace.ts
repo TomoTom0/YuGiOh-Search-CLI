@@ -203,7 +203,8 @@ async function main() {
     }
   }
   
-  console.log(JSON.stringify(result, null, 2))
+  // Output as JSONL (single object on one line)
+  console.log(JSON.stringify(result))
 }
 
 main().catch(e => {

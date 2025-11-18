@@ -104,7 +104,7 @@ async function main() {
   }
   
   if (queries.length === 0) {
-    console.log('[]')
+    // No output for empty queries
     return
   }
   
@@ -116,7 +116,12 @@ async function main() {
   // Execute all queries
   const results = await Promise.all(queries.map(q => executeQuery(q)))
   
-  console.log(JSON.stringify(results, null, 2))
+  // Output as JSONL (one JSON object per line)
+  results.forEach(resultArray => {
+    if (Array.isArray(resultArray) && resultArray.length > 0) {
+      resultArray.forEach(item => console.log(JSON.stringify(item)))
+    }
+  })
 }
 
 main().catch(e => {
