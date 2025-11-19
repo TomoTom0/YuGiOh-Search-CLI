@@ -4,17 +4,9 @@ import path from 'path';
 import url from 'url';
 import { extractCardPatterns } from './utils/pattern-extractor.js';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const searchScript = path.join(__dirname, 'search-cards.js');
-// Execute search for a single pattern
-async function searchCard(pattern) {
-    const args = [];
-    if (pattern.type === 'cardId') {
-        args.push(JSON.stringify({ cardId: pattern.query }));
-    }
-    else {
-        args.push(JSON.stringify({ name: pattern.query }));
-    }
-    // Include all important columns
+const bulkSearchScript = path.join(__dirname, 'bulk-search-cards.js');
+// Execute bulk search for all patterns at once (performance improvement)
+async function bulkSearchCards(patterns) {
     const cols = [
         'cardType', 'name', 'ruby', 'cardId', 'ciid', 'imgs',
         'text', 'attribute', 'levelType', 'levelValue', 'race', 'monsterTypes',
@@ -22,21 +14,31 @@ async function searchCard(pattern) {
         'isExtraDeck', 'spellEffectType', 'trapEffectType',
         'supplementInfo', 'supplementDate', 'pendulumSupplementInfo', 'pendulumSupplementDate'
     ];
-    args.push(`cols=${cols.join(',')}`);
-    // Set flags based on pattern type
-    if (pattern.type === 'flexible') {
-        // Use wildcard and normalization
-        args.push('flagAllowWild=true');
-        args.push('flagAutoModify=true');
-    }
-    else if (pattern.type === 'exact') {
-        // Use normalization but no wildcard
-        args.push('flagAllowWild=false');
-        args.push('flagAutoModify=true');
-    }
-    // cardId search doesn't need these flags
+    // Build queries for bulk search
+    const queries = patterns.map(p => {
+        const filter = {};
+        if (p.type === 'cardId') {
+            filter.cardId = p.query;
+        }
+        else {
+            filter.name = p.query;
+        }
+        const query = {
+            filter,
+            cols,
+        };
+        if (p.type === 'flexible') {
+            query.flagAllowWild = true;
+            query.flagAutoModify = true;
+        }
+        else if (p.type === 'exact') {
+            query.flagAllowWild = false;
+            query.flagAutoModify = true;
+        }
+        return query;
+    });
     return new Promise((resolve) => {
-        const child = spawn('node', [searchScript, ...args], {
+        const child = spawn('node', [bulkSearchScript, JSON.stringify(queries)], {
             stdio: ['ignore', 'pipe', 'pipe']
         });
         let stdout = '';
@@ -49,39 +51,39 @@ async function searchCard(pattern) {
         });
         child.on('close', (code) => {
             if (code !== 0) {
-                resolve({
-                    pattern: pattern.pattern,
-                    type: pattern.type,
-                    query: pattern.query,
+                resolve(patterns.map(p => ({
+                    pattern: p.pattern,
+                    type: p.type,
+                    query: p.query,
                     results: []
-                });
+                })));
                 return;
             }
             try {
-                const result = JSON.parse(stdout);
-                resolve({
-                    pattern: pattern.pattern,
-                    type: pattern.type,
-                    query: pattern.query,
-                    results: result
-                });
+                const results = JSON.parse(stdout);
+                resolve(patterns.map((p, i) => ({
+                    pattern: p.pattern,
+                    type: p.type,
+                    query: p.query,
+                    results: results[i] || []
+                })));
             }
             catch (e) {
-                resolve({
-                    pattern: pattern.pattern,
-                    type: pattern.type,
-                    query: pattern.query,
+                resolve(patterns.map(p => ({
+                    pattern: p.pattern,
+                    type: p.type,
+                    query: p.query,
                     results: []
-                });
+                })));
             }
         });
         child.on('error', () => {
-            resolve({
-                pattern: pattern.pattern,
-                type: pattern.type,
-                query: pattern.query,
+            resolve(patterns.map(p => ({
+                pattern: p.pattern,
+                type: p.type,
+                query: p.query,
                 results: []
-            });
+            })));
         });
     });
 }
@@ -101,8 +103,8 @@ async function main() {
         }, null, 2));
         return;
     }
-    // Search all patterns
-    const cards = await Promise.all(patterns.map(p => searchCard(p)));
+    // Search all patterns using bulk search (performance improvement)
+    const cards = await bulkSearchCards(patterns);
     const result = {
         cards: cards
     };

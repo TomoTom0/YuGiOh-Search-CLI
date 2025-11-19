@@ -55,4 +55,4 @@ npm run test:watch
 
 ## CI/CD Status
 
-[![Unit Tests](https://github.com/YOUR_USERNAME/ygo-db-local-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/YOUR_USERNAME/ygo-db-local-mcp/actions/workflows/test.yml)
+[![Unit Tests](https://github.com/TomoTom0/ygo-db-local-mcp/actions/workflows/test.yml/badge.svg)](https://github.com/TomoTom0/ygo-db-local-mcp/actions/workflows/test.yml)
