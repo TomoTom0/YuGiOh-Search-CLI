@@ -210,7 +210,7 @@ export YGO_OUTPUT_DIR=./search-results
 
 ### フォーマット変換
 ```bash
-npx tsx src/format-converter.ts \
+ygo_convert \
   input1.json:output1.jsonl \
   input2.yaml:output2.json \
   input3.jsonl:output3.yaml

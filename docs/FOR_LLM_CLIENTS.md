@@ -12,7 +12,7 @@
 
 ```bash
 echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | \
-  npx tsx src/ygo-search-card-server.ts > /tmp/tools-definition.json
+  node dist/ygo-search-card-server.js > /tmp/tools-definition.json
 ```
 
 この出力をLLMに渡す。
@@ -45,13 +45,13 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | \
 ### 方法3: 直接CLIを使う（推奨）
 
 ```bash
-# ファイルに保存
-npx tsx src/ygo-search-card-server.ts << 'INPUT'
+# ファイルに保存（MCPサーバー経由）
+node dist/ygo-search-card-server.js << 'INPUT'
 {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_cards","arguments":{"filter":{"name":"青眼"},"cols":["name","cardId"],"outputPath":"results.jsonl"}}}
 INPUT
 
-# または直接実行
-npx tsx src/search-cards.ts '{"name":"青眼"}' cols=name,cardId outputPath=results.jsonl
+# または直接CLIコマンド実行（推奨）
+ygo_search '{"name":"青眼"}' cols=name,cardId outputPath=results.jsonl
 ```
 
 ## 環境変数

@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-cd /home/tomo/work/prac/ts/ygo-db-local-mcp
+cd /path/to/ygo-db-local-mcp
 
 # 1. Install dependencies
 npm install
@@ -25,10 +25,14 @@ This creates global commands:
 
 ## PATH Setup
 
-If commands are not found, add to your `~/.bashrc` or `~/.zshrc`:
+If commands are not found after `npm link`, ensure your npm global bin directory is in PATH:
 
 ```bash
-export PATH="$HOME/.nvm/versions/node/v22.19.0/bin:$PATH"
+# Check npm global bin path
+npm config get prefix
+
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="$(npm config get prefix)/bin:$PATH"
 ```
 
 Then reload:

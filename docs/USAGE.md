@@ -20,7 +20,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
   "mcpServers": {
     "ygo-search-card": {
       "command": "node",
-      "args": ["/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.js"]
+      "args": ["/absolute/path/to/ygo-db-local-mcp/dist/ygo-search-card-server.js"]
     }
   }
 }
@@ -71,7 +71,9 @@ After adding the configuration, restart your MCP client.
 
 Start the server manually (for testing):
 ```bash
-node src/ygo-search-card-server.js
+node dist/ygo-search-card-server.js
+# or
+npm start
 ```
 
 The server communicates via stdio using JSON-RPC 2.0 protocol.
@@ -79,17 +81,19 @@ The server communicates via stdio using JSON-RPC 2.0 protocol.
 ### Direct CLI Usage
 
 ```bash
+# After npm link, use global commands:
+
 # Exact match with wildcard
-npx tsx scripts/mcp/search-cards.ts '{"name":"ブルーアイズ*"}' cols=name,cardId
+ygo_search '{"name":"ブルーアイズ*"}' cols=name,cardId
 
 # Find cards ending with "ドラゴン"
-npx tsx scripts/mcp/search-cards.ts '{"name":"*ドラゴン"}' cols=name,atk
+ygo_search '{"name":"*ドラゴン"}' cols=name,atk
 
 # Partial match (substring search, no wildcard)
-npx tsx scripts/mcp/search-cards.ts '{"name":"青眼"}' cols=name,cardId mode=partial
+ygo_search '{"name":"青眼"}' cols=name,cardId mode=partial
 
 # Disable wildcard to search for literal "*"
-npx tsx scripts/mcp/search-cards.ts '{"name":"*"}' cols=name flagAllowWild=false
+ygo_search '{"name":"*"}' cols=name flagAllowWild=false
 ```
 
 ## MCP Tools
@@ -261,7 +265,7 @@ Each element is an array of results (same as `search_cards`). Empty arrays indic
 
 **Direct CLI usage:**
 ```bash
-npx tsx scripts/mcp/extract-and-search-cards.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
+ygo_extract "Use {ブルーアイズ*} and 《青眼の白龍》"
 ```
 
 **Note:**
@@ -323,7 +327,7 @@ npx tsx scripts/mcp/extract-and-search-cards.ts "Use {ブルーアイズ*} and �
 
 **Direct CLI usage:**
 ```bash
-npx tsx src/judge-and-replace.ts "Use {ブルーアイズ*} and 《青眼の白龍》"
+ygo_replace "Use {ブルーアイズ*} and 《青眼の白龍》"
 ```
 
 **Workflow:**
