@@ -12,6 +12,7 @@ const bulkScript = path.join(__dirname, "bulk-search-cards.js");
 const extractAndSearchScript = path.join(__dirname, "extract-and-search-cards.js");
 const judgeAndReplaceScript = path.join(__dirname, "judge-and-replace.js");
 const formatConverterScript = path.join(__dirname, "format-converter.js");
+const faqSearchScript = path.join(__dirname, "search-faq.js");
 const npxPath = "node";
 const tsxArgs = [cliScript];
 const server = new McpServer({ name: "ygo-search-card", version: "1.0.0" });
@@ -173,6 +174,56 @@ server.tool("convert_file_formats", `Convert between JSON, JSONL, JSONC, and YAM
         ...conversions.map(c => `${c.input}:${c.output}`)
     ];
     return executeCLI(args);
+});
+// FAQ search tool
+server.tool("search_faq", `Search Yu-Gi-Oh! FAQ database by FAQ ID, card ID, card name/spec, question text, or answer text. Returns FAQs with embedded card information for all cards mentioned in the Q&A.`, {
+    faqId: z.number().optional().describe("Search by specific FAQ ID"),
+    cardId: z.number().optional().describe("Search FAQs that mention this card ID"),
+    cardName: z.string().optional().describe("Search FAQs by card name (supports wildcards with *)"),
+    cardFilter: z.record(z.any()).optional().describe("Search FAQs by card specifications (e.g., {race:'dragon', levelValue:'8', atk:'3000'})"),
+    question: z.string().optional().describe("Search in question text (supports wildcards with *)"),
+    answer: z.string().optional().describe("Search in answer text (supports wildcards with *)"),
+    limit: z.number().default(50).describe("Maximum number of results (default: 50)"),
+    flagAllowWild: z.boolean().default(true).describe("Enable wildcard search with * (default: true)"),
+    fcols: z.string().optional().describe("FAQ columns to output (comma-separated: faqId,question,answer,updatedAt)"),
+    cols: z.string().optional().describe("Card columns to output (comma-separated: cardId,name,atk,def,race,text,etc.)"),
+    format: z.enum(['json', 'csv', 'tsv', 'jsonl']).optional().describe("Output format (default: json)"),
+    random: z.boolean().optional().describe("Randomly select from results"),
+    range: z.string().optional().describe("Filter by FAQ ID range (e.g., '100-200')"),
+    all: z.boolean().optional().describe("Return all results (use with range)"),
+    outputPath: z.string().optional().describe("Output file path (e.g., 'result.json' or 'result.jsonl')"),
+    outputDir: z.string().optional().describe("Output directory (defaults to current directory or YGO_OUTPUT_DIR)")
+}, async ({ faqId, cardId, cardName, cardFilter, question, answer, limit, flagAllowWild, fcols, cols, format, random, range, all, outputPath, outputDir }) => {
+    const params = {
+        limit,
+        flagAllowWild,
+        faqId,
+        cardId,
+        cardName,
+        cardFilter,
+        question,
+        answer
+    };
+    // Remove undefined properties
+    Object.keys(params).forEach(key => {
+        if (params[key] === undefined) {
+            delete params[key];
+        }
+    });
+    const args = [faqSearchScript, JSON.stringify(params)];
+    if (fcols)
+        args.push('--fcol', fcols);
+    if (cols)
+        args.push('--col', cols);
+    if (format)
+        args.push('--format', format);
+    if (random)
+        args.push('--random');
+    if (range)
+        args.push('--range', range);
+    if (all)
+        args.push('--all');
+    return executeAndSave(args, outputPath, outputDir);
 });
 const transport = new StdioServerTransport();
 await server.connect(transport);

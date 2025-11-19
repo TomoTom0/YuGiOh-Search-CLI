@@ -11,7 +11,8 @@
     "ygo_extract": "./dist/cli/ygo_extract.js",
     "ygo_convert": "./dist/cli/ygo_convert.js",
     "ygo_replace": "./dist/cli/ygo_replace.js",
-    "ygo_seek": "./dist/cli/ygo_seek.js"
+    "ygo_seek": "./dist/cli/ygo_seek.js",
+    "ygo_faq_search": "./dist/cli/ygo_faq_search.js"
   },
   "types": "./dist/ygo-search-card-server.d.ts",
   "files": [

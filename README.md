@@ -4,12 +4,21 @@ Model Context Protocol (MCP) server for searching Yu-Gi-Oh! card database locall
 
 ## Features
 
-### 🔍 Four Search Tools
+### 🔍 Card Search Tools
 
 1. **search_cards** - Single card search with flexible filters
 2. **bulk_search_cards** - Efficient bulk search (up to 50 queries)
 3. **extract_and_search_cards** - Extract card patterns from text and search automatically
 4. **judge_and_replace_cards** - Extract, search, and intelligently replace patterns with card IDs
+
+### 📚 FAQ Search Tool
+
+- **search_faq** - Search FAQ database by various criteria
+  - FAQ ID, card ID, card name (with wildcards)
+  - Card specifications (race, level, type, etc.)
+  - Question/answer text (with wildcards)
+  - Returns FAQs with embedded card information
+  - Fast lookup with reverse index and card search integration
 
 ### 🎲 Random Card Retrieval
 
@@ -92,6 +101,23 @@ ygo_seek --range 4000-4100 --all --format csv
 # Get all columns
 ygo_seek --max 10 --col-all
 
+# Search FAQ database (key=value style - CLI friendly)
+ygo_faq_search faqId=100
+ygo_faq_search cardId=6808 limit=5
+ygo_faq_search cardName="青眼*" limit=10
+ygo_faq_search cardFilter.race=dragon cardFilter.levelValue=8
+ygo_faq_search question="*シンクロ召喚*"
+ygo_faq_search answer="*無効*" limit=20
+
+# FAQ search with output options
+ygo_faq_search cardId=6808 --fcol faqId,question
+ygo_faq_search cardId=6808 --col name,atk,def
+ygo_faq_search cardName="青眼*" --format csv
+ygo_faq_search cardFilter.race=dragon --random limit=5
+
+# JSON style still supported
+ygo_faq_search '{"cardId":6808,"limit":5}' --fcol faqId,question
+
 # Convert file formats
 ygo_convert input.json:output.jsonl
 ```
@@ -171,9 +197,12 @@ node dist/format-converter.js input.json:output.jsonl
 ## Database
 
 - **Total cards**: 13,754
+- **Total FAQs**: 12,578
 - **Format**: TSV (Tab-Separated Values)
 - **Language**: Japanese
-- **Includes**: Monster, Spell, Trap cards with full text, stats, and supplementary information
+- **Includes**: 
+  - Monster, Spell, Trap cards with full text, stats, and supplementary information
+  - Official FAQ with question, answer, and card references
 
 ## Documentation
 
