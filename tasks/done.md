@@ -1,5 +1,31 @@
 # Completed Tasks
 
+## 2025-11-21
+
+### cardIdパターンのカード名検証・修正機能 ✅
+- [x] `{{カード名|カードid}}`パターンでカードidを基にカード名を検証
+- [x] カード名が間違っている場合は正しいカード名に置き換え
+- [x] 置き換え時に警告メッセージを出力（エラーではない）
+- [x] ExtractedPattern型にoriginalNameフィールドを追加
+- [x] ReplacementStatus型にcorrectedステータスを追加
+- [x] テストケース追加
+- **Files**: judge-and-replace.ts, pattern-extractor.ts, types/card.ts
+- **Version**: 1.2.0
+
+### CLI引数フォーマット改善とflagNearly実装 ✅
+- [x] origin/HEADをmainに更新
+- [x] ygo_searchの--name等のフラグ形式引数対応
+  - --name, --text, --cardId, --cardType, --race, --attribute等
+  - 既存のJSON形式とkey=value形式も維持（後方互換性）
+- [x] --colsオプションの追加
+- [x] helpの更新（新しいフラグ形式の説明を追加）
+- [x] flagNearly（ファジーマッチング）の実装
+  - レーベンシュタイン距離を使用したファジーマッチング
+  - タイポや軽微な変動を許容（例: 「青目の白龍」→「青眼の白龍」）
+  - パターン長に応じた動的な閾値設定
+- [x] version.datの作成（1.1.0）
+- **Files**: search-cards.ts, ygo_search.ts
+
 ## 2025-11-19
 
 ### Vector DB Conversion Script ✅
