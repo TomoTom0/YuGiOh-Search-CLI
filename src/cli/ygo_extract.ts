@@ -16,12 +16,10 @@ Extract Yu-Gi-Oh card names from text and search them.
 
 Arguments:
   text                Text containing card names
-  
+
 Options:
   cols=col1,col2      Columns to return (comma-separated)
-  outputPath=path     Output file path
-  outputDir=dir       Output directory
-  
+
 Examples:
   ygo_extract "青眼の白龍とブラック・マジシャンを召喚"
   ygo_extract "青眼の白龍で攻撃" cols=name,cardId,atk
