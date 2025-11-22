@@ -206,6 +206,15 @@ function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: b
   return val === positivePattern
 }
 
+// Parse boolean value with strict validation
+function parseBooleanValue(value: string, flagName: string, defaultValue: boolean): boolean {
+  const boolValue = value.toLowerCase()
+  if (boolValue === 'true') return true
+  if (boolValue === 'false') return false
+  console.error(`Invalid boolean value for ${flagName}: ${value}. Use 'true' or 'false'.`)
+  process.exit(2)
+}
+
 // Parse command line arguments, supporting both --flag format and key=value format
 function parseArgs(args: string[]): {
   filterRaw: Record<string, any>
@@ -281,25 +290,25 @@ function parseArgs(args: string[]): {
           sort = nextArg
           break
         case 'includeRuby':
-          includeRuby = nextArg !== 'false'
+          includeRuby = parseBooleanValue(nextArg, '--includeRuby', true)
           break
         case 'flagAutoPend':
-          flagAutoPend = nextArg !== 'false'
+          flagAutoPend = parseBooleanValue(nextArg, '--flagAutoPend', true)
           break
         case 'flagAutoSupply':
-          flagAutoSupply = nextArg !== 'false'
+          flagAutoSupply = parseBooleanValue(nextArg, '--flagAutoSupply', true)
           break
         case 'flagAutoRuby':
-          flagAutoRuby = nextArg !== 'false'
+          flagAutoRuby = parseBooleanValue(nextArg, '--flagAutoRuby', true)
           break
         case 'flagAutoModify':
-          flagAutoModify = nextArg !== 'false'
+          flagAutoModify = parseBooleanValue(nextArg, '--flagAutoModify', true)
           break
         case 'flagAllowWild':
-          flagAllowWild = nextArg !== 'false'
+          flagAllowWild = parseBooleanValue(nextArg, '--flagAllowWild', true)
           break
         case 'flagNearly':
-          flagNearly = nextArg === 'true'
+          flagNearly = parseBooleanValue(nextArg, '--flagNearly', false)
           break
         default:
           console.error(`Unknown flag: --${flagName}`)
@@ -337,25 +346,25 @@ function parseArgs(args: string[]): {
           sort = value
           break
         case 'includeRuby':
-          includeRuby = value !== 'false'
+          includeRuby = parseBooleanValue(value, 'includeRuby', true)
           break
         case 'flagAutoPend':
-          flagAutoPend = value !== 'false'
+          flagAutoPend = parseBooleanValue(value, 'flagAutoPend', true)
           break
         case 'flagAutoSupply':
-          flagAutoSupply = value !== 'false'
+          flagAutoSupply = parseBooleanValue(value, 'flagAutoSupply', true)
           break
         case 'flagAutoRuby':
-          flagAutoRuby = value !== 'false'
+          flagAutoRuby = parseBooleanValue(value, 'flagAutoRuby', true)
           break
         case 'flagAutoModify':
-          flagAutoModify = value !== 'false'
+          flagAutoModify = parseBooleanValue(value, 'flagAutoModify', true)
           break
         case 'flagAllowWild':
-          flagAllowWild = value !== 'false'
+          flagAllowWild = parseBooleanValue(value, 'flagAllowWild', true)
           break
         case 'flagNearly':
-          flagNearly = value === 'true'
+          flagNearly = parseBooleanValue(value, 'flagNearly', false)
           break
         default:
           console.error(`Unknown option: ${key}`)

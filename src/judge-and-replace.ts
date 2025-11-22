@@ -169,65 +169,41 @@ async function main() {
     if (match.type === 'cardId') {
       // cardIdパターン: カードidで検索してカード名を検証・置き換え
       const resultCount = match.results.length
+      let replacement = match.pattern
+      let status: ReplacementStatus = 'already_processed'
+      let warning: string | undefined
 
       if (resultCount === 1) {
         const card = match.results[0]
         const actualName = card.name
         const providedName = match.originalName || ''
 
-        // カード名が一致するか確認
-        if (actualName === providedName) {
-          // 名前が一致している場合はそのまま
-          const key = `${match.pattern}::${match.pattern}`
-          if (!processedPatternKeys.has(key)) {
-            processedPatternKeys.add(key)
-            result.processedPatterns.push({
-              original: match.pattern,
-              replaced: match.pattern,
-              status: 'already_processed'
-            })
-          }
-        } else {
-          // 名前が異なる場合は正しいカード名に置き換え
-          const replacement = mountParMode ? `《${actualName}》` : `{{${actualName}|${card.cardId}}}`
+        if (actualName !== providedName) {
+          status = 'corrected'
+          replacement = mountParMode ? `《${actualName}》` : `{{${actualName}|${card.cardId}}}`
+          warning = `⚠️ カード名を修正: "${providedName}" → "${actualName}" (cardId: ${card.cardId})`
+
           result.processedText = result.processedText.substring(0, match.startIndex) +
                                 replacement +
                                 result.processedText.substring(match.startIndex + match.pattern.length)
-
-          const key = `${match.pattern}::${replacement}`
-          if (!processedPatternKeys.has(key)) {
-            processedPatternKeys.add(key)
-            result.processedPatterns.push({
-              original: match.pattern,
-              replaced: replacement,
-              status: 'corrected'
-            })
-            // 警告を追加
-            result.warnings.push(`⚠️ カード名を修正: "${providedName}" → "${actualName}" (cardId: ${card.cardId})`)
-          }
         }
       } else if (resultCount === 0) {
-        // cardIdが見つからない場合は警告
-        const key = `${match.pattern}::${match.pattern}`
-        if (!processedPatternKeys.has(key)) {
-          processedPatternKeys.add(key)
-          result.processedPatterns.push({
-            original: match.pattern,
-            replaced: match.pattern,
-            status: 'already_processed'
-          })
-          result.warnings.push(`⚠️ cardId "${match.query}" が見つかりません`)
-        }
+        warning = `⚠️ cardId "${match.query}" が見つかりません`
       } else {
-        // 複数結果（通常はcardIdでは起きないが念のため）
-        const key = `${match.pattern}::${match.pattern}`
-        if (!processedPatternKeys.has(key)) {
-          processedPatternKeys.add(key)
-          result.processedPatterns.push({
-            original: match.pattern,
-            replaced: match.pattern,
-            status: 'already_processed'
-          })
+        // 複数結果（通常はcardIdでは起きないがデータの問題を示唆）
+        warning = `⚠️ cardId "${match.query}" で複数のカードが見つかりました。データを確認してください。`
+      }
+
+      const key = `${match.pattern}::${replacement}`
+      if (!processedPatternKeys.has(key)) {
+        processedPatternKeys.add(key)
+        result.processedPatterns.push({
+          original: match.pattern,
+          replaced: replacement,
+          status: status
+        })
+        if (warning) {
+          result.warnings.push(warning)
         }
       }
       continue
