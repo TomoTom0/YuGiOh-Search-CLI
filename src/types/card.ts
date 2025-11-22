@@ -84,6 +84,7 @@ export interface ExtractedPattern {
   type: PatternType;
   query: string;
   startIndex?: number;
+  originalName?: string;  // cardIdパターンの場合、元のカード名を保存
 }
 
 /**
@@ -99,7 +100,7 @@ export interface CardMatch {
 /**
  * Replacement status
  */
-export type ReplacementStatus = 'resolved' | 'multiple' | 'notfound' | 'already_processed';
+export type ReplacementStatus = 'resolved' | 'multiple' | 'notfound' | 'already_processed' | 'corrected';
 
 /**
  * Replacement result

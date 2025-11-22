@@ -13,7 +13,7 @@ import { findProjectRoot } from './utils/project-root.js';
 // flagAutoRuby: true (default) | false - when true and cols includes 'name', automatically includes ruby
 // flagAutoModify: true (default) | false - when filtering by name, normalizes input to ignore whitespace, symbols, case, half/full width, hiragana/katakana differences (uses pre-computed nameModified column for efficiency)
 // flagAllowWild: true (default) | false - when true, treats * as wildcard (matches any characters) in name and text fields
-// flagNearly: false (default) | true - (TODO) when true, uses fuzzy matching for name search to handle typos and minor variations
+// flagNearly: false (default) | true - when true, uses fuzzy matching for name search to handle typos and minor variations
 // Negative search: Use -(space|　)-"phrase" or -'phrase' or -`phrase` to exclude cards containing the phrase (works with text fields)
 import readline from 'readline';
 function normalizeForSearch(str) {
@@ -50,7 +50,60 @@ function parseNegativePatterns(patternStr) {
     }
     return { positive: positivePattern, negative: negativePatterns };
 }
-function valueMatches(val, pattern, mode, flagAutoModify = false, isNameField = false, normalizedVal, flagAllowWild = false, isTextField = false) {
+// Levenshtein distance calculation for fuzzy matching
+function levenshteinDistance(s1, s2) {
+    const len1 = s1.length;
+    const len2 = s2.length;
+    // Create a 2D array to store distances
+    const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+    // Initialize base cases
+    for (let i = 0; i <= len1; i++)
+        dp[i][0] = i;
+    for (let j = 0; j <= len2; j++)
+        dp[0][j] = j;
+    // Fill in the rest of the matrix
+    for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+            const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(dp[i - 1][j] + 1, // deletion
+            dp[i][j - 1] + 1, // insertion
+            dp[i - 1][j - 1] + cost // substitution
+            );
+        }
+    }
+    return dp[len1][len2];
+}
+// Calculate allowed distance threshold based on pattern length
+function getAllowedDistance(patternLength) {
+    if (patternLength <= 3)
+        return 1;
+    if (patternLength <= 7)
+        return 2;
+    return 3;
+}
+// Check if value matches pattern using fuzzy matching
+function fuzzyMatch(val, pattern) {
+    // First check for exact substring match
+    if (val.includes(pattern))
+        return true;
+    // Calculate distance and check against threshold
+    const distance = levenshteinDistance(val, pattern);
+    const allowedDistance = getAllowedDistance(pattern.length);
+    if (distance <= allowedDistance)
+        return true;
+    // Also check if pattern is a fuzzy substring of val
+    // Slide a window of pattern length over val and check each
+    if (val.length >= pattern.length) {
+        for (let i = 0; i <= val.length - pattern.length; i++) {
+            const substring = val.substring(i, i + pattern.length);
+            const subDist = levenshteinDistance(substring, pattern);
+            if (subDist <= allowedDistance)
+                return true;
+        }
+    }
+    return false;
+}
+function valueMatches(val, pattern, mode, flagAutoModify = false, isNameField = false, normalizedVal, flagAllowWild = false, isTextField = false, flagNearly = false) {
     val = val === undefined || val === null ? '' : String(val);
     if (pattern === null || pattern === undefined)
         return true;
@@ -92,9 +145,17 @@ function valueMatches(val, pattern, mode, flagAutoModify = false, isNameField = 
         // Use pre-computed nameModified if available, otherwise compute on the fly
         const normalized = normalizedVal !== undefined ? normalizedVal : normalizeForSearch(val);
         const normalizedPattern = normalizeForSearch(positivePattern);
+        // Apply fuzzy matching if flagNearly is true
+        if (flagNearly) {
+            return fuzzyMatch(normalized, normalizedPattern);
+        }
         if (mode === 'partial')
             return normalized.indexOf(normalizedPattern) !== -1;
         return normalized === normalizedPattern;
+    }
+    // Apply fuzzy matching for name field without normalization
+    if (isNameField && flagNearly) {
+        return fuzzyMatch(val, positivePattern);
     }
     // For text fields, always use substring matching
     if (isTextField) {
@@ -104,21 +165,189 @@ function valueMatches(val, pattern, mode, flagAutoModify = false, isNameField = 
         return val.indexOf(positivePattern) !== -1;
     return val === positivePattern;
 }
+// Parse boolean value with strict validation
+function parseBooleanValue(value, flagName, defaultValue) {
+    const boolValue = value.toLowerCase();
+    if (boolValue === 'true')
+        return true;
+    if (boolValue === 'false')
+        return false;
+    console.error(`Invalid boolean value for ${flagName}: ${value}. Use 'true' or 'false'.`);
+    process.exit(2);
+}
+// Parse command line arguments, supporting both --flag format and key=value format
+function parseArgs(args) {
+    const filterRaw = {};
+    let cols = null;
+    let mode = 'exact';
+    let includeRuby = true;
+    let flagAutoPend = true;
+    let flagAutoSupply = true;
+    let flagAutoRuby = true;
+    let flagAutoModify = true;
+    let flagAllowWild = true;
+    let flagNearly = false;
+    let max = 100;
+    let sort = undefined;
+    let raw = false;
+    // Filter field flags
+    const filterFlags = ['name', 'text', 'cardId', 'cardType', 'race', 'attribute', 'atk', 'def', 'level', 'levelValue', 'pendulumScale', 'ruby', 'linkValue', 'linkArrows'];
+    let i = 0;
+    while (i < args.length) {
+        const arg = args[i];
+        // Handle --flag value format
+        if (arg.startsWith('--')) {
+            const flagName = arg.slice(2);
+            if (flagName === 'raw') {
+                raw = true;
+                i++;
+                continue;
+            }
+            // Check if next arg exists and is not a flag
+            const nextArg = args[i + 1];
+            if (nextArg === undefined || nextArg.startsWith('--')) {
+                console.error(`Missing value for --${flagName}`);
+                process.exit(2);
+            }
+            if (filterFlags.includes(flagName)) {
+                filterRaw[flagName] = nextArg;
+                i += 2;
+                continue;
+            }
+            switch (flagName) {
+                case 'cols':
+                    cols = nextArg.split(',');
+                    break;
+                case 'mode':
+                    mode = nextArg;
+                    break;
+                case 'max':
+                    max = parseInt(nextArg, 10);
+                    if (!Number.isInteger(max) || max < 0)
+                        max = 100;
+                    break;
+                case 'sort':
+                    sort = nextArg;
+                    break;
+                case 'includeRuby':
+                    includeRuby = parseBooleanValue(nextArg, '--includeRuby', true);
+                    break;
+                case 'flagAutoPend':
+                    flagAutoPend = parseBooleanValue(nextArg, '--flagAutoPend', true);
+                    break;
+                case 'flagAutoSupply':
+                    flagAutoSupply = parseBooleanValue(nextArg, '--flagAutoSupply', true);
+                    break;
+                case 'flagAutoRuby':
+                    flagAutoRuby = parseBooleanValue(nextArg, '--flagAutoRuby', true);
+                    break;
+                case 'flagAutoModify':
+                    flagAutoModify = parseBooleanValue(nextArg, '--flagAutoModify', true);
+                    break;
+                case 'flagAllowWild':
+                    flagAllowWild = parseBooleanValue(nextArg, '--flagAllowWild', true);
+                    break;
+                case 'flagNearly':
+                    flagNearly = parseBooleanValue(nextArg, '--flagNearly', false);
+                    break;
+                default:
+                    console.error(`Unknown flag: --${flagName}`);
+                    process.exit(2);
+            }
+            i += 2;
+            continue;
+        }
+        // Handle key=value format (legacy support)
+        if (arg.includes('=')) {
+            const eqIndex = arg.indexOf('=');
+            const key = arg.substring(0, eqIndex);
+            const value = arg.substring(eqIndex + 1);
+            // Check if it's a filter field
+            if (filterFlags.includes(key)) {
+                filterRaw[key] = value;
+                i++;
+                continue;
+            }
+            switch (key) {
+                case 'cols':
+                    cols = value.split(',');
+                    break;
+                case 'mode':
+                    mode = value;
+                    break;
+                case 'max':
+                    max = parseInt(value, 10);
+                    if (!Number.isInteger(max) || max < 0)
+                        max = 100;
+                    break;
+                case 'sort':
+                    sort = value;
+                    break;
+                case 'includeRuby':
+                    includeRuby = parseBooleanValue(value, 'includeRuby', true);
+                    break;
+                case 'flagAutoPend':
+                    flagAutoPend = parseBooleanValue(value, 'flagAutoPend', true);
+                    break;
+                case 'flagAutoSupply':
+                    flagAutoSupply = parseBooleanValue(value, 'flagAutoSupply', true);
+                    break;
+                case 'flagAutoRuby':
+                    flagAutoRuby = parseBooleanValue(value, 'flagAutoRuby', true);
+                    break;
+                case 'flagAutoModify':
+                    flagAutoModify = parseBooleanValue(value, 'flagAutoModify', true);
+                    break;
+                case 'flagAllowWild':
+                    flagAllowWild = parseBooleanValue(value, 'flagAllowWild', true);
+                    break;
+                case 'flagNearly':
+                    flagNearly = parseBooleanValue(value, 'flagNearly', false);
+                    break;
+                default:
+                    console.error(`Unknown option: ${key}`);
+                    process.exit(2);
+            }
+            i++;
+            continue;
+        }
+        // Try to parse as JSON filter (legacy format)
+        try {
+            const parsed = JSON.parse(arg);
+            Object.assign(filterRaw, parsed);
+        }
+        catch {
+            console.error(`Invalid argument: ${arg}`);
+            process.exit(2);
+        }
+        i++;
+    }
+    return {
+        filterRaw,
+        cols,
+        mode,
+        includeRuby,
+        flagAutoPend,
+        flagAutoSupply,
+        flagAutoRuby,
+        flagAutoModify,
+        flagAllowWild,
+        flagNearly,
+        max,
+        sort,
+        raw
+    };
+}
 async function main() {
     const args = process.argv.slice(2);
     if (args.length === 0) {
-        console.error('Expecting JSON filter as first arg');
+        console.error('Expecting filter arguments. Use --help for usage.');
         process.exit(2);
     }
-    // Filter format supports either simple {field: value} or
-    // {field: {op: 'and'|'or', cond: [v1,v2,...]}} semantics.
-    // Example: {"name": {"op":"or","cond":["ヴァレット","ローダー"]}, "cardId":"22107"}
-    let filterRaw = {};
-    try {
-        filterRaw = JSON.parse(args[0]);
-    }
-    catch (e) {
-        console.error('Invalid JSON filter');
+    // Parse arguments
+    const { filterRaw, cols, mode, includeRuby, flagAutoPend, flagAutoSupply, flagAutoRuby, flagAutoModify, flagAllowWild, flagNearly, max, sort, raw } = parseArgs(args);
+    if (Object.keys(filterRaw).length === 0) {
+        console.error('No filter conditions specified');
         process.exit(2);
     }
     // Normalize filter into per-field structure: { field: {op, cond[]} }
@@ -137,29 +366,6 @@ async function main() {
             filter[k] = { op: 'and', cond: [v] };
         }
     }
-    const colsArg = args.find(a => a.startsWith('cols='));
-    const cols = colsArg ? colsArg.replace(/^cols=/, '').split(',') : null;
-    const modeArg = args.find(a => a.startsWith('mode='));
-    const mode = modeArg ? modeArg.replace(/^mode=/, '') : 'exact';
-    const includeRubyArg = args.find(a => a.startsWith('includeRuby='));
-    const includeRuby = includeRubyArg ? includeRubyArg.replace(/^includeRuby=/, '') !== 'false' : true;
-    const flagAutoPendArg = args.find(a => a.startsWith('flagAutoPend='));
-    const flagAutoPend = flagAutoPendArg ? flagAutoPendArg.replace(/^flagAutoPend=/, '') !== 'false' : true;
-    const flagAutoSupplyArg = args.find(a => a.startsWith('flagAutoSupply='));
-    const flagAutoSupply = flagAutoSupplyArg ? flagAutoSupplyArg.replace(/^flagAutoSupply=/, '') !== 'false' : true;
-    const flagAutoRubyArg = args.find(a => a.startsWith('flagAutoRuby='));
-    const flagAutoRuby = flagAutoRubyArg ? flagAutoRubyArg.replace(/^flagAutoRuby=/, '') !== 'false' : true;
-    const flagAutoModifyArg = args.find(a => a.startsWith('flagAutoModify='));
-    const flagAutoModify = flagAutoModifyArg ? flagAutoModifyArg.replace(/^flagAutoModify=/, '') !== 'false' : true;
-    const flagAllowWildArg = args.find(a => a.startsWith('flagAllowWild='));
-    const flagAllowWild = flagAllowWildArg ? flagAllowWildArg.replace(/^flagAllowWild=/, '') !== 'false' : true;
-    const flagNearlyArg = args.find(a => a.startsWith('flagNearly='));
-    const flagNearly = flagNearlyArg ? flagNearlyArg.replace(/^flagNearly=/, '') === 'true' : false;
-    const maxArg = args.find(a => a.startsWith('max='));
-    const max = ((v) => Number.isInteger(v) && v >= 0 ? v : 100)(parseInt(maxArg?.replace(/^max=/, '') || '100', 10));
-    const sortArg = args.find(a => a.startsWith('sort='));
-    const sort = sortArg ? sortArg.replace(/^sort=/, '') : undefined;
-    const raw = args.includes('--raw');
     if (mode !== 'exact' && mode !== 'partial') {
         console.error('mode must be "exact" or "partial"');
         process.exit(2);
@@ -197,11 +403,6 @@ async function main() {
             console.error('mode partial is only allowed when filtering by name');
             process.exit(2);
         }
-    }
-    // flagNearly is not yet implemented
-    if (flagNearly) {
-        console.error('flagNearly is not yet implemented');
-        process.exit(2);
     }
     // Find project root (where package.json is)
     const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
@@ -243,11 +444,11 @@ async function main() {
                 const isTextField = ['text', 'pendulumText', 'supplementInfo', 'pendulumSupplementInfo'].includes(k);
                 // Use pre-computed nameModified if available
                 const normalizedVal = (isNameField && nameModifiedIndex >= 0) ? obj['nameModified'] : undefined;
-                const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField);
+                const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField, flagNearly);
                 // If searching by name and includeRuby is true, also check ruby field
                 if (k === 'name' && includeRuby && !matchesField) {
                     const rubyValue = obj['ruby'] === undefined ? '' : obj['ruby'];
-                    return valueMatches(rubyValue, cond, useMode, flagAutoModify, true, undefined, flagAllowWild, false);
+                    return valueMatches(rubyValue, cond, useMode, flagAutoModify, true, undefined, flagAllowWild, false, flagNearly);
                 }
                 return matchesField;
             });

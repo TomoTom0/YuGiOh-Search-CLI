@@ -14,6 +14,7 @@ interface CardMatchWithIndex {
   query: string
   results: Card[]
   startIndex: number
+  originalName?: string  // cardIdパターンの場合、元のカード名
 }
 
 // Execute bulk search for all patterns at once (performance improvement)
@@ -154,7 +155,8 @@ async function main() {
       type: p.type,
       query: p.query,
       results: resultMap.get(key) || [],
-      startIndex: p.startIndex!
+      startIndex: p.startIndex!,
+      originalName: p.originalName  // cardIdパターンの元のカード名
     }
   })
   
@@ -165,15 +167,44 @@ async function main() {
   
   for (const match of sortedResults) {
     if (match.type === 'cardId') {
-      // Already processed format
-      const key = `${match.pattern}::${match.pattern}`
+      // cardIdパターン: カードidで検索してカード名を検証・置き換え
+      const resultCount = match.results.length
+      let replacement = match.pattern
+      let status: ReplacementStatus = 'already_processed'
+      let warning: string | undefined
+
+      if (resultCount === 1) {
+        const card = match.results[0]
+        const actualName = card.name
+        const providedName = match.originalName || ''
+
+        if (actualName !== providedName) {
+          status = 'corrected'
+          replacement = mountParMode ? `《${actualName}》` : `{{${actualName}|${card.cardId}}}`
+          warning = `⚠️ カード名を修正: "${providedName}" → "${actualName}" (cardId: ${card.cardId})`
+
+          result.processedText = result.processedText.substring(0, match.startIndex) +
+                                replacement +
+                                result.processedText.substring(match.startIndex + match.pattern.length)
+        }
+      } else if (resultCount === 0) {
+        warning = `⚠️ cardId "${match.query}" が見つかりません`
+      } else {
+        // 複数結果（通常はcardIdでは起きないがデータの問題を示唆）
+        warning = `⚠️ cardId "${match.query}" で複数のカードが見つかりました。データを確認してください。`
+      }
+
+      const key = `${match.pattern}::${replacement}`
       if (!processedPatternKeys.has(key)) {
         processedPatternKeys.add(key)
         result.processedPatterns.push({
           original: match.pattern,
-          replaced: match.pattern,
-          status: 'already_processed'
+          replaced: replacement,
+          status: status
         })
+        if (warning) {
+          result.warnings.push(warning)
+        }
       }
       continue
     }

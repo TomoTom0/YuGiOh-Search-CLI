@@ -24,13 +24,14 @@ export function extractCardPatterns(text: string, options: ExtractOptions = {}):
     const extracted: ExtractedPattern = {
       pattern: match[0],
       type: 'cardId' as PatternType,
-      query: match[2].trim()
+      query: match[2].trim(),
+      originalName: match[1].trim()  // 元のカード名を保存
     }
-    
+
     if (options.includeStartIndex) {
       extracted.startIndex = match.index
     }
-    
+
     patterns.push(extracted)
     
     for (let i = match.index; i < match.index + match[0].length; i++) {
