@@ -4,10 +4,9 @@ import path from 'path';
 import url from 'url';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 function matchesQuery(text, normalized, query, flagAllowWild) {
-    if (!query)
-        return true;
+    if (!query) return true;
     if (flagAllowWild && query.includes('*')) {
-        const regex = new RegExp(query.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*'), 'i');
+        const regex = new RegExp(query.split('*').map((s)=>s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*'), 'i');
         return regex.test(normalized);
     }
     return normalized.includes(query.toLowerCase());
@@ -16,16 +15,12 @@ async function enrichFAQWithCards(faq) {
     const questionRefs = extractCardReferences(faq.question);
     const answerRefs = extractCardReferences(faq.answer);
     const allCardIds = Array.from(new Set([
-        ...questionRefs.map(r => r.cardId),
-        ...answerRefs.map(r => r.cardId)
+        ...questionRefs.map((r)=>r.cardId),
+        ...answerRefs.map((r)=>r.cardId)
     ]));
     const cardsMap = await getCardsByIds(allCardIds);
-    const questionCards = questionRefs
-        .map(ref => cardsMap.get(ref.cardId))
-        .filter(c => c !== undefined);
-    const answerCards = answerRefs
-        .map(ref => cardsMap.get(ref.cardId))
-        .filter(c => c !== undefined);
+    const questionCards = questionRefs.map((ref)=>cardsMap.get(ref.cardId)).filter((c)=>c !== undefined);
+    const answerCards = answerRefs.map((ref)=>cardsMap.get(ref.cardId)).filter((c)=>c !== undefined);
     return {
         ...faq,
         questionCards,
@@ -35,8 +30,13 @@ async function enrichFAQWithCards(faq) {
 }
 async function searchCardsByFilter(filter) {
     const { searchCards } = await import('./lib/card-search-core.js');
-    const results = await searchCards({ filter, cols: ['cardId'] });
-    return results.map((card) => parseInt(card.cardId)).filter((id) => !isNaN(id));
+    const results = await searchCards({
+        filter,
+        cols: [
+            'cardId'
+        ]
+    });
+    return results.map((card)=>parseInt(card.cardId)).filter((id)=>!isNaN(id));
 }
 export async function searchFAQ(params) {
     const { faqId, cardId, cardName, cardFilter, question, answer, limit = 50, flagAllowWild = true } = params;
@@ -46,36 +46,44 @@ export async function searchFAQ(params) {
         const faq = index.byId.get(faqId);
         if (faq) {
             const enriched = await enrichFAQWithCards(faq);
-            results.push({ faq: enriched });
+            results.push({
+                faq: enriched
+            });
         }
         return results;
     }
     if (cardId !== undefined) {
         const faqIds = index.byCardId.get(cardId) || [];
-        for (const id of faqIds.slice(0, limit)) {
+        for (const id of faqIds.slice(0, limit)){
             const faq = index.byId.get(id);
             if (faq) {
                 const enriched = await enrichFAQWithCards(faq);
-                results.push({ faq: enriched });
+                results.push({
+                    faq: enriched
+                });
             }
         }
         return results;
     }
     if (cardName !== undefined) {
-        const cardIds = await searchCardsByFilter({ name: cardName });
+        const cardIds = await searchCardsByFilter({
+            name: cardName
+        });
         const faqIdSet = new Set();
-        for (const cid of cardIds) {
+        for (const cid of cardIds){
             const faqIds = index.byCardId.get(cid) || [];
-            for (const fid of faqIds) {
+            for (const fid of faqIds){
                 faqIdSet.add(fid);
             }
         }
-        const sortedFaqIds = Array.from(faqIdSet).sort((a, b) => a - b);
-        for (const id of sortedFaqIds.slice(0, limit)) {
+        const sortedFaqIds = Array.from(faqIdSet).sort((a, b)=>a - b);
+        for (const id of sortedFaqIds.slice(0, limit)){
             const faq = index.byId.get(id);
             if (faq) {
                 const enriched = await enrichFAQWithCards(faq);
-                results.push({ faq: enriched });
+                results.push({
+                    faq: enriched
+                });
             }
         }
         return results;
@@ -83,28 +91,28 @@ export async function searchFAQ(params) {
     if (cardFilter !== undefined) {
         const cardIds = await searchCardsByFilter(cardFilter);
         const faqIdSet = new Set();
-        for (const cid of cardIds) {
+        for (const cid of cardIds){
             const faqIds = index.byCardId.get(cid) || [];
-            for (const fid of faqIds) {
+            for (const fid of faqIds){
                 faqIdSet.add(fid);
             }
         }
-        const sortedFaqIds = Array.from(faqIdSet).sort((a, b) => a - b);
-        for (const id of sortedFaqIds.slice(0, limit)) {
+        const sortedFaqIds = Array.from(faqIdSet).sort((a, b)=>a - b);
+        for (const id of sortedFaqIds.slice(0, limit)){
             const faq = index.byId.get(id);
             if (faq) {
                 const enriched = await enrichFAQWithCards(faq);
-                results.push({ faq: enriched });
+                results.push({
+                    faq: enriched
+                });
             }
         }
         return results;
     }
-    for (const [id, faq] of index.byId.entries()) {
-        if (results.length >= limit)
-            break;
+    for (const [id, faq] of index.byId.entries()){
+        if (results.length >= limit) break;
         const norm = index.normalized.get(id);
-        if (!norm)
-            continue;
+        if (!norm) continue;
         let matches = true;
         if (question) {
             matches = matches && matchesQuery(faq.question, norm.question, question, flagAllowWild);
@@ -114,7 +122,9 @@ export async function searchFAQ(params) {
         }
         if (matches) {
             const enriched = await enrichFAQWithCards(faq);
-            results.push({ faq: enriched });
+            results.push({
+                faq: enriched
+            });
         }
     }
     return results;
@@ -122,67 +132,69 @@ export async function searchFAQ(params) {
 function formatOutput(results, options) {
     const { fcols, cols, format = 'json' } = options;
     // Apply random/range/all filtering
-    let filteredResults = [...results];
+    let filteredResults = [
+        ...results
+    ];
     if (options.range) {
         const [start, end] = options.range;
-        filteredResults = filteredResults.filter(r => r.faq.faqId >= start && r.faq.faqId <= end);
+        filteredResults = filteredResults.filter((r)=>r.faq.faqId >= start && r.faq.faqId <= end);
     }
     if (options.random && filteredResults.length > 0) {
-        filteredResults = filteredResults
-            .sort(() => Math.random() - 0.5)
-            .slice(0, options.all ? filteredResults.length : results.length);
+        filteredResults = filteredResults.sort(()=>Math.random() - 0.5).slice(0, options.all ? filteredResults.length : results.length);
     }
     // Build output based on format
     if (format === 'json') {
         if (!fcols && !cols) {
             return JSON.stringify(filteredResults, null, 2);
         }
-        const formatted = filteredResults.map(r => {
+        const formatted = filteredResults.map((r)=>{
             const output = {};
             if (fcols) {
-                for (const col of fcols) {
-                    if (col in r.faq)
-                        output[col] = r.faq[col];
+                for (const col of fcols){
+                    if (col in r.faq) output[col] = r.faq[col];
                 }
-            }
-            else {
+            } else {
                 Object.assign(output, r.faq);
             }
             if (cols) {
-                output.questionCards = r.faq.questionCards.map(c => filterCardCols(c, cols));
-                output.answerCards = r.faq.answerCards.map(c => filterCardCols(c, cols));
+                output.questionCards = r.faq.questionCards.map((c)=>filterCardCols(c, cols));
+                output.answerCards = r.faq.answerCards.map((c)=>filterCardCols(c, cols));
             }
             return output;
         });
         return JSON.stringify(formatted, null, 2);
     }
     if (format === 'jsonl') {
-        return filteredResults.map(r => {
-            if (!fcols && !cols)
-                return JSON.stringify(r);
+        return filteredResults.map((r)=>{
+            if (!fcols && !cols) return JSON.stringify(r);
             const output = {};
             if (fcols) {
-                for (const col of fcols) {
-                    if (col in r.faq)
-                        output[col] = r.faq[col];
+                for (const col of fcols){
+                    if (col in r.faq) output[col] = r.faq[col];
                 }
-            }
-            else {
+            } else {
                 Object.assign(output, r.faq);
             }
             if (cols) {
-                output.questionCards = r.faq.questionCards.map(c => filterCardCols(c, cols));
-                output.answerCards = r.faq.answerCards.map(c => filterCardCols(c, cols));
+                output.questionCards = r.faq.questionCards.map((c)=>filterCardCols(c, cols));
+                output.answerCards = r.faq.answerCards.map((c)=>filterCardCols(c, cols));
             }
             return JSON.stringify(output);
         }).join('\n');
     }
     if (format === 'csv' || format === 'tsv') {
         const delimiter = format === 'csv' ? ',' : '\t';
-        const effectiveFcols = fcols || ['faqId', 'question', 'answer', 'updatedAt'];
-        const lines = [effectiveFcols.join(delimiter)];
-        for (const r of filteredResults) {
-            const values = effectiveFcols.map(col => {
+        const effectiveFcols = fcols || [
+            'faqId',
+            'question',
+            'answer',
+            'updatedAt'
+        ];
+        const lines = [
+            effectiveFcols.join(delimiter)
+        ];
+        for (const r of filteredResults){
+            const values = effectiveFcols.map((col)=>{
                 const val = r.faq[col];
                 return typeof val === 'string' ? `"${val.replace(/"/g, '""')}"` : val;
             });
@@ -194,9 +206,8 @@ function formatOutput(results, options) {
 }
 function filterCardCols(card, cols) {
     const filtered = {};
-    for (const col of cols) {
-        if (col in card)
-            filtered[col] = card[col];
+    for (const col of cols){
+        if (col in card) filtered[col] = card[col];
     }
     return filtered;
 }
@@ -219,35 +230,30 @@ if (import.meta.url === `file://${process.argv[1]}`) {
             jsonMode = true;
         }
         // Parse all arguments
-        for (let i = jsonMode ? 1 : 0; i < args.length; i++) {
+        for(let i = jsonMode ? 1 : 0; i < args.length; i++){
             const arg = args[i];
             // Options with -- prefix
             if (arg === '--fcol' && args[i + 1]) {
                 options.fcols = args[++i].split(',');
-            }
-            else if (arg === '--col' && args[i + 1]) {
+            } else if (arg === '--col' && args[i + 1]) {
                 options.cols = args[++i].split(',');
-            }
-            else if (arg === '--format' && args[i + 1]) {
+            } else if (arg === '--format' && args[i + 1]) {
                 options.format = args[++i];
-            }
-            else if (arg === '--random') {
+            } else if (arg === '--random') {
                 options.random = true;
-            }
-            else if (arg === '--range' && args[i + 1]) {
+            } else if (arg === '--range' && args[i + 1]) {
                 const [start, end] = args[++i].split('-').map(Number);
-                options.range = [start, end];
-            }
-            else if (arg === '--all') {
+                options.range = [
+                    start,
+                    end
+                ];
+            } else if (arg === '--all') {
                 options.all = true;
-            }
-            // key=value style parameters
-            else if (!jsonMode && arg.includes('=')) {
+            } else if (!jsonMode && arg.includes('=')) {
                 const [key, ...valueParts] = arg.split('=');
                 let value = valueParts.join('=');
                 // Remove quotes if present
-                if ((value.startsWith('"') && value.endsWith('"')) ||
-                    (value.startsWith("'") && value.endsWith("'"))) {
+                if (value.startsWith('"') && value.endsWith('"') || value.startsWith("'") && value.endsWith("'")) {
                     value = value.slice(1, -1);
                 }
                 // Parse nested keys (e.g., cardFilter.race=dragon)
@@ -255,19 +261,15 @@ if (import.meta.url === `file://${process.argv[1]}`) {
                     const parts = key.split('.');
                     const mainKey = parts[0];
                     const subKey = parts[1];
-                    if (!params[mainKey])
-                        params[mainKey] = {};
+                    if (!params[mainKey]) params[mainKey] = {};
                     params[mainKey][subKey] = value;
-                }
-                else {
+                } else {
                     // Convert numeric strings to numbers
                     if (key === 'faqId' || key === 'cardId' || key === 'limit') {
                         params[key] = parseInt(value);
-                    }
-                    else if (key === 'flagAllowWild') {
+                    } else if (key === 'flagAllowWild') {
                         params[key] = value === 'true';
-                    }
-                    else {
+                    } else {
                         params[key] = value;
                     }
                 }
@@ -275,10 +277,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         }
         const results = await searchFAQ(params);
         console.log(formatOutput(results, options));
-    }
-    catch (err) {
+    } catch (err) {
         console.error('Error:', err);
         process.exit(1);
     }
 }
-//# sourceMappingURL=search-faq.js.map

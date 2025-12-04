@@ -132,12 +132,44 @@ function fuzzyMatch(val: string, pattern: string): boolean {
   return false
 }
 
-function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: boolean = false, isNameField: boolean = false, normalizedVal?: string, flagAllowWild: boolean = false, isTextField: boolean = false, flagNearly: boolean = false) {
+// JSON array fields in the database (fields that store JSON-formatted arrays)
+const JSON_ARRAY_FIELDS = ['monsterTypes']
+
+// Check if a field contains JSON array data
+function isJsonArrayField(fieldName: string): boolean {
+  return JSON_ARRAY_FIELDS.includes(fieldName)
+}
+
+// Parse JSON array field safely
+function parseJsonArray(jsonStr: string): string[] {
+  try {
+    const parsed = JSON.parse(jsonStr)
+    if (Array.isArray(parsed)) {
+      return parsed.map(v => String(v))
+    }
+  } catch (e) {
+    // If parsing fails, return empty array
+  }
+  return []
+}
+
+function valueMatches(val: string, pattern: any, mode: string, flagAutoModify: boolean = false, isNameField: boolean = false, normalizedVal?: string, flagAllowWild: boolean = false, isTextField: boolean = false, flagNearly: boolean = false, fieldName: string = '') {
   val = val === undefined || val === null ? '' : String(val)
   if(pattern === null || pattern === undefined) return true
-  
+
+  // Handle JSON array fields (monsterTypes, linkMarkers, imgs)
+  if (isJsonArrayField(fieldName)) {
+    const arrayValues = parseJsonArray(val)
+    // Check if pattern matches any value in the array (OR condition)
+    return arrayValues.some(arrayVal => {
+      const patternStr = String(pattern)
+      // Use exact matching for array field elements
+      return arrayVal === patternStr || arrayVal.toLowerCase() === patternStr.toLowerCase()
+    })
+  }
+
   const patternStr = String(pattern)
-  
+
   // Parse negative patterns (for text fields and name field)
   const { positive: positivePattern, negative: negativePatterns } = parseNegativePatterns(patternStr)
   
@@ -215,6 +247,39 @@ function parseBooleanValue(value: string, flagName: string, defaultValue: boolea
   process.exit(2)
 }
 
+// Parse array parameter - supports both JSON array format and comma-separated values
+function parseArrayValue(value: string): string[] {
+  // Try to parse as JSON first
+  if (value.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.map(v => String(v))
+      }
+    } catch (e) {
+      // Fall through to comma-separated parsing
+    }
+  }
+
+  // Try to parse as JSON object with array value
+  if (value.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(value)
+      // Look for the first array value in the object
+      for (const [, val] of Object.entries(parsed)) {
+        if (Array.isArray(val)) {
+          return val.map(v => String(v))
+        }
+      }
+    } catch (e) {
+      // Fall through to comma-separated parsing
+    }
+  }
+
+  // Parse as comma-separated values
+  return value.split(',').map(v => v.trim()).filter(v => v.length > 0)
+}
+
 // Parse command line arguments, supporting both --flag format and key=value format
 function parseArgs(args: string[]): {
   filterRaw: Record<string, any>
@@ -246,7 +311,10 @@ function parseArgs(args: string[]): {
   let raw = false
 
   // Filter field flags
-  const filterFlags = ['name', 'text', 'cardId', 'cardType', 'race', 'attribute', 'atk', 'def', 'level', 'levelValue', 'pendulumScale', 'ruby', 'linkValue', 'linkArrows']
+  const filterFlags = ['name', 'text', 'cardId', 'cardType', 'race', 'attribute', 'atk', 'def', 'level', 'levelValue', 'pendulumScale', 'ruby', 'linkValue', 'linkArrows', 'monsterTypes']
+
+  // Array parameter fields that need JSON parsing or comma-separated support
+  const arrayFields = ['cardId', 'monsterTypes']
 
   let i = 0
   while (i < args.length) {
@@ -270,7 +338,12 @@ function parseArgs(args: string[]): {
       }
 
       if (filterFlags.includes(flagName)) {
-        filterRaw[flagName] = nextArg
+        // Parse array fields properly
+        if (arrayFields.includes(flagName)) {
+          filterRaw[flagName] = parseArrayValue(nextArg)
+        } else {
+          filterRaw[flagName] = nextArg
+        }
         i += 2
         continue
       }
@@ -326,7 +399,12 @@ function parseArgs(args: string[]): {
 
       // Check if it's a filter field
       if (filterFlags.includes(key)) {
-        filterRaw[key] = value
+        // Parse array fields properly
+        if (arrayFields.includes(key)) {
+          filterRaw[key] = parseArrayValue(value)
+        } else {
+          filterRaw[key] = value
+        }
         i++
         continue
       }
@@ -375,10 +453,15 @@ function parseArgs(args: string[]): {
     }
 
     // Try to parse as JSON filter (legacy format)
-    try {
-      const parsed = JSON.parse(arg)
-      Object.assign(filterRaw, parsed)
-    } catch {
+    if (arg.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(arg)
+        Object.assign(filterRaw, parsed)
+      } catch {
+        console.error(`Invalid JSON filter: ${arg}`)
+        process.exit(2)
+      }
+    } else {
       console.error(`Invalid argument: ${arg}`)
       process.exit(2)
     }
@@ -514,14 +597,14 @@ async function main(){
         const isTextField = ['text', 'pendulumText', 'supplementInfo', 'pendulumSupplementInfo'].includes(k)
         // Use pre-computed nameModified if available
         const normalizedVal = (isNameField && nameModifiedIndex >= 0) ? obj['nameModified'] : undefined
-        const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField, flagNearly)
+        const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField, flagNearly, k)
 
         // If searching by name and includeRuby is true, also check ruby field
         if(k === 'name' && includeRuby && !matchesField){
           const rubyValue = obj['ruby'] === undefined ? '' : obj['ruby']
-          return valueMatches(rubyValue, cond, useMode, flagAutoModify, true, undefined, flagAllowWild, false, flagNearly)
+          return valueMatches(rubyValue, cond, useMode, flagAutoModify, true, undefined, flagAllowWild, false, flagNearly, k)
         }
-        
+
         return matchesField
       })
       const passed = f.op === 'or' ? matches.some(Boolean) : matches.every(Boolean)

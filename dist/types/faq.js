@@ -1,2 +1,1 @@
-export {};
-//# sourceMappingURL=faq.js.map
+export { };

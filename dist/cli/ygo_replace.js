@@ -29,15 +29,17 @@ Examples:
 `);
         process.exit(0);
     }
-    const proc = spawn('node', [scriptPath, ...args], {
+    const proc = spawn('node', [
+        scriptPath,
+        ...args
+    ], {
         stdio: 'inherit'
     });
-    proc.on('exit', (code) => {
+    proc.on('exit', (code)=>{
         process.exit(code || 0);
     });
 }
-main().catch(err => {
+main().catch((err)=>{
     console.error('Error:', err.message);
     process.exit(1);
 });
-//# sourceMappingURL=ygo_replace.js.map

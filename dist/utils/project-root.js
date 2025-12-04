@@ -4,7 +4,7 @@ import * as url from 'url';
 export async function findProjectRoot(startDir) {
     const __dirname = startDir || path.dirname(url.fileURLToPath(import.meta.url));
     let projectRoot = __dirname;
-    while (true) {
+    while(true){
         if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
             const pkg = JSON.parse(await fs.promises.readFile(path.join(projectRoot, 'package.json'), 'utf8'));
             if (pkg.name === 'ygo-search-card-mcp') {
@@ -18,4 +18,3 @@ export async function findProjectRoot(startDir) {
         projectRoot = parentDir;
     }
 }
-//# sourceMappingURL=project-root.js.map

@@ -6,7 +6,9 @@ import url from 'url';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const searchScript = path.join(__dirname, 'search-cards.js');
 async function executeQuery(query) {
-    const args = [JSON.stringify(query.filter)];
+    const args = [
+        JSON.stringify(query.filter)
+    ];
     if (query.cols && query.cols.length > 0) {
         args.push(`cols=${query.cols.join(',')}`);
     }
@@ -31,19 +33,26 @@ async function executeQuery(query) {
     if (query.flagNearly === true) {
         args.push(`flagNearly=true`);
     }
-    return new Promise((resolve, reject) => {
-        const child = spawn('node', [searchScript, ...args], {
-            stdio: ['ignore', 'pipe', 'pipe']
+    return new Promise((resolve, reject)=>{
+        const child = spawn('node', [
+            searchScript,
+            ...args
+        ], {
+            stdio: [
+                'ignore',
+                'pipe',
+                'pipe'
+            ]
         });
         let stdout = '';
         let stderr = '';
-        child.stdout.on('data', (data) => {
+        child.stdout.on('data', (data)=>{
             stdout += data.toString();
         });
-        child.stderr.on('data', (data) => {
+        child.stderr.on('data', (data)=>{
             stderr += data.toString();
         });
-        child.on('close', (code) => {
+        child.on('close', (code)=>{
             if (code !== 0) {
                 // Return empty array on error instead of failing
                 resolve([]);
@@ -55,14 +64,13 @@ async function executeQuery(query) {
                     return;
                 }
                 const lines = stdout.trim().split('\n');
-                const result = lines.map(line => JSON.parse(line));
+                const result = lines.map((line)=>JSON.parse(line));
                 resolve(result);
-            }
-            catch (e) {
+            } catch (e) {
                 resolve([]);
             }
         });
-        child.on('error', () => {
+        child.on('error', ()=>{
             resolve([]);
         });
     });
@@ -79,8 +87,7 @@ async function main() {
         if (!Array.isArray(queries)) {
             throw new Error('Queries must be an array');
         }
-    }
-    catch (e) {
+    } catch (e) {
         console.error('Invalid queries JSON:', e instanceof Error ? e.message : e);
         process.exit(2);
     }
@@ -93,12 +100,13 @@ async function main() {
         process.exit(2);
     }
     // Execute all queries
-    const results = await Promise.all(queries.map(q => executeQuery(q)));
-    // Output as JSON array of arrays
-    console.log(JSON.stringify(results));
+    const results = await Promise.all(queries.map((q)=>executeQuery(q)));
+    // Output as JSONL (one result array per line)
+    results.forEach((result)=>{
+        console.log(JSON.stringify(result));
+    });
 }
-main().catch(e => {
+main().catch((e)=>{
     console.error(e);
     process.exit(2);
 });
-//# sourceMappingURL=bulk-search-cards.js.map

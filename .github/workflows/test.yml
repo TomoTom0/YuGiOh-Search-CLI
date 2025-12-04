@@ -9,26 +9,30 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
         node-version: [18.x, 20.x]
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
     - name: Install dependencies
-      run: npm ci
-    
+      run: bun install
+
     - name: Run unit tests
-      run: npm run test:unit
+      run: bun run test:unit
     
     - name: Upload test results
       if: always()
@@ -42,19 +46,23 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20.x'
-        cache: 'npm'
-    
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version: latest
+
     - name: Install dependencies
-      run: npm ci
-    
-    - name: Check TypeScript compilation
-      run: npx tsc --noEmit --skipLibCheck src/*.ts tests/unit/*.ts tests/fixtures/*.ts || true
+      run: bun install
+
+    - name: Build with swc
+      run: bun run build

@@ -1,33 +1,24 @@
 /**
  * Core card search logic extracted for library use
  * Used by both CLI (search-cards.ts) and FAQ search (search-faq.ts)
- */
-import fs from 'fs';
+ */ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { findProjectRoot } from '../utils/project-root.js';
 function normalizeForSearch(str) {
-    if (!str)
-        return '';
-    return str
-        .replace(/[\s\u3000]+/g, '')
-        .replace(/[・★☆※‼！？。、,.，．:：;；「」『』【】〔〕（）()［］\[\]｛｝{}〈〉《》〜～~\-－_＿\/／\\＼|｜&＆@＠#＃$＄%％^＾*＊+＋=＝<＜>＞'"\"'""''`´｀]/g, '')
-        .replace(/竜/g, '龍')
-        .replace(/剣/g, '劍')
-        .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-        .toLowerCase()
-        .replace(/[\u3041-\u3096]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0x60));
+    if (!str) return '';
+    return str.replace(/[\s\u3000]+/g, '').replace(/[・★☆※‼！？。、,.，．:：;；「」『』【】〔〕（）()［］\[\]｛｝{}〈〉《》〜～~\-－_＿\/／\\＼|｜&＆@＠#＃$＄%％^＾*＊+＋=＝<＜>＞'"\"'""''`´｀]/g, '').replace(/竜/g, '龍').replace(/剣/g, '劍').replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s)=>String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).toLowerCase().replace(/[\u3041-\u3096]/g, (s)=>String.fromCharCode(s.charCodeAt(0) + 0x60));
 }
 function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField) {
     if (cond === '' || cond === null || cond === undefined) {
         return fieldValue === '' || fieldValue === null || fieldValue === undefined;
     }
-    let searchTarget = flagAutoModify ? (normalizedVal !== undefined ? normalizedVal : normalizeForSearch(fieldValue)) : fieldValue;
+    let searchTarget = flagAutoModify ? normalizedVal !== undefined ? normalizedVal : normalizeForSearch(fieldValue) : fieldValue;
     let searchPattern = flagAutoModify ? normalizeForSearch(String(cond)) : String(cond);
     if (isTextField && String(cond).includes('-"')) {
         const negativeMatches = String(cond).match(/-["'`]([^"'`]+)["'`]/g);
         if (negativeMatches) {
-            for (const negMatch of negativeMatches) {
+            for (const negMatch of negativeMatches){
                 const phrase = negMatch.slice(2, -1);
                 const normalizedPhrase = flagAutoModify ? normalizeForSearch(phrase) : phrase;
                 if (searchTarget.includes(normalizedPhrase)) {
@@ -35,8 +26,7 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
                 }
             }
             searchPattern = String(cond).replace(/-["'`][^"'`]+["'`]/g, '').trim();
-            if (!searchPattern)
-                return true;
+            if (!searchPattern) return true;
             searchPattern = flagAutoModify ? normalizeForSearch(searchPattern) : searchPattern;
         }
     }
@@ -44,7 +34,7 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
         return searchTarget.includes(searchPattern);
     }
     if (flagAllowWild && searchPattern.includes('*')) {
-        const regexPattern = searchPattern.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*');
+        const regexPattern = searchPattern.split('*').map((s)=>s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*');
         const regex = new RegExp(`^${regexPattern}$`, 'i');
         return regex.test(searchTarget);
     }
@@ -53,23 +43,33 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
 /**
  * Search cards by filter
  * Returns array of Card objects matching the filter
- */
-export async function searchCards(params) {
+ */ export async function searchCards(params) {
     const { filter: filterRaw, cols = null, mode = 'exact', includeRuby = true, flagAutoModify = true, flagAllowWild = true } = params;
     // Normalize filter
     const filter = {};
-    for (const k of Object.keys(filterRaw)) {
+    for (const k of Object.keys(filterRaw)){
         const v = filterRaw[k];
         if (v && typeof v === 'object' && (v.op || Array.isArray(v.cond) || v.cond)) {
             const op = v.op === 'or' ? 'or' : 'and';
-            const cond = Array.isArray(v.cond) ? v.cond : (v.cond !== undefined ? [v.cond] : []);
-            filter[k] = { op, cond };
-        }
-        else if (Array.isArray(v)) {
-            filter[k] = { op: 'or', cond: v };
-        }
-        else {
-            filter[k] = { op: 'and', cond: [v] };
+            const cond = Array.isArray(v.cond) ? v.cond : v.cond !== undefined ? [
+                v.cond
+            ] : [];
+            filter[k] = {
+                op,
+                cond
+            };
+        } else if (Array.isArray(v)) {
+            filter[k] = {
+                op: 'or',
+                cond: v
+            };
+        } else {
+            filter[k] = {
+                op: 'and',
+                cond: [
+                    v
+                ]
+            };
         }
     }
     const projectRoot = await findProjectRoot();
@@ -85,9 +85,8 @@ export async function searchCards(params) {
     const results = [];
     let headers = [];
     let nameModifiedIndex = -1;
-    for await (const line of rl) {
-        if (!line)
-            continue;
+    for await (const line of rl){
+        if (!line) continue;
         if (headers.length === 0) {
             headers = line.split('\t');
             nameModifiedIndex = headers.indexOf('nameModified');
@@ -95,20 +94,24 @@ export async function searchCards(params) {
         }
         const parts = line.split('\t');
         const obj = {};
-        for (let i = 0; i < headers.length; i++) {
+        for(let i = 0; i < headers.length; i++){
             obj[headers[i]] = parts[i] === undefined ? '' : parts[i];
         }
         let ok = true;
-        for (const k of Object.keys(filter)) {
+        for (const k of Object.keys(filter)){
             const f = filter[k];
-            if (!f || f.cond.length === 0)
-                continue;
-            const matches = f.cond.map((cond) => {
-                const useMode = (k === 'name') ? mode : 'exact';
+            if (!f || f.cond.length === 0) continue;
+            const matches = f.cond.map((cond)=>{
+                const useMode = k === 'name' ? mode : 'exact';
                 const fieldValue = obj[k] === undefined ? '' : obj[k];
-                const isNameField = (k === 'name');
-                const isTextField = ['text', 'pendulumText', 'supplementInfo', 'pendulumSupplementInfo'].includes(k);
-                const normalizedVal = (isNameField && nameModifiedIndex >= 0) ? obj['nameModified'] : undefined;
+                const isNameField = k === 'name';
+                const isTextField = [
+                    'text',
+                    'pendulumText',
+                    'supplementInfo',
+                    'pendulumSupplementInfo'
+                ].includes(k);
+                const normalizedVal = isNameField && nameModifiedIndex >= 0 ? obj['nameModified'] : undefined;
                 const matchesField = valueMatches(fieldValue, cond, useMode, flagAutoModify, isNameField, normalizedVal, flagAllowWild, isTextField);
                 if (k === 'name' && includeRuby && !matchesField) {
                     const rubyValue = obj['ruby'] === undefined ? '' : obj['ruby'];
@@ -124,9 +127,13 @@ export async function searchCards(params) {
         }
         if (ok) {
             // Build Card object (only fields that exist in headers)
-            const card = { cardType: parts[0], name: parts[1], cardId: parts[4] };
+            const card = {
+                cardType: parts[0],
+                name: parts[1],
+                cardId: parts[4]
+            };
             // Add all other fields from TSV
-            for (let i = 0; i < headers.length; i++) {
+            for(let i = 0; i < headers.length; i++){
                 if (parts[i] !== undefined && parts[i] !== '') {
                     card[headers[i]] = parts[i];
                 }
@@ -136,4 +143,3 @@ export async function searchCards(params) {
     }
     return results;
 }
-//# sourceMappingURL=card-search-core.js.map

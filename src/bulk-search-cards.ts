@@ -121,8 +121,10 @@ async function main() {
   // Execute all queries
   const results = await Promise.all(queries.map(q => executeQuery(q)))
   
-  // Output as JSON array of arrays
-  console.log(JSON.stringify(results))
+  // Output as JSONL (one result array per line)
+  results.forEach(result => {
+    console.log(JSON.stringify(result))
+  })
 }
 
 main().catch(e => {
