@@ -23,21 +23,25 @@
 - [x] CLI commands
 - **Released**: 2025-11-XX
 
-## Future Milestones
+## Current Milestone
 
-### v1.4.0 - Code Quality & Refactoring (Planned)
-- [ ] parseArgs関数のリファクタリング（優先度: 高）
-  - [ ] フェーズ1: オプション処理の統一（setOptionヘルパー作成）
-  - [ ] フェーズ2: パース処理の分割（単一責務原則の適用）
-  - [ ] フェーズ3: テストカバレッジの向上（90%以上）
-- [ ] コード重複の削減（~100行削減目標）
-- [ ] 保守性の向上
+### v1.3.x - Code Quality Improvements (In Progress)
+- [x] parseArgs関数のリファクタリング（完了）
+  - [x] フェーズ1: オプション処理の統一（setOptionヘルパー作成）
+  - [x] フェーズ2: パース処理の分割（単一責務原則の適用）
+  - [x] フェーズ3: テストカバレッジの確認（81個成功）
+- [x] コード重複の削減（~100行削減達成）
+- [x] 保守性の向上（parseArgs: 204行→30行、85%削減）
+- [ ] PR #35のマージ待ち
 
 #### Status
-- **Priority**: High（保守性に大きく影響）
-- **工数見積**: 6-9時間
-- **リスク**: 低（インターフェース変更なし）
-- **根拠**: PR #34の指摘#5、詳細は`tmp/pr/34/analysis.md`参照
+- **Progress**: 95%
+- **Blockers**: PR #35のレビュー・マージ待ち
+- **Completed**: parseArgsリファクタリング（2025-12-07）
+- **工数実績**: 約8-10時間
+- **成果**: コード品質大幅向上、保守性・可読性の向上
+
+## Future Milestones
 
 ### v1.2.0 - Enhanced FAQ Search (Planning)
 - [ ] Bulk FAQ search
