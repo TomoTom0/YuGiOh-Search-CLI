@@ -328,8 +328,8 @@ function parseJsonFormat(arg, filterRaw) {
     try {
         const parsed = JSON.parse(arg);
         Object.assign(filterRaw, parsed);
-    } catch  {
-        console.error(`Invalid JSON filter: ${arg}`);
+    } catch (e) {
+        console.error(`Invalid JSON filter: ${arg}`, e);
         process.exit(2);
     }
 }
