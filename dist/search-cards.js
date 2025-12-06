@@ -225,21 +225,117 @@ function parseArrayValue(value) {
     // Parse as comma-separated values
     return value.split(',').map((v)=>v.trim()).filter((v)=>v.length > 0);
 }
+// Initialize ParsedOptions with default values
+function initializeOptions() {
+    return {
+        filterRaw: {},
+        cols: null,
+        mode: 'exact',
+        includeRuby: true,
+        flagAutoPend: true,
+        flagAutoSupply: true,
+        flagAutoRuby: true,
+        flagAutoModify: true,
+        flagAllowWild: true,
+        flagNearly: false,
+        max: 100,
+        sort: undefined,
+        raw: false
+    };
+}
+// Helper function to set an option value - unifies duplicated switch statements
+function setOption(key, value, options, filterFlags, arrayFields) {
+    // Check if it's a filter field
+    if (filterFlags.includes(key)) {
+        // Parse array fields properly
+        if (arrayFields.includes(key)) {
+            options.filterRaw[key] = parseArrayValue(value);
+        } else {
+            options.filterRaw[key] = value;
+        }
+        return;
+    }
+    // Handle regular options
+    switch(key){
+        case 'cols':
+            options.cols = value.split(',');
+            break;
+        case 'mode':
+            options.mode = value;
+            break;
+        case 'max':
+            options.max = parseInt(value, 10);
+            if (!Number.isInteger(options.max) || options.max < 0) {
+                options.max = 100;
+            }
+            break;
+        case 'sort':
+            options.sort = value;
+            break;
+        case 'includeRuby':
+            options.includeRuby = parseBooleanValue(value, 'includeRuby', true);
+            break;
+        case 'flagAutoPend':
+            options.flagAutoPend = parseBooleanValue(value, 'flagAutoPend', true);
+            break;
+        case 'flagAutoSupply':
+            options.flagAutoSupply = parseBooleanValue(value, 'flagAutoSupply', true);
+            break;
+        case 'flagAutoRuby':
+            options.flagAutoRuby = parseBooleanValue(value, 'flagAutoRuby', true);
+            break;
+        case 'flagAutoModify':
+            options.flagAutoModify = parseBooleanValue(value, 'flagAutoModify', true);
+            break;
+        case 'flagAllowWild':
+            options.flagAllowWild = parseBooleanValue(value, 'flagAllowWild', true);
+            break;
+        case 'flagNearly':
+            options.flagNearly = parseBooleanValue(value, 'flagNearly', false);
+            break;
+        default:
+            console.error(`Unknown option: ${key}`);
+            process.exit(2);
+    }
+}
+// Parse --flag value format
+function parseFlagFormat(args, index, options, filterFlags, arrayFields) {
+    const arg = args[index.value];
+    const flagName = arg.slice(2);
+    if (flagName === 'raw') {
+        options.raw = true;
+        index.value++;
+        return;
+    }
+    // Check if next arg exists and is not a flag
+    const nextArg = args[index.value + 1];
+    if (nextArg === undefined || nextArg.startsWith('--')) {
+        console.error(`Missing value for --${flagName}`);
+        process.exit(2);
+    }
+    setOption(flagName, nextArg, options, filterFlags, arrayFields);
+    index.value += 2;
+}
+// Parse key=value format
+function parseKeyValueFormat(arg, options, filterFlags, arrayFields) {
+    const eqIndex = arg.indexOf('=');
+    const key = arg.substring(0, eqIndex);
+    const value = arg.substring(eqIndex + 1);
+    setOption(key, value, options, filterFlags, arrayFields);
+}
+// Parse JSON format
+function parseJsonFormat(arg, filterRaw) {
+    try {
+        const parsed = JSON.parse(arg);
+        Object.assign(filterRaw, parsed);
+    } catch  {
+        console.error(`Invalid JSON filter: ${arg}`);
+        process.exit(2);
+    }
+}
 // Parse command line arguments, supporting both --flag format and key=value format
 function parseArgs(args) {
-    const filterRaw = {};
-    let cols = null;
-    let mode = 'exact';
-    let includeRuby = true;
-    let flagAutoPend = true;
-    let flagAutoSupply = true;
-    let flagAutoRuby = true;
-    let flagAutoModify = true;
-    let flagAllowWild = true;
-    let flagNearly = false;
-    let max = 100;
-    let sort = undefined;
-    let raw = false;
+    const options = initializeOptions();
     // Filter field flags
     const filterFlags = [
         'name',
@@ -263,163 +359,25 @@ function parseArgs(args) {
         'cardId',
         'monsterTypes'
     ];
-    let i = 0;
-    while(i < args.length){
-        const arg = args[i];
-        // Handle --flag value format
+    const index = {
+        value: 0
+    };
+    while(index.value < args.length){
+        const arg = args[index.value];
         if (arg.startsWith('--')) {
-            const flagName = arg.slice(2);
-            if (flagName === 'raw') {
-                raw = true;
-                i++;
-                continue;
-            }
-            // Check if next arg exists and is not a flag
-            const nextArg = args[i + 1];
-            if (nextArg === undefined || nextArg.startsWith('--')) {
-                console.error(`Missing value for --${flagName}`);
-                process.exit(2);
-            }
-            if (filterFlags.includes(flagName)) {
-                // Parse array fields properly
-                if (arrayFields.includes(flagName)) {
-                    filterRaw[flagName] = parseArrayValue(nextArg);
-                } else {
-                    filterRaw[flagName] = nextArg;
-                }
-                i += 2;
-                continue;
-            }
-            switch(flagName){
-                case 'cols':
-                    cols = nextArg.split(',');
-                    break;
-                case 'mode':
-                    mode = nextArg;
-                    break;
-                case 'max':
-                    max = parseInt(nextArg, 10);
-                    if (!Number.isInteger(max) || max < 0) max = 100;
-                    break;
-                case 'sort':
-                    sort = nextArg;
-                    break;
-                case 'includeRuby':
-                    includeRuby = parseBooleanValue(nextArg, '--includeRuby', true);
-                    break;
-                case 'flagAutoPend':
-                    flagAutoPend = parseBooleanValue(nextArg, '--flagAutoPend', true);
-                    break;
-                case 'flagAutoSupply':
-                    flagAutoSupply = parseBooleanValue(nextArg, '--flagAutoSupply', true);
-                    break;
-                case 'flagAutoRuby':
-                    flagAutoRuby = parseBooleanValue(nextArg, '--flagAutoRuby', true);
-                    break;
-                case 'flagAutoModify':
-                    flagAutoModify = parseBooleanValue(nextArg, '--flagAutoModify', true);
-                    break;
-                case 'flagAllowWild':
-                    flagAllowWild = parseBooleanValue(nextArg, '--flagAllowWild', true);
-                    break;
-                case 'flagNearly':
-                    flagNearly = parseBooleanValue(nextArg, '--flagNearly', false);
-                    break;
-                default:
-                    console.error(`Unknown flag: --${flagName}`);
-                    process.exit(2);
-            }
-            i += 2;
-            continue;
-        }
-        // Handle key=value format (legacy support)
-        if (arg.includes('=')) {
-            const eqIndex = arg.indexOf('=');
-            const key = arg.substring(0, eqIndex);
-            const value = arg.substring(eqIndex + 1);
-            // Check if it's a filter field
-            if (filterFlags.includes(key)) {
-                // Parse array fields properly
-                if (arrayFields.includes(key)) {
-                    filterRaw[key] = parseArrayValue(value);
-                } else {
-                    filterRaw[key] = value;
-                }
-                i++;
-                continue;
-            }
-            switch(key){
-                case 'cols':
-                    cols = value.split(',');
-                    break;
-                case 'mode':
-                    mode = value;
-                    break;
-                case 'max':
-                    max = parseInt(value, 10);
-                    if (!Number.isInteger(max) || max < 0) max = 100;
-                    break;
-                case 'sort':
-                    sort = value;
-                    break;
-                case 'includeRuby':
-                    includeRuby = parseBooleanValue(value, 'includeRuby', true);
-                    break;
-                case 'flagAutoPend':
-                    flagAutoPend = parseBooleanValue(value, 'flagAutoPend', true);
-                    break;
-                case 'flagAutoSupply':
-                    flagAutoSupply = parseBooleanValue(value, 'flagAutoSupply', true);
-                    break;
-                case 'flagAutoRuby':
-                    flagAutoRuby = parseBooleanValue(value, 'flagAutoRuby', true);
-                    break;
-                case 'flagAutoModify':
-                    flagAutoModify = parseBooleanValue(value, 'flagAutoModify', true);
-                    break;
-                case 'flagAllowWild':
-                    flagAllowWild = parseBooleanValue(value, 'flagAllowWild', true);
-                    break;
-                case 'flagNearly':
-                    flagNearly = parseBooleanValue(value, 'flagNearly', false);
-                    break;
-                default:
-                    console.error(`Unknown option: ${key}`);
-                    process.exit(2);
-            }
-            i++;
-            continue;
-        }
-        // Try to parse as JSON filter (legacy format)
-        if (arg.startsWith('{')) {
-            try {
-                const parsed = JSON.parse(arg);
-                Object.assign(filterRaw, parsed);
-            } catch  {
-                console.error(`Invalid JSON filter: ${arg}`);
-                process.exit(2);
-            }
+            parseFlagFormat(args, index, options, filterFlags, arrayFields);
+        } else if (arg.includes('=')) {
+            parseKeyValueFormat(arg, options, filterFlags, arrayFields);
+            index.value++;
+        } else if (arg.startsWith('{')) {
+            parseJsonFormat(arg, options.filterRaw);
+            index.value++;
         } else {
             console.error(`Invalid argument: ${arg}`);
             process.exit(2);
         }
-        i++;
     }
-    return {
-        filterRaw,
-        cols,
-        mode,
-        includeRuby,
-        flagAutoPend,
-        flagAutoSupply,
-        flagAutoRuby,
-        flagAutoModify,
-        flagAllowWild,
-        flagNearly,
-        max,
-        sort,
-        raw
-    };
+    return options;
 }
 async function main() {
     const args = process.argv.slice(2);
