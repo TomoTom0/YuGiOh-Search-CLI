@@ -1,13 +1,13 @@
 # Work In Progress
 
 ## Currently Working On
-PR #34 のレビュー対応
+parseArgs関数のリファクタリング（PR #34 指摘#5への対応）
 
 ## Status
-- Branch: dev
+- Branch: fix/pr34-review-minor-fixes
 - Last Updated: 2025-12-07
-- Last Commit: 90ed8b9 (feat: npm からbun へパッケージマネージャーを移行 #33)
-- 作業内容: 軽微な修正3件完了、分析ドキュメント作成完了
+- Last Commit: e683563 (chore: .gitignoreにbun.lockを追加)
+- 作業内容: 軽微な修正完了、parseArgsリファクタリング実施中
 
 ## Completed Tasks in This Session (2025-12-07)
 ✅ gh-replyで最新PR（#34）のレビュー指摘を確認
@@ -17,18 +17,20 @@ PR #34 のレビュー対応
   - パフォーマンス注意書き追加（search-cards.ts）
 ✅ sonnetモデルで詳細な技術分析を実施
   - 指摘#1（buildスクリプト）: 対応不要と判断
-  - 指摘#5（parseArgsリファクタリング）: v1.4.0で対応推奨
+  - 指摘#5（parseArgsリファクタリング）: 実装計画策定
 ✅ 分析ドキュメント作成
   - `tmp/pr/34/review_summary.md`
   - `tmp/pr/34/analysis.md`
 ✅ tasks/ディレクトリの更新
-  - done.md: 今回の作業を記録
-  - pending.md: PR #34の状況を追加
-  - milestone.md: v1.4.0マイルストーンを追加
-  - todo.md: PR #34のタスクを整理
-  - wip.md: 現在の作業状況を更新
+✅ PR #35作成（軽微な修正3件）
+✅ gh-replyで対応状況を報告（3件）
+✅ parseArgs関数のリファクタリング完了
+  - フェーズ1: setOptionヘルパー作成（~100行の重複削減）
+  - フェーズ2: パース処理の分割（204行→30行に削減）
+  - フェーズ3: テストカバレッジ確認（81個成功）
+  - 成果: 可読性・保守性の大幅向上
 
 ## Next Actions
-- [ ] 軽微な修正3件をコミット
-- [ ] gh-replyで対応状況を報告
-- [ ] v1.4.0でparseArgsリファクタリングを実施
+- [ ] parseArgsリファクタリングをコミット
+- [ ] PR #35に追加プッシュ
+- [ ] gh-replyで指摘#5への対応を報告
