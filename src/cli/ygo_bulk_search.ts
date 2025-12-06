@@ -13,25 +13,27 @@ function parseOption(
   parsedOptions: Record<string, any>,
   passthroughOptions: string[]
 ): void {
-  if (key === 'cols') {
-    parsedOptions.cols = value.split(',');
-  } else if (key === 'mode') {
-    parsedOptions.mode = value;
-  } else if (key === 'includeRuby') {
-    parsedOptions.includeRuby = value !== 'false';
-  } else if (key === 'flagAutoPend') {
-    parsedOptions.flagAutoPend = value !== 'false';
-  } else if (key === 'flagAutoSupply') {
-    parsedOptions.flagAutoSupply = value !== 'false';
-  } else if (key === 'flagAutoModify') {
-    parsedOptions.flagAutoModify = value !== 'false';
-  } else if (key === 'flagAllowWild') {
-    parsedOptions.flagAllowWild = value !== 'false';
-  } else if (key === 'flagNearly') {
-    parsedOptions.flagNearly = value === 'true';
-  } else {
-    // Pass through unknown options
-    passthroughOptions.push(`${key}=${value}`);
+  switch (key) {
+    case 'cols':
+      parsedOptions.cols = value.split(',');
+      break;
+    case 'mode':
+      parsedOptions.mode = value;
+      break;
+    case 'includeRuby':
+    case 'flagAutoPend':
+    case 'flagAutoSupply':
+    case 'flagAutoModify':
+    case 'flagAllowWild':
+      parsedOptions[key] = value !== 'false';
+      break;
+    case 'flagNearly':
+      parsedOptions.flagNearly = value === 'true';
+      break;
+    default:
+      // Pass through unknown options
+      passthroughOptions.push(`${key}=${value}`);
+      break;
   }
 }
 

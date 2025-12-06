@@ -65,12 +65,23 @@ function levenshteinDistance(s1, s2) {
     return dp[len1][len2];
 }
 // Calculate allowed distance threshold based on pattern length
+// レーベンシュタイン距離の許容閾値を決定する関数
+// 短い文字列ほど厳しく（距離1）、長い文字列ほど緩く（距離3）設定している
+// - 3文字以下: 距離1（1文字の違いまで許容）
+// - 7文字以下: 距離2（2文字の違いまで許容）
+// - 8文字以上: 距離3（3文字の違いまで許容）
+// この閾値は、カード名の一般的な長さと誤字の発生パターンに基づいて設定
 function getAllowedDistance(patternLength) {
     if (patternLength <= 3) return 1;
     if (patternLength <= 7) return 2;
     return 3;
 }
 // Check if value matches pattern using fuzzy matching
+// ファジーマッチング関数 - パターンに近い文字列を検索
+// 注意: スライディングウィンドウによる部分文字列チェックは、
+// 長いテキストに対して計算コストが高くなる可能性があります (O(n*m))
+// 現在の実装では、各部分文字列に対してレーベンシュタイン距離を計算するため、
+// 非常に長いカード名やテキストではパフォーマンスに影響が出る可能性があります
 function fuzzyMatch(val, pattern) {
     // First check for exact substring match
     if (val.includes(pattern)) return true;
@@ -80,6 +91,7 @@ function fuzzyMatch(val, pattern) {
     if (distance <= allowedDistance) return true;
     // Also check if pattern is a fuzzy substring of val
     // Slide a window of pattern length over val and check each
+    // パフォーマンス注意: この処理はO(n*m)の計算量となる
     if (val.length >= pattern.length) {
         for(let i = 0; i <= val.length - pattern.length; i++){
             const substring = val.substring(i, i + pattern.length);
@@ -379,10 +391,15 @@ function parseArgs(args) {
             continue;
         }
         // Try to parse as JSON filter (legacy format)
-        try {
-            const parsed = JSON.parse(arg);
-            Object.assign(filterRaw, parsed);
-        } catch  {
+        if (arg.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(arg);
+                Object.assign(filterRaw, parsed);
+            } catch  {
+                console.error(`Invalid JSON filter: ${arg}`);
+                process.exit(2);
+            }
+        } else {
             console.error(`Invalid argument: ${arg}`);
             process.exit(2);
         }
