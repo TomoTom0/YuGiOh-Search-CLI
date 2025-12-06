@@ -2,6 +2,19 @@
 
 ## Open Pull Requests
 
+### PR #34 - Dev → Main
+- **Status**: REVIEW IN PROGRESS
+- **Reviewer**: gemini-code-assist[bot]
+- **Issues**: 5 items (3 completed, 2 pending)
+  - ✅ 指摘#2: switch文への変更 (完了)
+  - ✅ 指摘#3: マジックナンバーの説明 (完了)
+  - ✅ 指摘#4: パフォーマンス注意書き (完了)
+  - ⏸️ 指摘#1: buildスクリプトの複雑性 (対応不要と判断)
+  - 📋 指摘#5: parseArgsリファクタリング (v1.4.0で対応予定)
+- **Next Action**: 残りの指摘への対応（v1.4.0で）
+- **Analysis**: `tmp/pr/34/analysis.md`
+- **Branch**: dev → main
+
 ### PR #14 - FAQ Search Feature
 - **Status**: AWAITING REVIEW FIXES
 - **Reviewer**: gemini-code-assist[bot]

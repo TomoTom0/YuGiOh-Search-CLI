@@ -25,6 +25,20 @@
 
 ## Future Milestones
 
+### v1.4.0 - Code Quality & Refactoring (Planned)
+- [ ] parseArgs関数のリファクタリング（優先度: 高）
+  - [ ] フェーズ1: オプション処理の統一（setOptionヘルパー作成）
+  - [ ] フェーズ2: パース処理の分割（単一責務原則の適用）
+  - [ ] フェーズ3: テストカバレッジの向上（90%以上）
+- [ ] コード重複の削減（~100行削減目標）
+- [ ] 保守性の向上
+
+#### Status
+- **Priority**: High（保守性に大きく影響）
+- **工数見積**: 6-9時間
+- **リスク**: 低（インターフェース変更なし）
+- **根拠**: PR #34の指摘#5、詳細は`tmp/pr/34/analysis.md`参照
+
 ### v1.2.0 - Enhanced FAQ Search (Planning)
 - [ ] Bulk FAQ search
 - [ ] Advanced filtering
