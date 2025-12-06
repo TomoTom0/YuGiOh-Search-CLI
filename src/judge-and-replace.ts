@@ -74,7 +74,8 @@ async function bulkSearchCards(patterns: Array<{type: PatternType, query: string
       }
       
       try {
-        const result = JSON.parse(stdout)
+        const lines = stdout.trim().split('\n')
+        const result: Card[][] = lines.map(line => JSON.parse(line))
         resolve(result)
       } catch (e) {
         resolve(patterns.map(() => []))

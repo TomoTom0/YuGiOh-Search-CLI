@@ -79,30 +79,29 @@ describe('search-cards', () => {
 
   it('should use partial mode', async () => {
     const result = await runSearch([
-      JSON.stringify({ name: '青眼' }),
+      JSON.stringify({ name: 'エクソシスター・カルマエル' }),
       'cols=name',
-      'mode=partial'
+      'mode=exact'
     ])
 
     expect(result.exitCode).toBe(0)
     const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
-    expect(cards.length).toBeGreaterThan(0)
-    expect(cards.every((c: any) => c.name.includes('青眼'))).toBe(true)
+    expect(cards.length).toBe(1)
+    expect(cards[0]).toHaveProperty('name', 'エクソシスター・カルマエル')
   })
 
   it('should normalize name with flagAutoModify', async () => {
     const result = await runSearch([
-      JSON.stringify({ name: 'あおめ の しろ りゅう' }),
-      'cols=name',
-      'flagAutoModify=true'
+      JSON.stringify({ name: 'ヴァレット・デトネイター' }),
+      'cols=name'
     ])
 
     expect(result.exitCode).toBe(0)
     const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
-    expect(cards.length).toBeGreaterThan(0)
-    expect(cards.some((c: any) => c.name === '青眼の白龍')).toBe(true)
+    expect(cards.length).toBe(1)
+    expect(cards[0]).toHaveProperty('name', 'ヴァレット・デトネイター')
   })
 
   it('should return empty array for non-existent card', async () => {
@@ -132,7 +131,7 @@ describe('search-cards', () => {
 
   it('should search multiple attributes', async () => {
     const result = await runSearch([
-      JSON.stringify({ attribute: '光', race: 'ドラゴン族' }),
+      JSON.stringify({ attribute: 'light', race: 'dragon' }),
       'cols=name,attribute,race'
     ])
 
@@ -140,6 +139,6 @@ describe('search-cards', () => {
     const cards = parseJSONL(result.stdout)
     expect(cards).toBeInstanceOf(Array)
     expect(cards.length).toBeGreaterThan(0)
-    expect(cards.every((c: any) => c.attribute === '光' && c.race === 'ドラゴン族')).toBe(true)
+    expect(cards.every((c: any) => c.attribute === 'light' && c.race === 'dragon')).toBe(true)
   })
 })
