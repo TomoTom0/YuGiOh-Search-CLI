@@ -84,7 +84,8 @@ async function bulkSearchCards(patterns) {
                 return;
             }
             try {
-                const results = JSON.parse(stdout);
+                const lines = stdout.trim().split('\n');
+                const results = lines.map((line)=>JSON.parse(line));
                 resolve(patterns.map((p, i)=>({
                         pattern: p.pattern,
                         type: p.type,

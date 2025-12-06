@@ -2,6 +2,26 @@
 
 ## Open Pull Requests
 
+### PR #35 - PR #34指摘への対応
+- **Status**: OPEN (対応完了、レビュー待ち)
+- **Base Branch**: dev
+- **Reviewer**: 未アサイン
+- **対応内容**: PR #34の全5件の指摘に対応
+  - ✅ 指摘#2: switch文への変更 (完了)
+  - ✅ 指摘#3: マジックナンバーの説明 (完了)
+  - ✅ 指摘#4: パフォーマンス注意書き (完了)
+  - ✅ 指摘#1: buildスクリプトの複雑性 (技術的に対応不要と判断)
+  - ✅ 指摘#5: parseArgsリファクタリング (3フェーズで完了)
+- **Next Action**: レビュー待ち
+- **Link**: https://github.com/TomoTom0/ygo-db-local-mcp/pull/35
+- **Branch**: fix/pr34-review-minor-fixes → dev
+
+### PR #34 - Dev → Main
+- **Status**: OPEN (対応中、PR #35でレビュー指摘に対応済み)
+- **Reviewer**: gemini-code-assist[bot]
+- **Next Action**: PR #35のマージ後、再レビュー待ち
+- **Branch**: dev → main
+
 ### PR #14 - FAQ Search Feature
 - **Status**: AWAITING REVIEW FIXES
 - **Reviewer**: gemini-code-assist[bot]

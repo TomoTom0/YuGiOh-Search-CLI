@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 package-lock.json
+bun.lock
 
 # Data files (use setup-data.sh to download)
 data/*.tsv
