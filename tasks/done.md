@@ -1,5 +1,58 @@
 # Completed Tasks
 
+## 2025-12-07
+
+### テスト失敗の修正 ✅
+- [x] テスト失敗14件の原因分析
+  - extract-and-search-cards: JSONL parsing bug
+  - judge-and-replace: JSONL parsing bug
+  - search-cards.test.ts: 存在しないカード名を使用
+- [x] extract-and-search-cards.tsをパース修正
+  - bulk-search-cardsの改行区切り JSONL をパース
+- [x] judge-and-replace.tsをパース修正
+  - bulk-search-cardsの改行区切り JSONL をパース
+- [x] search-cards.test.tsのテストデータ修正
+  - 存在しないカード名 → 実在するカード名に変更
+  - 日本語属性値 → 英字小文字に統正
+- [x] 全テスト合格（95/95）
+- **Agent**: 自力修正
+- **総工数**: 約2時間
+- **コミット**: 36055ea
+
+### PR #34 レビュー指摘の完全対応 ✅
+- [x] gh-replyで最新PR（#34）のレビュー指摘を確認（5件）
+- [x] 指摘の整理・分類（緊急度・難易度・対応方針）
+- [x] 軽微な修正3件を実施（PR #35作成）
+- [x] parseArgs関数のリファクタリング完了（指摘#5）
+- [x] 分析ドキュメント作成
+- **Agent**: haiku (軽微な修正・commit・PR), sonnet (詳細分析・リファクタリング)
+- **総工数**: 約8-10時間
+- **コミット**: 5個（192bfa9, 0679f0d, e683563, ed0467b, e1d7aed, 36055ea）
+
+## 2025-11-21
+- [x] gh-replyで最新PR（#34）のレビュー指摘を確認（5件）
+- [x] 指摘の整理・分類（緊急度・難易度・対応方針）
+- [x] 軽微な修正3件を実施（PR #35作成）：
+  - 指摘#2: switch文への変更（ygo_bulk_search.ts）
+  - 指摘#3: マジックナンバーの説明コメント追加（search-cards.ts）
+  - 指摘#4: パフォーマンス注意書き追加（search-cards.ts）
+- [x] sonnetモデルで詳細分析を実施
+  - 指摘#1（buildスクリプト）: 技術的に対応不要と判断
+  - 指摘#5（parseArgsリファクタリング）: 今すぐ対応へ変更
+- [x] 分析ドキュメント作成
+  - `tmp/pr/34/review_summary.md`: 指摘の整理・対応状況
+  - `tmp/pr/34/analysis.md`: 詳細な技術分析・実装計画
+- [x] parseArgs関数のリファクタリング完了（指摘#5）：
+  - フェーズ1: setOptionヘルパー作成（~100行の重複削減）
+  - フェーズ2: パース処理の分割（204行→30行に削減、85%削減）
+  - フェーズ3: テストカバレッジ確認（81個成功）
+- [x] gh-replyで全4件の指摘に返信完了
+- [x] PR #35を更新（リファクタリング内容を追記）
+- **Agent**: haiku (軽微な修正・commit・PR), sonnet (詳細分析・リファクタリング)
+- **総工数**: 約8-10時間
+- **コミット**: 5個（192bfa9, 0679f0d, e683563, ed0467b, e1d7aed）
+- **成果**: コード品質大幅向上、保守性・可読性の向上、重複コード削減
+
 ## 2025-11-21
 
 ### cardIdパターンのカード名検証・修正機能 ✅
