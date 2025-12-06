@@ -1,6 +1,6 @@
 {
   "name": "ygo-search-card-mcp",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "description": "MCP server for Yu-Gi-Oh card search",
   "type": "module",
   "main": "./dist/ygo-search-card-server.js",
@@ -23,10 +23,10 @@
   ],
   "scripts": {
     "dev": "tsx src/ygo-search-card-server.ts",
-    "build": "tsc && chmod +x dist/cli/*.js dist/ygo-search-card-server.js",
+    "build": "swc src -d dist --ignore '**/*.test.ts' && mv dist/src/* dist/ && rmdir dist/src && chmod +x dist/cli/*.js dist/ygo-search-card-server.js",
     "start": "node dist/ygo-search-card-server.js",
     "prebuild": "rm -rf dist",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -47,6 +47,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@swc/cli": "^0.7.9",
+    "@swc/core": "^1.15.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
     "typescript": "^5.7.3",

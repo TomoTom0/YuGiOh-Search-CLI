@@ -13,27 +13,27 @@ Extract Yu-Gi-Oh card names from text and search them.
 
 Arguments:
   text                Text containing card names
-  
+
 Options:
   cols=col1,col2      Columns to return (comma-separated)
-  outputPath=path     Output file path
-  outputDir=dir       Output directory
-  
+
 Examples:
   ygo_extract "青眼の白龍とブラック・マジシャンを召喚"
   ygo_extract "青眼の白龍で攻撃" cols=name,cardId,atk
 `);
         process.exit(0);
     }
-    const proc = spawn('node', [scriptPath, ...args], {
+    const proc = spawn('node', [
+        scriptPath,
+        ...args
+    ], {
         stdio: 'inherit'
     });
-    proc.on('exit', (code) => {
+    proc.on('exit', (code)=>{
         process.exit(code || 0);
     });
 }
-main().catch(err => {
+main().catch((err)=>{
     console.error('Error:', err.message);
     process.exit(1);
 });
-//# sourceMappingURL=ygo_extract.js.map

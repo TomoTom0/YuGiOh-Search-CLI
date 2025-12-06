@@ -6,27 +6,21 @@ import { parse as parseJsonc } from "jsonc-parser";
 // Detect format from file extension
 function detectFormat(filename) {
     const ext = path.extname(filename).toLowerCase();
-    if (ext === ".jsonl")
-        return "jsonl";
-    if (ext === ".jsonc")
-        return "jsonc";
-    if (ext === ".yaml" || ext === ".yml")
-        return "yaml";
+    if (ext === ".jsonl") return "jsonl";
+    if (ext === ".jsonc") return "jsonc";
+    if (ext === ".yaml" || ext === ".yml") return "yaml";
     return "json";
 }
 // Parse input based on format
 async function parseFile(filePath, format) {
     const content = await fs.readFile(filePath, "utf-8");
-    switch (format) {
+    switch(format){
         case "json":
             return JSON.parse(content);
         case "jsonc":
             return parseJsonc(content);
         case "jsonl":
-            return content
-                .split("\n")
-                .filter(line => line.trim())
-                .map(line => JSON.parse(line));
+            return content.split("\n").filter((line)=>line.trim()).map((line)=>JSON.parse(line));
         case "yaml":
             return yaml.load(content);
         default:
@@ -35,15 +29,17 @@ async function parseFile(filePath, format) {
 }
 // Format output based on format
 function formatOutput(data, format) {
-    switch (format) {
+    switch(format){
         case "json":
             return JSON.stringify(data, null, 2);
         case "jsonc":
             // Add header comment
             return `// Generated at ${new Date().toISOString()}\n${JSON.stringify(data, null, 2)}`;
         case "jsonl":
-            const items = Array.isArray(data) ? data : [data];
-            return items.map(item => JSON.stringify(item)).join("\n");
+            const items = Array.isArray(data) ? data : [
+                data
+            ];
+            return items.map((item)=>JSON.stringify(item)).join("\n");
         case "yaml":
             return yaml.dump(data);
         default:
@@ -58,7 +54,9 @@ async function convertFile(inputPath, outputPath) {
     const data = await parseFile(inputPath, inputFormat);
     const output = formatOutput(data, outputFormat);
     const outputDir = path.dirname(outputPath);
-    await fs.mkdir(outputDir, { recursive: true });
+    await fs.mkdir(outputDir, {
+        recursive: true
+    });
     await fs.writeFile(outputPath, output, "utf-8");
     console.error(`✅ Converted successfully`);
 }
@@ -74,14 +72,17 @@ async function main() {
         console.error("Supported formats: .json, .jsonl, .jsonc, .yaml/.yml");
         process.exit(1);
     }
-    const pairs = args.map(arg => {
+    const pairs = args.map((arg)=>{
         const [input, output] = arg.split(":");
         if (!input || !output) {
             throw new Error(`Invalid format: ${arg}. Expected input:output`);
         }
-        return { input, output };
+        return {
+            input,
+            output
+        };
     });
-    for (const pair of pairs) {
+    for (const pair of pairs){
         await convertFile(pair.input, pair.output);
     }
     console.log(JSON.stringify({
@@ -90,8 +91,7 @@ async function main() {
         pairs: pairs
     }, null, 2));
 }
-main().catch(err => {
+main().catch((err)=>{
     console.error("Error:", err.message);
     process.exit(1);
 });
-//# sourceMappingURL=format-converter.js.map

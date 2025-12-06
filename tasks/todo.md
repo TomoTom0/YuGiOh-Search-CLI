@@ -1,28 +1,35 @@
-# TODO - PR #14 Review Fixes
+# TODO
 
-## ✅ All Tasks Completed!
+## PR #34 Review Fixes (Current)
 
-### 1. searchCardsByFilter のプロセスspawnのオーバーヘッド削減 ✅
-- **DONE**: `src/lib/card-search-core.ts`として検索ロジックを抽出
-- **DONE**: `search-faq.ts`で直接import・呼び出し
-- **Impact**: プロセス起動とJSON変換のオーバーヘッドを削減
+### 軽微な修正 - ✅ 完了 (2025-12-07)
+- [x] 指摘#2: switch文への変更 (ygo_bulk_search.ts)
+- [x] 指摘#3: マジックナンバーの説明コメント追加 (search-cards.ts)
+- [x] 指摘#4: パフォーマンス注意書き追加 (search-cards.ts)
 
-### 2. unused import削除 ✅
-- **DONE**: `src/cli/ygo_faq_search.ts`から未使用import削除
+### 指摘#1: buildスクリプトの複雑性
+- [x] 技術的分析完了
+- [x] **結論**: 対応不要（SWCの仕様上、現在の実装が最適）
+- **詳細**: `tmp/pr/34/analysis.md` 参照
 
-### 3. 型安全性の向上 - enrichFAQWithCards ✅
-- **DONE**: `faq: FAQRecord`型を指定
+### 指摘#5: parseArgs関数のリファクタリング
+- [x] 技術的分析完了
+- [x] 実装計画策定（3フェーズ）
+- [x] **対応**: フェーズ1-3 完了
+- **詳細**: `tmp/pr/34/analysis.md` 参照
 
-### 4. 型安全性の向上 - loadCards
-- **SKIPPED**: 既存コードの修正範囲を最小化（別PRで対応可能）
+## Next Actions
 
-### 5. 型安全性の向上 - MCPサーバーのparams構築 ✅
-- **DONE**: `Partial<SearchFAQParams>`を使用
-- **DONE**: `SearchFAQParams`をexport
+### ✅ 完了
+- [x] PR #34の軽微な修正3件をコミット
+- [x] gh-replyで対応状況を報告
+- [x] PR #35作成（軽微な修正3件）
+- [x] parseArgs関数リファクタリング完了
+- [x] テスト失敗14件を修正
+  - extract-and-search-cards: JSONL parsing fix
+  - judge-and-replace: JSONL parsing fix
+  - search-cards.test.ts: テストデータ修正
 
-### 6. ドキュメント修正 - FAQ_SEARCH.md ✅
-- **DONE**: カードスペック検索を「実装済み」に更新
-- **DONE**: JSONサンプルのカンマ修正
-
-## Summary
-6/7 tasks completed (Task 4 は既存コードへの影響を最小化のためskip)
+### 次のアクション
+- [ ] tasks/ 更新完了
+- [ ] 最終commit実行

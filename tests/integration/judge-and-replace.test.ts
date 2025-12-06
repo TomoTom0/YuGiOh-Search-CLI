@@ -72,6 +72,20 @@ describe('judge-and-replace', () => {
     expect(data.processedPatterns[0]).toHaveProperty('status', 'already_processed')
   })
 
+  it('should correct wrong card name in cardId pattern', async () => {
+    // 間違ったカード名で正しいcardIdを指定
+    const result = await runJudgeReplace('Use {{間違った名前|4007}} card')
+
+    expect(result.exitCode).toBe(0)
+    const data = JSON.parse(result.stdout)
+    // カード名が正しいものに置き換わる
+    expect(data.processedText).toBe('Use {{青眼の白龍|4007}} card')
+    expect(data.processedPatterns[0]).toHaveProperty('status', 'corrected')
+    // 警告が出る
+    expect(data.warnings.some((w: string) => w.includes('カード名を修正'))).toBe(true)
+    expect(data.warnings.some((w: string) => w.includes('間違った名前') && w.includes('青眼の白龍'))).toBe(true)
+  })
+
   it('should handle mixed patterns', async () => {
     const result = await runJudgeReplace('Use {ブルーアイズ*} and 《青眼の白龍》 and {{青眼の究極竜|2129}}')
 

@@ -11,11 +11,14 @@ async function main() {
         max: 10,
         random: true,
         all: false,
-        cols: ['cardId', 'name'],
+        cols: [
+            'cardId',
+            'name'
+        ],
         colAll: false,
         format: 'json'
     };
-    for (let i = 0; i < args.length; i++) {
+    for(let i = 0; i < args.length; i++){
         const arg = args[i];
         if (arg === '--help' || arg === '-h') {
             console.log(`Usage: ygo_seek [options]
@@ -40,64 +43,60 @@ Examples:
   ygo_seek --col cardId,name,atk,def --format csv
 `);
             process.exit(0);
-        }
-        else if (arg.startsWith('--max')) {
+        } else if (arg.startsWith('--max')) {
             const maxValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
             if (!maxValue || maxValue.startsWith('--')) {
                 console.error('Error: Missing value for --max option');
                 process.exit(2);
             }
-            if (!arg.includes('='))
-                i++;
+            if (!arg.includes('=')) i++;
             options.max = parseInt(maxValue);
-        }
-        else if (arg === '--no-random') {
+        } else if (arg === '--no-random') {
             options.random = false;
-        }
-        else if (arg === '--random') {
+        } else if (arg === '--random') {
             options.random = true;
-        }
-        else if (arg.startsWith('--range')) {
+        } else if (arg.startsWith('--range')) {
             const rangeValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
             if (!rangeValue || rangeValue.startsWith('--')) {
                 console.error('Error: Missing value for --range option');
                 process.exit(2);
             }
-            if (!arg.includes('='))
-                i++;
+            if (!arg.includes('=')) i++;
             const [start, end] = rangeValue.split('-').map(Number);
             if (isNaN(start) || isNaN(end)) {
                 console.error(`Invalid range: ${rangeValue}`);
                 process.exit(2);
             }
-            options.range = [start, end];
-        }
-        else if (arg === '--all') {
+            options.range = [
+                start,
+                end
+            ];
+        } else if (arg === '--all') {
             options.all = true;
-        }
-        else if (arg === '--col-all') {
+        } else if (arg === '--col-all') {
             options.colAll = true;
-        }
-        else if (arg.startsWith('--col')) {
+        } else if (arg.startsWith('--col')) {
             const colValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
             if (!colValue || colValue.startsWith('--')) {
                 console.error('Error: Missing value for --col option');
                 process.exit(2);
             }
-            if (!arg.includes('='))
-                i++;
+            if (!arg.includes('=')) i++;
             options.cols = colValue.split(',');
-        }
-        else if (arg.startsWith('--format')) {
+        } else if (arg.startsWith('--format')) {
             const formatValue = arg.includes('=') ? arg.split('=')[1] : args[i + 1];
             if (!formatValue || formatValue.startsWith('--')) {
                 console.error('Error: Missing value for --format option');
                 process.exit(2);
             }
-            if (!arg.includes('='))
-                i++;
+            if (!arg.includes('=')) i++;
             const format = formatValue;
-            if (!['json', 'csv', 'tsv', 'jsonl'].includes(format)) {
+            if (![
+                'json',
+                'csv',
+                'tsv',
+                'jsonl'
+            ].includes(format)) {
                 console.error(`Invalid format: ${format}`);
                 process.exit(2);
             }
@@ -126,16 +125,15 @@ Examples:
     });
     let cardsHeaders = [];
     const allCards = [];
-    for await (const line of rlCards) {
-        if (!line)
-            continue;
+    for await (const line of rlCards){
+        if (!line) continue;
         if (cardsHeaders.length === 0) {
             cardsHeaders = line.split('\t');
             continue;
         }
         const values = line.split('\t');
         const card = {};
-        for (let i = 0; i < cardsHeaders.length; i++) {
+        for(let i = 0; i < cardsHeaders.length; i++){
             card[cardsHeaders[i]] = values[i] || '';
         }
         // Filter by range if specified
@@ -155,9 +153,8 @@ Examples:
         });
         let detailHeaders = [];
         const detailMap = new Map();
-        for await (const line of rlDetail) {
-            if (!line)
-                continue;
+        for await (const line of rlDetail){
+            if (!line) continue;
             if (detailHeaders.length === 0) {
                 detailHeaders = line.split('\t');
                 continue;
@@ -165,7 +162,7 @@ Examples:
             const values = line.split('\t');
             const detail = {};
             let cardId = '';
-            for (let i = 0; i < detailHeaders.length; i++) {
+            for(let i = 0; i < detailHeaders.length; i++){
                 const header = detailHeaders[i];
                 detail[header] = values[i] || '';
                 if (header === 'cardId') {
@@ -177,10 +174,10 @@ Examples:
             }
         }
         // Merge detail info into cards (skip duplicate columns)
-        for (const card of allCards) {
+        for (const card of allCards){
             const detail = detailMap.get(card.cardId);
             if (detail) {
-                for (const [key, value] of Object.entries(detail)) {
+                for (const [key, value] of Object.entries(detail)){
                     // Skip if column already exists in card (avoid duplicates)
                     if (!card.hasOwnProperty(key)) {
                         card[key] = value;
@@ -192,12 +189,11 @@ Examples:
         if (options.colAll) {
             // Get all unique column names from merged data
             const allColumnNames = new Set();
-            cardsHeaders.forEach(h => allColumnNames.add(h));
-            detailHeaders.forEach(h => allColumnNames.add(h));
+            cardsHeaders.forEach((h)=>allColumnNames.add(h));
+            detailHeaders.forEach((h)=>allColumnNames.add(h));
             options.cols = Array.from(allColumnNames);
         }
-    }
-    else {
+    } else {
         // If detail file doesn't exist, just use cards headers
         if (options.colAll) {
             options.cols = cardsHeaders;
@@ -207,47 +203,45 @@ Examples:
     let selectedCards;
     if (options.all) {
         selectedCards = allCards;
-    }
-    else if (options.random) {
+    } else if (options.random) {
         // Random selection
         const count = Math.min(options.max, allCards.length);
         selectedCards = [];
         const indices = new Set();
-        while (indices.size < count) {
+        while(indices.size < count){
             indices.add(Math.floor(Math.random() * allCards.length));
         }
-        for (const idx of indices) {
+        for (const idx of indices){
             selectedCards.push(allCards[idx]);
         }
-    }
-    else {
+    } else {
         // Take first N cards
         selectedCards = allCards.slice(0, options.max);
     }
     // Filter columns
-    const result = selectedCards.map(card => {
+    const result = selectedCards.map((card)=>{
         const filtered = {};
-        for (const col of options.cols) {
+        for (const col of options.cols){
             filtered[col] = card[col] || '';
         }
         return filtered;
     });
     // Output in specified format
-    switch (options.format) {
+    switch(options.format){
         case 'json':
             console.log(JSON.stringify(result, null, 2));
             break;
         case 'jsonl':
-            for (const item of result) {
+            for (const item of result){
                 console.log(JSON.stringify(item));
             }
             break;
         case 'csv':
             // CSV header
-            console.log(options.cols.map(col => `"${col}"`).join(','));
+            console.log(options.cols.map((col)=>`"${col}"`).join(','));
             // CSV rows
-            for (const item of result) {
-                console.log(options.cols.map(col => {
+            for (const item of result){
+                console.log(options.cols.map((col)=>{
                     const val = item[col] || '';
                     return `"${val.replace(/"/g, '""')}"`;
                 }).join(','));
@@ -257,14 +251,13 @@ Examples:
             // TSV header
             console.log(options.cols.join('\t'));
             // TSV rows
-            for (const item of result) {
-                console.log(options.cols.map(col => item[col] || '').join('\t'));
+            for (const item of result){
+                console.log(options.cols.map((col)=>item[col] || '').join('\t'));
             }
             break;
     }
 }
-main().catch(err => {
+main().catch((err)=>{
     console.error('Error:', err.message);
     process.exit(1);
 });
-//# sourceMappingURL=ygo-seek.js.map

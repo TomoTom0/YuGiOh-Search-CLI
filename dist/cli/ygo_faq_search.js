@@ -44,10 +44,12 @@ import path from 'path';
 import url from 'url';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const searchScript = path.join(__dirname, '../search-faq.js');
-const child = spawn('node', [searchScript, ...process.argv.slice(2)], {
+const child = spawn('node', [
+    searchScript,
+    ...process.argv.slice(2)
+], {
     stdio: 'inherit'
 });
-child.on('close', (code) => {
+child.on('close', (code)=>{
     process.exit(code || 0);
 });
-//# sourceMappingURL=ygo_faq_search.js.map

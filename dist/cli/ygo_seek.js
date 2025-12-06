@@ -6,15 +6,17 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const scriptPath = path.join(__dirname, '..', 'ygo-seek.js');
 async function main() {
     const args = process.argv.slice(2);
-    const proc = spawn('node', [scriptPath, ...args], {
+    const proc = spawn('node', [
+        scriptPath,
+        ...args
+    ], {
         stdio: 'inherit'
     });
-    proc.on('exit', (code) => {
+    proc.on('exit', (code)=>{
         process.exit(code || 0);
     });
 }
-main().catch(err => {
+main().catch((err)=>{
     console.error('Error:', err.message);
     process.exit(1);
 });
-//# sourceMappingURL=ygo_seek.js.map
