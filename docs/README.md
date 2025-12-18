@@ -41,8 +41,6 @@
 
 **「TSV ファイルのスキーマを知りたい」** → [usage/schema.md](usage/schema.md)
 
-**「開発環境をセットアップしたい」** → [usage/build-and-run.md](usage/build-and-run.md)
-
 ## 関連ドキュメント
 
 プロジェクトルートの重要なドキュメント：

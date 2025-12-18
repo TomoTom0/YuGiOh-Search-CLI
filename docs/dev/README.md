@@ -22,9 +22,9 @@
 ## 関連ドキュメント
 
 ### ユーザー向け
-- [docs/BUILD_AND_RUN.md](/../../BUILD_AND_RUN.md) - ビルド・開発環境セットアップ
-- [docs/USAGE.md](/../../USAGE.md) - 使用方法
+- [ビルド・開発環境セットアップ](../usage/build-and-run.md)
+- [使用方法](../usage/usage.md)
 
 ### リポジトリ構造
-- [README.md](/../../README.md) - プロジェクト概要
-- [CHANGELOG.md](/../../CHANGELOG.md) - リリース履歴
+- [プロジェクト概要](../../README.md)
+- [リリース履歴](../../CHANGELOG.md)
