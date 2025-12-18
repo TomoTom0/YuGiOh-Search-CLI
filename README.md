@@ -61,15 +61,15 @@ cd ygo-db-local-mcp
 npm install
 
 # Build project (required!)
-npm run build
+bun run build
 
-# Download data files (21.2MB total)
+# Download data files (37.6MB total)
 # Usage: bash scripts/setup/setup-data.sh [version]
-# Default version: v1.0.0
+# Default version: v1.3.0
 bash scripts/setup/setup-data.sh
 
 # Or specify a version:
-# bash scripts/setup/setup-data.sh v1.0.0
+# bash scripts/setup/setup-data.sh v1.3.0
 
 # Optional: Install CLI commands globally
 npm link
@@ -200,7 +200,11 @@ node dist/format-converter.js input.json:output.jsonl
 - **Total FAQs**: 12,578
 - **Format**: TSV (Tab-Separated Values)
 - **Language**: Japanese
-- **Includes**: 
+- **Data Files**:
+  - **cards-all.tsv** (8.6MB): Card basic information with 13,754 cards
+  - **detail-all.tsv** (13MB): Detailed card information (stats, effects, etc.)
+  - **faq-all.tsv** (16MB): Official FAQ database with 12,578 entries
+- **Includes**:
   - Monster, Spell, Trap cards with full text, stats, and supplementary information
   - Official FAQ with question, answer, and card references
 
