@@ -49,8 +49,8 @@ Automatically handles:
 
 ```bash
 # Clone repository
-git clone https://github.com/TomoTom0/ygo-db-local-mcp.git
-cd ygo-db-local-mcp
+git clone https://github.com/TomoTom0/YuGiOh-Search-CLI.git
+cd YuGiOh-Search-CLI
 
 # Install dependencies
 bun install
