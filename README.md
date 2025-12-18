@@ -129,9 +129,9 @@ node dist/cli/ygo_convert.js input.json:output.csv
 
 ## Documentation
 
-- [docs/guide/BUILD_AND_RUN.md](docs/guide/BUILD_AND_RUN.md) - Build and development guide
-- [docs/guide/SHELL_COMMANDS.md](docs/guide/SHELL_COMMANDS.md) - Detailed CLI command reference
-- [docs/guide/USAGE.md](docs/guide/USAGE.md) - Usage examples and configuration
+- [docs/usage/build-and-run.md](docs/usage/build-and-run.md) - Build and development guide
+- [docs/usage/shell-commands.md](docs/usage/shell-commands.md) - Detailed CLI command reference
+- [docs/usage/usage.md](docs/usage/usage.md) - Usage examples and configuration
 - [docs/usage/schema.md](docs/usage/schema.md) - Database schema and column definitions for TSV files
 - [CHANGELOG.md](CHANGELOG.md) - Release notes and version history
 - [docs/README.md](docs/README.md) - Documentation index

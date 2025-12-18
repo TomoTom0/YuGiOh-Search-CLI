@@ -6,25 +6,21 @@
 
 ### インストール・セットアップ
 
-[guide/BUILD_AND_RUN.md](guide/BUILD_AND_RUN.md) - ビルドと開発環境のセットアップ
+[usage/build-and-run.md](usage/build-and-run.md) - ビルドと開発環境のセットアップ
 
 ### 使用方法
 
-- [guide/USAGE.md](guide/USAGE.md) - CLI コマンドの使用例と設定
-- [guide/SHELL_COMMANDS.md](guide/SHELL_COMMANDS.md) - 全 CLI コマンドのリファレンス
+- [usage/usage.md](usage/usage.md) - CLI コマンドの使用例と設定
+- [usage/shell-commands.md](usage/shell-commands.md) - 全 CLI コマンドのリファレンス
 
 ## ドキュメント構成
 
-### [guide/](guide/README.md)
-ユーザーガイド - インストール、セットアップ、CLI コマンド使用方法
-
-- `BUILD_AND_RUN.md` - ビルド・開発環境セットアップ
-- `USAGE.md` - CLI コマンド使用例と設定
-- `SHELL_COMMANDS.md` - 全コマンドのリファレンス
-
 ### [usage/](usage/README.md)
-データベース仕様・スキーマドキュメント
+ユーザーガイド・スキーマドキュメント
 
+- `build-and-run.md` - ビルド・開発環境セットアップ
+- `usage.md` - CLI コマンド使用例と設定
+- `shell-commands.md` - 全コマンドのリファレンス
 - `schema.md` - TSV ファイル（cards-all.tsv、detail-all.tsv、faq-all.tsv）のカラム定義
 - `schema.yaml` - スキーマの YAML 形式版
 
@@ -37,15 +33,15 @@
 
 ### こんな時は...
 
-**「どのように使うのか？」** → [guide/USAGE.md](guide/USAGE.md)
+**「どのように使うのか？」** → [usage/usage.md](usage/usage.md)
 
-**「全コマンドのオプションを確認したい」** → [guide/SHELL_COMMANDS.md](guide/SHELL_COMMANDS.md)
+**「全コマンドのオプションを確認したい」** → [usage/shell-commands.md](usage/shell-commands.md)
 
-**「インストールしたい、ビルドしたい」** → [guide/BUILD_AND_RUN.md](guide/BUILD_AND_RUN.md)
+**「インストールしたい、ビルドしたい」** → [usage/build-and-run.md](usage/build-and-run.md)
 
 **「TSV ファイルのスキーマを知りたい」** → [usage/schema.md](usage/schema.md)
 
-**「開発環境をセットアップしたい」** → [guide/BUILD_AND_RUN.md](guide/BUILD_AND_RUN.md)
+**「開発環境をセットアップしたい」** → [usage/build-and-run.md](usage/build-and-run.md)
 
 ## 関連ドキュメント
 

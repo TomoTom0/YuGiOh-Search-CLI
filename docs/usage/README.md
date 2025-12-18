@@ -1,8 +1,48 @@
-# 仕様・スキーマドキュメント
+# ユーザーガイド・スキーマドキュメント
 
-このディレクトリには、プロジェクトのデータ形式と仕様に関するドキュメントが置かれています。
+このディレクトリにはプロジェクトの使用方法とデータ仕様に関するドキュメントが置かれています。
+
+## クイックスタート
+
+### インストール・ビルド
+
+[build-and-run.md](build-and-run.md) - 環境セットアップからビルド、テスト実行まで
+
+### CLI コマンド使用方法
+
+- [usage.md](usage.md) - 基本的な使用例、検索パターン、環境変数設定
+- [shell-commands.md](shell-commands.md) - 全コマンドの詳細リファレンス
+
+### スキーマ・データ仕様
+
+[schema.md](schema.md) - TSV ファイル（cards-all.tsv、detail-all.tsv、faq-all.tsv）のカラム定義と構造
 
 ## ファイル一覧
+
+### build-and-run.md
+- プロジェクトのセットアップ
+- ビルド方法
+- テスト実行
+- bun link でのグローバルコマンド登録
+
+### usage.md
+- CLI コマンドの基本的な使用例
+- 検索パターンの説明（{flexible}、《exact》、{{name|id}}）
+- ワイルドカード・マイナス検索の使い方
+- 環境変数の設定方法
+- 各種出力形式
+
+### shell-commands.md
+- 7 つの CLI コマンドの詳細リファレンス
+  - ygo_search - カード検索
+  - ygo_bulk_search - 一括検索
+  - ygo_extract - パターン抽出
+  - ygo_replace - パターン置換
+  - ygo_seek - ランダム/範囲選択
+  - ygo_faq_search - FAQ 検索
+  - ygo_convert - フォーマット変換
+- 各コマンドの全オプション説明
+- 使用例
 
 ### schema.md
 データベースファイル（TSV）のカラム定義と構造を詳細に説明しています。
@@ -20,16 +60,3 @@
 
 ### schema.yaml
 スキーマ定義の YAML 形式版（参考資料）
-
-## 使用場面
-
-- TSV ファイルの内部構造を理解したい
-- 特定のカラムの詳細を調べたい
-- 検索条件の組み立て方を確認したい
-- 新しい検索機能を実装する際の仕様確認
-
-## 関連ドキュメント
-
-- [docs/USAGE.md](/../../USAGE.md) - CLI コマンド使用例
-- [docs/SHELL_COMMANDS.md](/../../SHELL_COMMANDS.md) - コマンドリファレンス
-- [docs/BUILD_AND_RUN.md](/../../BUILD_AND_RUN.md) - セットアップガイド
