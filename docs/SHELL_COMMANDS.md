@@ -3,7 +3,7 @@
 ## Installation
 
 ```bash
-cd /path/to/ygo-db-local-mcp
+cd /path/to/YuGiOh-Search-CLI
 
 # 1. Install dependencies
 bun install
