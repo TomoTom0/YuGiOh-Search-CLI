@@ -59,12 +59,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **detail-all.tsv**: Detailed card information (13MB)
 - **faq-all.tsv**: 12,578 Official FAQs (16MB) - NEW
 
-### Data Files
-This release includes:
-- **cards-all.tsv** (8.6MB): Card basic information with 13,754 cards
-- **detail-all.tsv** (13MB): Detailed card information
-- **faq-all.tsv** (16MB): Official FAQ database with 12,578 entries
-
 ## [v1.0.0] - 2025-11-17
 
 ### Added
