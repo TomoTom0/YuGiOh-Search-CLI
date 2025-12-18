@@ -6,35 +6,29 @@
 
 ### インストール・セットアップ
 
-[BUILD_AND_RUN.md](BUILD_AND_RUN.md) - ビルドと開発環境のセットアップ
+[guide/BUILD_AND_RUN.md](guide/BUILD_AND_RUN.md) - ビルドと開発環境のセットアップ
 
 ### 使用方法
 
-- [USAGE.md](USAGE.md) - CLI コマンドの使用例と設定
-- [SHELL_COMMANDS.md](SHELL_COMMANDS.md) - 全 CLI コマンドのリファレンス
+- [guide/USAGE.md](guide/USAGE.md) - CLI コマンドの使用例と設定
+- [guide/SHELL_COMMANDS.md](guide/SHELL_COMMANDS.md) - 全 CLI コマンドのリファレンス
 
 ## ドキュメント構成
 
-### 直下ファイル
+### [guide/](guide/README.md)
+ユーザーガイド - インストール、セットアップ、CLI コマンド使用方法
 
-#### BUILD_AND_RUN.md
-ビルド、開発環境のセットアップ、テスト実行などの開発者向けガイド
+- `BUILD_AND_RUN.md` - ビルド・開発環境セットアップ
+- `USAGE.md` - CLI コマンド使用例と設定
+- `SHELL_COMMANDS.md` - 全コマンドのリファレンス
 
-#### SHELL_COMMANDS.md
-全 CLI コマンド（ygo_search、ygo_bulk_search、ygo_extract、ygo_replace、ygo_seek、ygo_faq_search、ygo_convert）の詳細なリファレンス
-
-#### USAGE.md
-CLI コマンドの使用例、検索パターン、環境変数の設定方法
-
-### サブディレクトリ
-
-#### [usage/](usage/README.md)
+### [usage/](usage/README.md)
 データベース仕様・スキーマドキュメント
 
 - `schema.md` - TSV ファイル（cards-all.tsv、detail-all.tsv、faq-all.tsv）のカラム定義
 - `schema.yaml` - スキーマの YAML 形式版
 
-#### [dev/](dev/README.md)
+### [dev/](dev/README.md)
 開発履歴とトラブルシューティング記録
 
 - `records/` - マージ競合解決、重要な開発決定の記録
@@ -43,15 +37,15 @@ CLI コマンドの使用例、検索パターン、環境変数の設定方法
 
 ### こんな時は...
 
-**「どのように使うのか？」** → [USAGE.md](USAGE.md)
+**「どのように使うのか？」** → [guide/USAGE.md](guide/USAGE.md)
 
-**「全コマンドのオプションを確認したい」** → [SHELL_COMMANDS.md](SHELL_COMMANDS.md)
+**「全コマンドのオプションを確認したい」** → [guide/SHELL_COMMANDS.md](guide/SHELL_COMMANDS.md)
 
-**「インストールしたい、ビルドしたい」** → [BUILD_AND_RUN.md](BUILD_AND_RUN.md)
+**「インストールしたい、ビルドしたい」** → [guide/BUILD_AND_RUN.md](guide/BUILD_AND_RUN.md)
 
 **「TSV ファイルのスキーマを知りたい」** → [usage/schema.md](usage/schema.md)
 
-**「開発環境をセットアップしたい」** → [BUILD_AND_RUN.md](BUILD_AND_RUN.md)
+**「開発環境をセットアップしたい」** → [guide/BUILD_AND_RUN.md](guide/BUILD_AND_RUN.md)
 
 ## 関連ドキュメント
 
