@@ -1,79 +1,86 @@
-# Changelog
+# 変更履歴（Changelog）
 
-All notable changes to this project will be documented in this file.
+このファイルには、プロジェクトの全ての注目すべき変更が記録されます。
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+形式は [Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) に基づいており、
+このプロジェクトは [Semantic Versioning](https://semver.org/lang/ja/) に従っています。
 
 ## [v1.3.0] - 2025-12-18
 
-### Added
-- **FAQ Search Functionality**: New `search_faq` tool for searching Official FAQ database
-  - Search by FAQ ID, card ID, card name patterns
-  - Filter by card specifications (race, level, type, etc.)
-  - Search question/answer text with wildcards
-  - Returns FAQs with embedded card information
-  - Fast lookup with reverse index and card search integration
-  - New data file: `faq-all.tsv` (12,578 FAQs)
-- **ygo_seek Command**: Get random or range-specific card information
-  - Random selection with configurable count
-  - CardId range filtering
-  - Multiple output formats (JSON, CSV, TSV, JSONL)
-  - Flexible column selection
-  - `--col-all` option to retrieve all columns
-- **ygo_replace Command**: Extract, search, and intelligently replace patterns with card IDs or card names
-  - Supports `{flexible}`, `《exact》`, `{{name|id}}` patterns
-  - `--mount-par` option for replacing with 《card-name》 format
-- **ygo_extract Command**: Extract card name patterns from text
-  - Identifies `{flexible}`, `《exact》`, `{{name|id}}` patterns
-- **ygo_convert Command**: Convert file formats between JSON, CSV, TSV, and JSONL
-- **ygo_bulk_search Command**: Efficient bulk search (up to 50 queries)
-- **ygo_faq_search Command**: CLI command for FAQ search with key=value style arguments
-- **CardId Pattern Validation**: Automatic validation and correction of card names in `{{cardId|name}}` patterns
-- **--max and --sort Options**: Enhanced search capabilities for card selection
-- **File Output Save Feature**: Support for saving search results to files in various formats
-- **Shell Commands**: Global shell commands with `ygo_` prefix for CLI usage
+### 追加
 
-### Changed
-- **Package Manager Migration**: Moved from npm to bun for faster builds and package management
-- **Build System**: Updated to use SWC for faster TypeScript compilation
-- **CLI Architecture**: Reorganized CLI commands into dedicated modules under `dist/cli/`
-- **Data File Structure**: Expanded database to include FAQ information alongside card data
+- **FAQ検索機能**: 公式FAQデータベースを検索する新しい `search_faq` ツール
+  - FAQ ID、カード ID、カード名パターンで検索
+  - カードの仕様（種族、レベル、タイプなど）でフィルタリング
+  - 質問・回答テキストをワイルドカードで検索
+  - 埋め込まれたカード情報を含むFAQを返す
+  - 逆インデックスとカード検索統合による高速ルックアップ
+  - 新規データファイル: `faq-all.tsv`（12,578件のFAQ）
+- **ygo_seekコマンド**: ランダムまたは範囲指定のカード情報取得
+  - 設定可能な件数でのランダム選択
+  - カードID範囲でのフィルタリング
+  - 複数の出力形式（JSON、CSV、TSV、JSONL）
+  - 柔軟な列選択
+  - `--col-all` オプションで全列を取得可能
+- **ygo_replaceコマンド**: パターンを検出して、カード ID またはカード名で置換
+  - `{柔軟}`, `《正確》`, `{{名前|ID}}` パターンに対応
+  - `--mount-par` オプションで 《カード名》 形式で置換
+- **ygo_extractコマンド**: テキストからカード名パターンを抽出
+  - `{柔軟}`, `《正確》`, `{{名前|ID}}` パターンを識別
+- **ygo_convertコマンド**: JSON、CSV、TSV、JSONL 形式間でファイルを変換
+- **ygo_bulk_searchコマンド**: 効率的な一括検索（最大50クエリ）
+- **ygo_faq_searchコマンド**: CLI向けのキー=値形式でのFAQ検索コマンド
+- **カード ID パターン検証**: `{{cardId|name}}` パターン内のカード名を自動検証・修正
+- **--maxおよび--sortオプション**: カード選択機能の強化
+- **ファイル出力保存機能**: 検索結果を様々なフォーマットで保存可能
+- **シェルコマンド**: `ygo_` プレフィックス付きのグローバルシェルコマンド
 
-### Fixed
-- **CLI Help Options**: Removed non-functional `outputPath` and `outputDir` options from help text
-- **Module Import Paths**: Fixed ES module import paths for Node.js compatibility
-- **HTTP Status Code Detection**: Improved error handling in setup script
-- **Error Handling**: Enhanced error messages and validation feedback across all tools
-- **Pattern Deduplication**: Optimized deduplication of processed patterns in output
+### 変更
 
-### Technical Improvements
-- **TypeScript Migration**: Converted MCP server to TypeScript for better type safety
-- **Schema Validation**: Added comprehensive JSON Schema documentation for all tools
-- **Test Coverage**: Expanded test suite to cover new features (95 tests passing)
-- **CI/CD Pipeline**: Improved GitHub Actions workflow for automated testing
-- **Documentation**: Enhanced documentation with detailed usage examples
+- **パッケージマネージャー移行**: npm から bun へ移行（ビルド・パッケージ管理の高速化）
+- **ビルドシステム**: TypeScript コンパイル高速化のため SWC を使用
+- **CLI アーキテクチャ**: CLI コマンドを `dist/cli/` の専用モジュールに再編成
+- **データファイル構造**: FAQ情報をカードデータと共に統合
 
-### Database Updates
-- **cards-all.tsv**: 13,754 cards (8.6MB)
-- **detail-all.tsv**: Detailed card information (13MB)
-- **faq-all.tsv**: 12,578 Official FAQs (16MB) - NEW
+### 修正
+
+- **CLIヘルプオプション**: 機能しない `outputPath` および `outputDir` オプションをヘルプから削除
+- **モジュールインポートパス**: Node.js 互換性のための ES モジュールインポートパスを修正
+- **HTTP ステータスコード検出**: セットアップスクリプトのエラーハンドリングを改善
+- **エラーハンドリング**: 全ツールのエラーメッセージと検証フィードバックを強化
+- **パターン重複排除**: 出力内のパターン重複排除を最適化
+
+### 技術的改善
+
+- **TypeScript マイグレーション**: 型安全性向上のため MCP サーバーを TypeScript に変換
+- **スキーマ検証**: 全ツール用の包括的な JSON Schema ドキュメント追加
+- **テストカバレッジ**: テストスイートを拡張（95 テスト合格）
+- **CI/CD パイプライン**: GitHub Actions ワークフロー改善
+- **ドキュメント**: 詳細な使用例を含めドキュメント充実
+
+### データベース更新
+
+- **cards-all.tsv**: 13,754 枚のカード（8.6MB）
+- **detail-all.tsv**: カード詳細情報（13MB）
+- **faq-all.tsv**: 12,578 件の公式 FAQ（16MB）- 新規
 
 ## [v1.0.0] - 2025-11-17
 
-### Added
-- **Initial Release**
-- **search_cards**: Single card search with flexible filters
-- **bulk_search_cards**: Efficient bulk search (up to 50 queries)
-- **extract_and_search_cards**: Extract card patterns from text and search automatically
-- **judge_and_replace_cards**: Extract, search, and intelligently replace patterns with card IDs
-- **Card Name Patterns**:
-  - `{card-name}`: Flexible search with wildcards (*)
-  - `《card-name》`: Exact search with normalization
-  - `{{card-name|cardId}}`: Search by card ID
-- **Smart Normalization**: Automatic handling of whitespace, symbols, full-width/half-width, hiragana/katakana, and kanji variants
-- **Database**: 13,754 Yu-Gi-Oh! cards with full Japanese text and supplementary information
+### 追加
 
-### Data Files
-- **cards-all.tsv** (8.2MB): Card basic information
-- **detail-all.tsv** (13MB): Detailed card information
+- **初回リリース**
+- **search_cards**: 柔軟なフィルタで単一カード検索
+- **bulk_search_cards**: 効率的な一括検索（最大50クエリ）
+- **extract_and_search_cards**: テキストからカードパターンを抽出して自動検索
+- **judge_and_replace_cards**: パターンを検出・検索し、カード ID に知的に置換
+- **カード名パターン**:
+  - `{カード名}`: ワイルドカード (*) と正規化による柔軟検索
+  - `《カード名》`: 正規化による正確検索
+  - `{{カード名|cardId}}`: カード ID での検索
+- **スマート正規化**: 空白・記号、全角・半角、ひらがな・カタカナ、漢字異体字に自動対応
+- **データベース**: 完全な日本語テキストと補足情報を含む 13,754 枚の遊戯王カード
+
+### データファイル
+
+- **cards-all.tsv**（8.2MB）: カード基本情報
+- **detail-all.tsv**（13MB）: カード詳細情報
