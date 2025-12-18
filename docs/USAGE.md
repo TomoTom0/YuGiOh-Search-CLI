@@ -35,7 +35,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
   "mcpServers": {
     "ygo-search-card": {
       "command": "node",
-      "args": ["C:\\absolute\\path\\to\\ygo-db-local-mcp\\src\\ygo-search-card-server.js"]
+      "args": ["C:\\absolute\\path\\to\\ygo-db-local-mcp\\dist\\ygo-search-card-server.js"]
     }
   }
 }
@@ -49,7 +49,7 @@ Open Cline MCP settings and add:
 {
   "ygo-search-card": {
     "command": "node",
-    "args": ["/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.js"]
+    "args": ["/absolute/path/to/ygo-db-local-mcp/dist/ygo-search-card-server.js"]
   }
 }
 ```
@@ -58,10 +58,12 @@ Open Cline MCP settings and add:
 
 Configure with:
 - **Command**: `node`
-- **Args**: `["/absolute/path/to/ygo-db-local-mcp/src/ygo-search-card-server.js"]`
+- **Args**: `["/absolute/path/to/ygo-db-local-mcp/dist/ygo-search-card-server.js"]`
 - **Transport**: stdio (JSON-RPC 2.0)
 
-**Important:** Use absolute paths. Replace `/absolute/path/to/` with your actual installation directory.
+**Important:**
+- Use absolute paths. Replace `/absolute/path/to/` with your actual installation directory.
+- Use the `dist/` directory path, not `src/`. The server must be built before use.
 
 After adding the configuration, restart your MCP client.
 

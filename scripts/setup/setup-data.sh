@@ -12,7 +12,52 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="$SCRIPT_DIR/../../data"
 RELEASE_URL="https://github.com/TomoTom0/ygo-db-local-mcp/releases/download"
-VERSION="${1:-v1.0.0}"
+VERSION="${1:-v1.3.0}"
+
+# Data files to download
+declare -a DATA_FILES=("cards-all.tsv" "detail-all.tsv" "faq-all.tsv")
+
+# Function to download a file
+download_file() {
+  local filename="$1"
+  local filepath="$DATA_DIR/$filename"
+
+  echo "Downloading $filename..."
+  HTTP_CODE=$(curl -L -w "%{http_code}" -o "$filepath" -sS \
+    "$RELEASE_URL/$VERSION/$filename" 2>&1 | tail -n 1)
+
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "Error: Failed to download $filename (HTTP $HTTP_CODE)"
+    echo "URL: $RELEASE_URL/$VERSION/$filename"
+    echo ""
+    echo "Possible reasons:"
+    echo "  - Version '$VERSION' does not exist"
+    echo "  - Release does not have $filename attached"
+    echo "  - Network issue"
+    echo ""
+    echo "Available versions: https://github.com/TomoTom0/ygo-db-local-mcp/releases"
+    rm -f "$filepath"
+    exit 1
+  fi
+}
+
+# Function to verify file size
+verify_file_size() {
+  local filename="$1"
+  local filepath="$DATA_DIR/$filename"
+  local MIN_SIZE=1000000
+
+  local filesize=$(stat -f%z "$filepath" 2>/dev/null || stat -c%s "$filepath" 2>/dev/null)
+
+  if [ "$filesize" -lt $MIN_SIZE ]; then
+    echo "Error: Downloaded file is too small (possibly error page)"
+    echo "$filename: $filesize bytes (expected at least $MIN_SIZE bytes)"
+    rm -f "$filepath"
+    exit 1
+  fi
+
+  echo "$filesize"
+}
 
 echo "=== YGO MCP Server - Data Setup ==="
 echo ""
@@ -23,55 +68,29 @@ echo ""
 # Create data directory if it doesn't exist
 mkdir -p "$DATA_DIR"
 
-# Download cards-all.tsv
-echo "Downloading cards-all.tsv..."
-HTTP_CODE=$(curl -L -w "%{http_code}" -o "$DATA_DIR/cards-all.tsv" -sS \
-  "$RELEASE_URL/$VERSION/cards-all.tsv" 2>&1 | tail -n 1)
-
-if [ "$HTTP_CODE" != "200" ]; then
-  echo "Error: Failed to download cards-all.tsv (HTTP $HTTP_CODE)"
-  echo "URL: $RELEASE_URL/$VERSION/cards-all.tsv"
-  echo ""
-  echo "Possible reasons:"
-  echo "  - Version '$VERSION' does not exist"
-  echo "  - Release does not have cards-all.tsv attached"
-  echo "  - Network issue"
-  echo ""
-  echo "Available versions: https://github.com/TomoTom0/ygo-db-local-mcp/releases"
-  rm -f "$DATA_DIR/cards-all.tsv"
-  exit 1
-fi
-
-# Download detail-all.tsv
-echo "Downloading detail-all.tsv..."
-HTTP_CODE=$(curl -L -w "%{http_code}" -o "$DATA_DIR/detail-all.tsv" -sS \
-  "$RELEASE_URL/$VERSION/detail-all.tsv" 2>&1 | tail -n 1)
-
-if [ "$HTTP_CODE" != "200" ]; then
-  echo "Error: Failed to download detail-all.tsv (HTTP $HTTP_CODE)"
-  echo "URL: $RELEASE_URL/$VERSION/detail-all.tsv"
-  rm -f "$DATA_DIR/detail-all.tsv"
-  exit 1
-fi
+# Download all data files
+for filename in "${DATA_FILES[@]}"; do
+  download_file "$filename"
+done
 
 # Verify file sizes
-CARDS_SIZE=$(stat -f%z "$DATA_DIR/cards-all.tsv" 2>/dev/null || stat -c%s "$DATA_DIR/cards-all.tsv" 2>/dev/null)
-DETAIL_SIZE=$(stat -f%z "$DATA_DIR/detail-all.tsv" 2>/dev/null || stat -c%s "$DATA_DIR/detail-all.tsv" 2>/dev/null)
-
-if [ "$CARDS_SIZE" -lt 1000000 ] || [ "$DETAIL_SIZE" -lt 1000000 ]; then
-  echo "Error: Downloaded files are too small (possibly error pages)"
-  echo "cards-all.tsv: $CARDS_SIZE bytes"
-  echo "detail-all.tsv: $DETAIL_SIZE bytes"
-  exit 1
-fi
+echo ""
+echo "Verifying file sizes..."
+declare -A FILE_SIZES
+for filename in "${DATA_FILES[@]}"; do
+  FILE_SIZES[$filename]=$(verify_file_size "$filename")
+done
 
 echo ""
-echo "✓ Data files downloaded successfully!"
+echo "Data files downloaded successfully!"
 echo ""
 echo "Files location:"
-echo "  - $DATA_DIR/cards-all.tsv ($(numfmt --to=iec-i --suffix=B $CARDS_SIZE 2>/dev/null || echo "$CARDS_SIZE bytes"))"
-echo "  - $DATA_DIR/detail-all.tsv ($(numfmt --to=iec-i --suffix=B $DETAIL_SIZE 2>/dev/null || echo "$DETAIL_SIZE bytes"))"
+for filename in "${DATA_FILES[@]}"; do
+  filesize=${FILE_SIZES[$filename]}
+  formatted_size=$(numfmt --to=iec-i --suffix=B $filesize 2>/dev/null || echo "$filesize bytes")
+  echo "  - $DATA_DIR/$filename ($formatted_size)"
+done
 echo ""
 echo "You can now use the MCP server:"
-echo "  node src/ygo-search-card-server.js"
+echo "  node dist/ygo-search-card-server.js"
 echo ""
