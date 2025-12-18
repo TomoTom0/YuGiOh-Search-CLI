@@ -34,14 +34,6 @@ CLI コマンドの使用例、検索パターン、環境変数の設定方法
 - `schema.md` - TSV ファイル（cards-all.tsv、detail-all.tsv、faq-all.tsv）のカラム定義
 - `schema.yaml` - スキーマの YAML 形式版
 
-#### [tasks/](tasks/README.md)
-PR レビュー対応とタスク管理の記録
-
-- `pr4-review-comments.md` - PR #4 レビュー対応
-- `pr6-review-comments.md` - PR #6 レビュー対応
-- `pr9-review-comments.md` - PR #9 レビュー対応
-- `branch-protection-review-2025-11-18.md` - ブランチ保護ルール検討
-
 #### [dev/](dev/README.md)
 開発履歴とトラブルシューティング記録
 
