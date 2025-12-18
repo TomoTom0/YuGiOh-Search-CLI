@@ -88,7 +88,7 @@ ygo_extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒�
 ### ygo_replace - Replace Card Patterns with IDs or Names
 
 ```bash
-# Replace patterns with card IDs: {{cardId|name}}
+# Replace patterns with card IDs: {{name|cardId}}
 ygo_replace "{青眼の白龍}を召喚" --raw
 
 # Replace patterns with card names: 《cardName》
@@ -99,7 +99,7 @@ ygo_replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}�
 
 # Options:
 # --raw          - Output raw replacement without JSON wrapping
-# --mount-par    - Use 《name》 format instead of {{id|name}}
+# --mount-par    - Use 《name》 format instead of {{name|cardId}}
 ```
 
 ### ygo_seek - Get Random or Range-Specific Cards

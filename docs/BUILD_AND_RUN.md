@@ -1,60 +1,60 @@
-# Build and Development Guide
+# ビルドと開発ガイド
 
-This project is a Node.js CLI application written in TypeScript. It requires building before use.
+このプロジェクトはTypeScriptで書かれたNode.js CLIアプリケーションです。使用前にビルドが必須です。
 
-## Why Build is Required
+## ビルドが必要な理由
 
-1. **ES Modules**: Relative imports require `.js` extensions
-2. **Type Safety**: TypeScript compilation ensures type correctness
-3. **Performance**: Compiled JavaScript is faster than on-the-fly compilation
-4. **Simplicity**: After build, only `node` command is needed (no `tsx` required)
+1. **ES Modules**: 相対インポートに`.js`拡張子が必須
+2. **型安全性**: TypeScriptのコンパイルにより型正確性を確保
+3. **パフォーマンス**: コンパイル済みJavaScriptは高速
+4. **シンプリシティ**: ビルド後は`node`コマンドのみで実行可能（`tsx`不要）
 
-## Quick Start
+## クイックスタート
 
 ```bash
-# 1. Install dependencies
+# 1. 依存関係をインストール
 bun install
 
-# 2. Build project (required!)
+# 2. ビルド（必須！）
 bun run build
 
-# 3. Download data files
+# 3. データファイルをダウンロード
 bash scripts/setup/setup-data.sh
 
-# 4. Run CLI commands
-bun link  # Install globally, or use node dist/cli/ygo_search.js directly
+# 4. CLIコマンドを実行
+bun link  # グローバルインストール、または node dist/cli/ygo_search.js を直接実行
 ygo_search '{"name":"青眼"}'
 ```
 
-## Build Commands
+## ビルドコマンド
 
-### Basic Build
+### 基本ビルド
 
 ```bash
 bun run build
 ```
 
-This:
-1. Cleans the `dist/` directory
-2. Compiles TypeScript to JavaScript using SWC
-3. Generates `.js` files and type definitions in `dist/`
+以下を実行します：
+1. `dist/`ディレクトリをクリーン
+2. SWCを使用してTypeScriptをJavaScriptにコンパイル
+3. `dist/`に`.js`ファイルと型定義を生成
 
-### Verify Build Output
+### ビルド出力を確認
 
 ```bash
 ls -la dist/cli/
-# Output: ygo_search.js, ygo_extract.js, ygo_replace.js, ygo_convert.js, etc.
+# 出力: ygo_search.js, ygo_extract.js, ygo_replace.js, ygo_convert.js など
 ```
 
-## Running CLI Commands
+## CLIコマンドの実行
 
-### Option 1: Global Installation (Recommended)
+### オプション1: グローバルインストール（推奨）
 
 ```bash
-# Install globally
+# グローバルインストール
 bun link
 
-# Then use commands anywhere
+# 任意の場所でコマンド使用可能
 ygo_search '{"name":"青眼"}' cols=name,cardId
 ygo_extract "{青眼の白龍}"
 ygo_replace "{青眼}を召喚"
@@ -62,10 +62,10 @@ ygo_seek --max 10
 ygo_faq_search cardId=6808
 ```
 
-### Option 2: Direct Execution
+### オプション2: 直接実行
 
 ```bash
-# No global installation needed
+# グローバルインストール不要
 node dist/cli/ygo_search.js '{"name":"青眼"}' cols=name,cardId
 node dist/cli/ygo_extract.js "{青眼の白龍}"
 node dist/cli/ygo_replace.js "{青眼}を召喚"
@@ -73,34 +73,34 @@ node dist/cli/ygo_seek.js --max 10
 node dist/cli/ygo_faq_search.js cardId=6808
 ```
 
-## Development Workflow
+## 開発ワークフロー
 
-### Watch Mode Build
+### ウォッチモードでビルド
 
 ```bash
-# In one terminal: watch TypeScript files for changes
+# 1つのターミナル: TypeScriptファイルの変更を監視してコンパイル
 bun run build --watch
 ```
 
-Changes to TypeScript files will automatically recompile to JavaScript.
+TypeScriptファイルの変更は自動的にJavaScriptにコンパイルされます。
 
-### Development Mode (Optional)
+### 開発モード（オプション）
 
-For rapid development, you can use `tsx` to run TypeScript directly:
+高速な開発のため、TypeScriptを直接実行することも可能です：
 
 ```bash
-# Install tsx (if not already installed)
+# tsx をインストール（未インストールの場合）
 bun add -D tsx
 
-# Run TypeScript directly
+# TypeScriptを直接実行
 bun run dev
-# or
+# または
 npx tsx src/cli/ygo_search.ts '{"name":"青眼"}'
 ```
 
-**Note**: For production and distribution, always use the built JavaScript.
+**注意**: 本番環境と配布時は必ずビルド済みのJavaScriptを使用してください。
 
-## Troubleshooting
+## トラブルシューティング
 
 ### ERR_MODULE_NOT_FOUND
 
@@ -108,68 +108,68 @@ npx tsx src/cli/ygo_search.ts '{"name":"青眼"}'
 Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../pattern-extractor'
 ```
 
-**Cause**: Build not executed
+**原因**: ビルドが実行されていない
 
-**Solution**:
+**解決策**:
 ```bash
 bun run build
 ```
 
-### Permission Denied
+### Permission denied
 
 ```bash
 bash: /usr/local/bin/ygo_search: Permission denied
 ```
 
-**Cause**: Executable permissions missing
+**原因**: 実行権限がない
 
-**Solution**:
+**解決策**:
 ```bash
 chmod +x dist/cli/*.js
-bun link  # Re-link
+bun link  # 再リンク
 ```
 
-### Command Not Found After `bun link`
+### `bun link`後にコマンドが見つからない
 
 ```bash
 command not found: ygo_search
 ```
 
-**Cause**: Global bin directory not in PATH
+**原因**: グローバルbinディレクトリがPATHに含まれていない
 
-**Solution**:
+**解決策**:
 ```bash
-# Check bun global bin path
+# bunのグローバルbinパスを確認
 bun env | grep BUN_INSTALL
 
-# Add to PATH if needed
+# 必要に応じてPATHに追加
 export PATH="$PATH:~/.bun/bin"
 
-# Re-link
+# 再リンク
 bun link
 ```
 
-### Clean Rebuild
+### 完全なリビルド
 
-If problems persist, do a full rebuild:
+問題が解決しない場合は完全にリビルドしてください：
 
 ```bash
-# Remove dist directory
+# distディレクトリを削除
 rm -rf dist/
 
-# Rebuild
+# リビルド
 bun run build
 
-# Re-link CLI commands
+# CLIコマンドを再リンク
 bun unlink ygo-search-card-mcp 2>/dev/null || true
 bun link
 ```
 
-## Project Structure
+## プロジェクト構造
 
 ```
 src/
-├── cli/                    # CLI command scripts
+├── cli/                    # CLIコマンドスクリプト
 │   ├── ygo_search.ts
 │   ├── ygo_extract.ts
 │   ├── ygo_replace.ts
@@ -177,15 +177,15 @@ src/
 │   ├── ygo_seek.ts
 │   ├── ygo_bulk_search.ts
 │   └── ygo_faq_search.ts
-├── lib/                    # Core libraries
+├── lib/                    # コアライブラリ
 │   ├── card-search-core.ts
 │   ├── normalize.ts
 │   └── db.ts
-├── utils/                  # Utilities
+├── utils/                  # ユーティリティ
 │   └── pattern-extractor.ts
-└── ygo-search-card-server.ts  # MCP server (deprecated)
+└── ygo-search-card-server.ts  # MCPサーバー（廃止予定）
 
-dist/                       # Compiled JavaScript (after build)
+dist/                       # コンパイル済みJavaScript（ビルド後）
 ├── cli/
 │   ├── ygo_search.js
 │   ├── ygo_extract.js
@@ -194,33 +194,33 @@ dist/                       # Compiled JavaScript (after build)
 ├── utils/
 └── ...
 
-data/                       # Card database files (downloaded)
+data/                       # カードデータベースファイル（ダウンロード済み）
 ├── cards-all.tsv
 ├── detail-all.tsv
 └── faq-all.tsv
 ```
 
-## Testing
+## テスト
 
 ```bash
-# Run all tests
+# 全テスト実行
 bun test
 
-# Run tests in specific directory
+# 特定ディレクトリのテスト実行
 bun test tests/unit
 
-# Run with coverage
+# カバレッジ付き実行
 bun test --coverage
 ```
 
-## Summary
+## まとめ
 
-| Task | Command |
-|------|---------|
-| Install dependencies | `bun install` |
-| Build | `bun run build` |
-| Watch mode | `bun run build --watch` |
-| Install CLI globally | `bun link` |
-| Run CLI command | `ygo_search '{"name":"青眼"}'` |
-| Run tests | `bun test` |
-| Development mode | `bun run dev` |
+| タスク | コマンド |
+|--------|---------|
+| 依存関係のインストール | `bun install` |
+| ビルド | `bun run build` |
+| ウォッチモード | `bun run build --watch` |
+| CLIをグローバルインストール | `bun link` |
+| CLIコマンド実行 | `ygo_search '{"name":"青眼"}'` |
+| テスト実行 | `bun test` |
+| 開発モード | `bun run dev` |
