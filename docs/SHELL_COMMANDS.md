@@ -6,33 +6,40 @@
 cd /path/to/ygo-db-local-mcp
 
 # 1. Install dependencies
-npm install
+bun install
 
 # 2. Build project (required!)
-npm run build
+bun run build
 
-# 3. Install global commands (optional)
-npm link
+# 3. Download data files
+bash scripts/setup/setup-data.sh
+
+# 4. Install global commands (optional)
+bun link
 ```
 
 This creates global commands:
 - `ygo_search` - Search cards
 - `ygo_bulk_search` - Bulk search
 - `ygo_extract` - Extract and search card patterns from text
-- `ygo_convert` - Convert between JSON/JSONL/JSONC/YAML formats
+- `ygo_replace` - Replace card patterns with card IDs or names
+- `ygo_seek` - Get random or range-specific cards
+- `ygo_faq_search` - Search FAQ database
+- `ygo_convert` - Convert between JSON/JSONL/CSV/TSV formats
 
-**Note**: After build, scripts work without tsx!
+**Note**: After build, scripts work with `node` (no tsx required)!
 
 ## PATH Setup
 
-If commands are not found after `npm link`, ensure your npm global bin directory is in PATH:
+If commands are not found after `bun link`, ensure your bun global bin directory is in PATH:
 
 ```bash
-# Check npm global bin path
-npm config get prefix
+# Check bun global bin path
+bun env | grep BUN_INSTALL
+# Usually: ~/.bun
 
 # Add to ~/.bashrc or ~/.zshrc
-export PATH="$(npm config get prefix)/bin:$PATH"
+export PATH="$PATH:~/.bun/bin"
 ```
 
 Then reload:
@@ -81,9 +88,62 @@ ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
 
 # With multiple pattern types
 ygo_extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
+```
 
-# Output to file
-ygo_extract "{青眼}で攻撃" outputPath=extracted.jsonl
+### ygo_replace - Replace card patterns with card IDs or names
+
+```bash
+# Replace with card ID: {{name|id}}
+ygo_replace "{青眼の白龍}を召喚" --raw
+
+# Replace with card name: 《name》
+ygo_replace "{青眼の白龍}を召喚" --mount-par --raw
+
+# Replace multiple patterns
+ygo_replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
+```
+
+### ygo_seek - Get random or range-specific cards
+
+```bash
+# Random cards
+ygo_seek --max 5
+
+# Range selection
+ygo_seek --range 4000-5000 --max 20
+
+# All cards in range
+ygo_seek --range 4000-4100 --all
+
+# Different output formats
+ygo_seek --max 10 --format csv
+ygo_seek --max 10 --format jsonl --col cardId,name,atk,def
+ygo_seek --max 10 --col-all  # All columns
+```
+
+### ygo_faq_search - Search FAQ database
+
+```bash
+# Search by FAQ ID
+ygo_faq_search faqId=100
+
+# Search by card ID
+ygo_faq_search cardId=6808 limit=5
+
+# Search by card name
+ygo_faq_search cardName="青眼*" limit=10
+
+# Search by card specifications
+ygo_faq_search cardFilter.race=dragon cardFilter.levelValue=8
+
+# Search by question/answer text
+ygo_faq_search question="*シンクロ召喚*"
+ygo_faq_search answer="*無効*" limit=20
+
+# Output options
+ygo_faq_search cardId=6808 --fcol faqId,question
+ygo_faq_search cardId=6808 --col name,atk,def
+ygo_faq_search cardName="青眼*" --format csv
 ```
 
 ### ygo_convert - Convert file formats
@@ -92,13 +152,16 @@ ygo_extract "{青眼}で攻撃" outputPath=extracted.jsonl
 # JSON to JSONL
 ygo_convert input.json:output.jsonl
 
-# YAML to JSON
-ygo_convert data.yaml:output.json
+# JSON to CSV
+ygo_convert input.json:output.csv
+
+# JSONL to TSV
+ygo_convert input.jsonl:output.tsv
 
 # Multiple conversions
-ygo_convert a.json:a.yaml b.jsonl:b.json
+ygo_convert a.json:a.csv b.jsonl:b.tsv
 
-# Supported formats: .json, .jsonl, .jsonc, .yaml, .yml
+# Supported formats: .json, .jsonl, .csv, .tsv
 ```
 
 ## Environment Variables
@@ -132,5 +195,5 @@ ygo_convert --help
 ## Uninstall
 
 ```bash
-npm unlink -g ygo-search-card-mcp
+bun unlink ygo-search-card-mcp
 ```
