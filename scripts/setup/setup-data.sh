@@ -84,10 +84,13 @@ detect_file_type() {
     local score=0
     local keywords="${COLUMN_KEYWORDS[$type]}"
 
+    # Convert keywords to lowercase once
+    local keywords_lower
+    keywords_lower=$(echo "$keywords" | tr '[:upper:]' '[:lower:]')
+
     # Count matching keywords (case-insensitive)
-    for keyword in $keywords; do
-      keyword_lower=$(echo "$keyword" | tr '[:upper:]' '[:lower:]')
-      if [[ " $header " == *" $keyword_lower "* ]]; then
+    for keyword in $keywords_lower; do
+      if [[ " $header " == *" $keyword "* ]]; then
         ((score++))
       fi
     done
@@ -148,9 +151,7 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 TAR_FILE="$TEMP_DIR/ygo-data.tar.gz"
 echo "Downloading tar.gz file..."
-curl -L -f -s -o "$TAR_FILE" "$DOWNLOAD_URL"
-
-if [ ! -f "$TAR_FILE" ]; then
+if ! curl -L -f -s -o "$TAR_FILE" "$DOWNLOAD_URL"; then
   echo "Error: Failed to download tar.gz"
   exit 1
 fi
@@ -181,9 +182,9 @@ done < <(find "$TEMP_DIR" -type f -name "*.tsv")
 # Verify all required files were detected
 echo ""
 echo "Verifying all required files were detected..."
-for required_type in "${!EXPECTED_HEADERS[@]}"; do
+for required_type in "${!OUTPUT_FILES[@]}"; do
   if [ -z "${DETECTED_FILES[$required_type]}" ]; then
-    echo "Error: Missing required file type: $required_type (header: ${EXPECTED_HEADERS[$required_type]})"
+    echo "Error: Missing required file type: $required_type"
     exit 1
   fi
 done
