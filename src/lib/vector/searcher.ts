@@ -85,7 +85,7 @@ function buildExcludeClause(
 
 export async function searchTable(
   tableName: string,
-  query: string,
+  query: string | number[],
   options: VectorSearchOptions = {}
 ): Promise<SearchResult[]> {
   const {
@@ -99,7 +99,10 @@ export async function searchTable(
   const db = await lancedb.connect(getDbPath());
   const table = await db.openTable(tableName);
 
-  const queryVector = await generateEmbedding(query);
+  // queryが文字列なら embedding を生成、配列ならそのまま使用
+  const queryVector = typeof query === 'string'
+    ? await generateEmbedding(query)
+    : query;
 
   let search = table
     .vectorSearch(queryVector)
@@ -193,18 +196,19 @@ export async function searchAll(
     options = { limit: options };
   }
 
-  // Embedding modelを事前に初期化
-  const { initEmbeddings } = await import('./embeddings.js');
+  // Embedding modelを事前に初期化し、embeddingを一度だけ生成
+  const { initEmbeddings, generateEmbedding } = await import('./embeddings.js');
   await initEmbeddings();
+  const queryVector = await generateEmbedding(query);
 
   // 全テーブルを取得
   const allTables = await listTables();
 
-  // 全テーブルに対して並列検索
+  // 全テーブルに対して並列検索（embeddingを再利用）
   const results = await Promise.all(
     allTables.map(async (tableName) => {
       try {
-        const tableResults = await searchTable(tableName, query, options as VectorSearchOptions);
+        const tableResults = await searchTable(tableName, queryVector, options as VectorSearchOptions);
         return { tableName, results: tableResults };
       } catch (error) {
         // テーブルが存在しないか、エラーが発生した場合はスキップ

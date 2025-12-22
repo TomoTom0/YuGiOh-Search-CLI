@@ -260,6 +260,8 @@ ygo_search vector setup-generic data.yml table --keep-tmp
 # - JSONL (.jsonl)     - 1行1レコード
 # - TSV (.tsv)         - タブ区切り（ヘッダー必須）
 # - CSV (.csv)         - カンマ区切り（ヘッダー必須）
+#                        注: 値にカンマが含まれる場合は正しく処理されません。
+#                        複雑なCSVの場合はTSVまたはJSON形式を推奨します。
 ```
 
 #### Vector検索の特徴

@@ -5,8 +5,6 @@ import { getVectorDbPath } from '../config/paths.js';
 
 const getDbPath = () => getVectorDbPath();
 
-const TEMP_PREFIX = '_tmp_';
-
 export interface VectorRecord {
   id: string;
   text: string;
@@ -18,22 +16,6 @@ export interface VectorRecordWithEmbedding {
   text: string;
   vector: number[];
   metadata: Record<string, any>;
-}
-
-export async function cleanupTempTables(): Promise<void> {
-  try {
-    const db = await lancedb.connect(getDbPath());
-    const tables = await db.tableNames();
-
-    for (const table of tables) {
-      if (table.startsWith(TEMP_PREFIX)) {
-        console.error(`一時テーブルを削除: ${table}`);
-        await db.dropTable(table);
-      }
-    }
-  } catch (e) {
-    // DBが存在しない場合は無視
-  }
 }
 
 export async function createIndex(
@@ -57,26 +39,17 @@ export async function createIndex(
   console.error('LanceDBに接続中...');
   const db = await lancedb.connect(getDbPath());
 
-  const tempTableName = `${TEMP_PREFIX}${tableName}`;
-
   const existingTables = await db.tableNames();
 
-  if (existingTables.includes(tempTableName)) {
-    console.error(`既存の一時テーブルを削除: ${tempTableName}`);
-    await db.dropTable(tempTableName);
-  }
-
-  console.error(`一時テーブルを作成: ${tempTableName}`);
-  await db.createTable(tempTableName, vectorRecords as any);
-
+  // 既存テーブルがあれば削除
   if (existingTables.includes(tableName)) {
     console.error(`既存テーブルを削除: ${tableName}`);
     await db.dropTable(tableName);
   }
 
-  console.error(`テーブルをリネーム: ${tempTableName} -> ${tableName}`);
+  // 新しいテーブルを作成（一時テーブルを使わずに直接作成）
+  console.error(`テーブルを作成: ${tableName}`);
   await db.createTable(tableName, vectorRecords as any);
-  await db.dropTable(tempTableName);
 
   console.error(`✓ インデックス作成完了: ${tableName} (${records.length}件)`);
 }

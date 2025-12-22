@@ -27,13 +27,17 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   const BATCH_SIZE = 32;
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, Math.min(i + BATCH_SIZE, texts.length));
-    console.error(`Embeddingを生成中: ${i}/${texts.length}`);
+    console.error(`Embeddingを生成中: ${i + batch.length}/${texts.length}`);
 
-    const batchPromises = batch.map(text =>
-      model(text, { pooling: 'mean', normalize: true })
-    );
-    const batchResults = await Promise.all(batchPromises);
-    embeddings.push(...batchResults.map(output => Array.from(output.data)));
+    // バッチ全体を一度にモデルに渡す
+    const output = await model(batch, { pooling: 'mean', normalize: true });
+
+    const [batchSize, embeddingDim] = output.dims;
+    for (let j = 0; j < batchSize; j++) {
+      const start = j * embeddingDim;
+      const end = start + embeddingDim;
+      embeddings.push(Array.from(output.data.slice(start, end)));
+    }
   }
 
   return embeddings;

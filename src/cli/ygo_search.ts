@@ -11,6 +11,24 @@ import { getTsvPath, getTmpPath, getTmpDir } from '../lib/config/paths.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
+// SIGINT ハンドラをセットアップする共通ヘルパー
+function setupInterruptHandler(): { interrupted: boolean; setInterrupted: (value: boolean) => void } {
+  const state = { interrupted: false };
+  process.on('SIGINT', async () => {
+    console.error('\n\n中断を検出しました。処理を終了します...');
+    state.interrupted = true;
+    process.exit(130);
+  });
+  return {
+    get interrupted() {
+      return state.interrupted;
+    },
+    setInterrupted(value: boolean) {
+      state.interrupted = value;
+    }
+  };
+}
+
 // カラム定義（旧 ygo_search.ts から）
 const COLUMN_DEFINITIONS = {
   // Basic information
@@ -576,7 +594,7 @@ Examples:
 
 async function handleVectorSetupCommand(args: string[]) {
   const { convertCardsToJsonl, convertFaqsToJsonl } = await import('../lib/vector/converter.js');
-  const { indexFromJsonl, cleanupTempTables } = await import('../lib/vector/indexer.js');
+  const { indexFromJsonl } = await import('../lib/vector/indexer.js');
   const fs = await import('fs/promises');
 
   // オプション解析
@@ -601,20 +619,7 @@ async function handleVectorSetupCommand(args: string[]) {
   const tmpFiles: string[] = [];
 
   // SIGINT対応
-  let interrupted = false;
-  process.on('SIGINT', async () => {
-    console.error('\n\n中断を検出しました。一時テーブルをクリーンアップ中...');
-    interrupted = true;
-
-    try {
-      await cleanupTempTables();
-      console.error('クリーンアップ完了。既存のデータは保持されています。');
-    } catch (e) {
-      console.error('クリーンアップ中にエラー:', e);
-    }
-
-    process.exit(130);
-  });
+  const { interrupted } = setupInterruptHandler();
 
   try {
     // 一時ディレクトリ作成
@@ -773,7 +778,7 @@ Examples:
       if (allResults.length > 0) {
         console.log(['id', 'score', 'text_preview'].join(sep));
         for (const r of allResults) {
-          const textPreview = r.text.substring(0, 100).replace(/\n/g, ' ');
+          const textPreview = r.text.substring(0, 100).replace(/\n/g, ' ').replace(/"/g, '""');
           console.log([r.id, r.score.toFixed(4), `"${textPreview}..."`].join(sep));
         }
       }
@@ -810,7 +815,7 @@ Examples:
   }
 
   const { convertGenericToJsonl } = await import('../lib/vector/converter.js');
-  const { indexFromJsonl, cleanupTempTables } = await import('../lib/vector/indexer.js');
+  const { indexFromJsonl } = await import('../lib/vector/indexer.js');
   const fs = await import('fs/promises');
 
   const inputFile = args[0];
@@ -840,20 +845,7 @@ Examples:
   const tmpFiles: string[] = [];
 
   // SIGINT対応
-  let interrupted = false;
-  process.on('SIGINT', async () => {
-    console.error('\n\n中断を検出しました。一時テーブルをクリーンアップ中...');
-    interrupted = true;
-
-    try {
-      await cleanupTempTables();
-      console.error('クリーンアップ完了。既存のデータは保持されています。');
-    } catch (e) {
-      console.error('クリーンアップ中にエラー:', e);
-    }
-
-    process.exit(130);
-  });
+  const { interrupted } = setupInterruptHandler();
 
   try {
     // 一時ディレクトリ作成
