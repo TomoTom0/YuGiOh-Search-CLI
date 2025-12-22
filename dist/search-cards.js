@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 import fs from 'fs';
-import path from 'path';
-import url from 'url';
-import { findProjectRoot } from './utils/project-root.js';
 // Usage:
 // Single mode: node search-cards.ts '{"name":"アシスト"}' cols=name,cardId mode=exact
 // Bulk mode: node search-cards.ts --bulk '[{"filter":{"name":"青眼"},"cols":["name"]},{"filter":{"name":"ブラマジ"},"cols":["name"]}]'
@@ -452,14 +449,12 @@ async function main() {
             process.exit(2);
         }
     }
-    // Find project root (where package.json is)
-    const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-    const projectRoot = await findProjectRoot(__dirname);
-    const dataDir = path.join(projectRoot, 'data');
-    const cardsFile = path.join(dataDir, 'cards-all.tsv');
-    const detailFile = path.join(dataDir, 'detail-all.tsv');
+    // Get TSV file paths
+    const { getTsvPath } = await import('./lib/config/paths.js');
+    const cardsFile = getTsvPath('cards-all.tsv');
+    const detailFile = getTsvPath('detail-all.tsv');
     if (!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)) {
-        console.error(`data files not found at ${dataDir}`);
+        console.error(`data files not found: ${cardsFile}, ${detailFile}`);
         process.exit(2);
     }
     const rl = readline.createInterface({

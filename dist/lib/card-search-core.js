@@ -2,9 +2,8 @@
  * Core card search logic extracted for library use
  * Used by both CLI (search-cards.ts) and FAQ search (search-faq.ts)
  */ import fs from 'fs';
-import path from 'path';
 import readline from 'readline';
-import { findProjectRoot } from '../utils/project-root.js';
+import { getTsvPath } from './config/paths.js';
 function normalizeForSearch(str) {
     if (!str) return '';
     return str.replace(/[\s\u3000]+/g, '').replace(/[・★☆※‼！？。、,.，．:：;；「」『』【】〔〕（）()［］\[\]｛｝{}〈〉《》〜～~\-－_＿\/／\\＼|｜&＆@＠#＃$＄%％^＾*＊+＋=＝<＜>＞'"\"'""''`´｀]/g, '').replace(/竜/g, '龍').replace(/剣/g, '劍').replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s)=>String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).toLowerCase().replace(/[\u3041-\u3096]/g, (s)=>String.fromCharCode(s.charCodeAt(0) + 0x60));
@@ -86,9 +85,7 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
             };
         }
     }
-    const projectRoot = await findProjectRoot();
-    const dataDir = path.join(projectRoot, 'data');
-    const cardsFile = path.join(dataDir, 'cards-all.tsv');
+    const cardsFile = getTsvPath('cards-all.tsv');
     if (!fs.existsSync(cardsFile)) {
         throw new Error(`カードデータファイルが見つかりません: ${cardsFile}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`);
     }

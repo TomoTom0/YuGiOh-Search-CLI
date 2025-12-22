@@ -4,6 +4,7 @@ import path from 'path';
 import url from 'url';
 import { extractAndSearchCards } from '../lib/extract-and-search-cards.js';
 import { judgeAndReplace } from '../lib/judge-and-replace.js';
+import { getTsvPath, getTmpPath, getTmpDir } from '../lib/config/paths.js';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 // カラム定義（旧 ygo_search.ts から）
 const COLUMN_DEFINITIONS = {
@@ -315,6 +316,7 @@ Commands:
   seek [options]        ランダムカード取得
   bulk [queries]        複数クエリを一括検索
   convert <in:out>      フォーマット変換（JSON/JSONL/YAML）
+  vector setup [type]   Vector DBセットアップ（cards/faqs/all）
   update                データ更新
   help                  このヘルプを表示
 
@@ -625,6 +627,358 @@ function handleSeekCommand(args) {
         process.exit(code || 0);
     });
 }
+// vector サブコマンド
+async function handleVectorCommand(args) {
+    if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+        console.log(`Usage: ygo_search vector <subcommand> [options]
+
+Vector DB管理コマンド
+
+Subcommands:
+  setup [type]          Vector DBインデックスを構築（cards/faqs）
+                        type: cards, faqs, all (デフォルト: all)
+                        Options:
+                          --keep-tmp    一時JSONLファイルを削除せずに保持
+  setup-generic <file> <table>  汎用データをインポート
+                        file: yaml/jsonl/json/tsv/csv
+                        table: テーブル名
+                        Options:
+                          --exclude-columns col1,col2
+                          --include-columns col1,col2
+                          --keep-tmp
+  search <query>        Vector検索を実行
+
+Examples:
+  ygo_search vector setup                全てのインデックスを構築
+  ygo_search vector setup cards          カードのみ
+  ygo_search vector setup faqs           FAQのみ
+  ygo_search vector setup --keep-tmp     一時ファイルを保持
+  ygo_search vector setup-generic rules.yml rules --exclude-columns cite
+  ygo_search vector setup-generic data.json custom --include-columns category
+  ygo_search vector search "墓地から特殊召喚" --limit 5
+  ygo_search vector search "融合召喚" --type cards --threshold 0.8
+`);
+        process.exit(0);
+    }
+    const subcommand = args[0];
+    const subArgs = args.slice(1);
+    if (subcommand === 'setup') {
+        await handleVectorSetupCommand(subArgs);
+    } else if (subcommand === 'setup-generic') {
+        await handleVectorSetupGenericCommand(subArgs);
+    } else if (subcommand === 'search') {
+        await handleVectorSearchCommand(subArgs);
+    } else {
+        console.error(`Unknown vector subcommand: ${subcommand}`);
+        process.exit(1);
+    }
+}
+async function handleVectorSetupCommand(args) {
+    const { convertCardsToJsonl, convertFaqsToJsonl } = await import('../lib/vector/converter.js');
+    const { indexFromJsonl, cleanupTempTables } = await import('../lib/vector/indexer.js');
+    const fs = await import('fs/promises');
+    // オプション解析
+    let type = 'all';
+    let keepTmp = false;
+    for(let i = 0; i < args.length; i++){
+        const arg = args[i];
+        if (arg === '--keep-tmp') {
+            keepTmp = true;
+        } else if (!arg.startsWith('--')) {
+            type = arg;
+        }
+    }
+    if (![
+        'cards',
+        'faqs',
+        'all'
+    ].includes(type)) {
+        console.error(`Invalid type: ${type}. Must be one of: cards, faqs, all`);
+        process.exit(1);
+    }
+    // tmpファイルのパスを保持
+    const tmpFiles = [];
+    // SIGINT対応
+    let interrupted = false;
+    process.on('SIGINT', async ()=>{
+        console.error('\n\n中断を検出しました。一時テーブルをクリーンアップ中...');
+        interrupted = true;
+        try {
+            await cleanupTempTables();
+            console.error('クリーンアップ完了。既存のデータは保持されています。');
+        } catch (e) {
+            console.error('クリーンアップ中にエラー:', e);
+        }
+        process.exit(130);
+    });
+    try {
+        // 一時ディレクトリ作成
+        const tmpDir = getTmpDir();
+        await fs.mkdir(tmpDir, {
+            recursive: true
+        });
+        if (type === 'all' || type === 'cards') {
+            if (interrupted) return;
+            console.error('\n=== Cards のインデックス構築 ===');
+            const cardsTsvPath = getTsvPath('cards-all.tsv');
+            const detailTsvPath = getTsvPath('detail-all.tsv');
+            const cardsJsonlPath = getTmpPath('cards_for_vectordb.jsonl');
+            tmpFiles.push(cardsJsonlPath);
+            console.error('TSVからJSONLに変換中...');
+            const cardsCount = await convertCardsToJsonl(cardsTsvPath, detailTsvPath, cardsJsonlPath);
+            console.error(`${cardsCount}件のカードを変換しました`);
+            console.error('Vector DBインデックスを構築中...');
+            await indexFromJsonl('cards', cardsJsonlPath);
+        }
+        if (type === 'all' || type === 'faqs') {
+            if (interrupted) return;
+            console.error('\n=== FAQs のインデックス構築 ===');
+            const faqsTsvPath = getTsvPath('faq-all.tsv');
+            const faqsJsonlPath = getTmpPath('faqs_for_vectordb.jsonl');
+            tmpFiles.push(faqsJsonlPath);
+            console.error('TSVからJSONLに変換中...');
+            const faqsCount = await convertFaqsToJsonl(faqsTsvPath, faqsJsonlPath);
+            console.error(`${faqsCount}件のFAQを変換しました`);
+            console.error('Vector DBインデックスを構築中...');
+            await indexFromJsonl('faqs', faqsJsonlPath);
+        }
+        console.error('\n全てのインデックス構築が完了しました');
+        // tmpファイルのクリーンアップ
+        if (!keepTmp && tmpFiles.length > 0) {
+            console.error('\n一時ファイルをクリーンアップ中...');
+            for (const tmpFile of tmpFiles){
+                try {
+                    await fs.unlink(tmpFile);
+                    console.error(`削除: ${tmpFile}`);
+                } catch (e) {
+                    if (e.code !== 'ENOENT') {
+                        console.error(`警告: ${tmpFile} の削除に失敗しました:`, e.message);
+                    }
+                }
+            }
+            console.error('クリーンアップ完了');
+        } else if (keepTmp) {
+            console.error('\n--keep-tmpオプションが指定されているため、一時ファイルを保持します');
+        }
+    } catch (error) {
+        console.error('インデックス構築中にエラーが発生しました:', error.message);
+        process.exit(1);
+    }
+}
+async function handleVectorSearchCommand(args) {
+    if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+        console.log(`Usage: ygo_search vector search <query> [options]
+
+Vector検索を実行
+
+Arguments:
+  query                 検索クエリ
+
+Options:
+  --type TYPE           検索対象（cards/faqs/all/カスタムテーブル名, デフォルト: all）
+  --limit N             最大結果数（デフォルト: 10）
+  --threshold N         スコア閾値（0.0-1.0, 小さいほど厳密）
+  --distance TYPE       距離メトリック（cosine/l2/dot, デフォルト: cosine）
+  --format FORMAT       出力形式（json/csv/tsv/jsonl, デフォルト: json）
+
+Examples:
+  ygo_search vector search "墓地から特殊召喚"
+  ygo_search vector search "融合召喚" --type cards --limit 5
+  ygo_search vector search "カウンター罠" --threshold 0.7
+  ygo_search vector search "チェーンブロック" --format jsonl
+  ygo_search vector search "特殊召喚" --type test
+`);
+        process.exit(0);
+    }
+    const query = args[0];
+    if (!query) {
+        console.error('Error: クエリを指定してください');
+        process.exit(1);
+    }
+    const { searchCards, searchFaqs, searchAll, searchTable } = await import('../lib/vector/searcher.js');
+    // オプション解析
+    let type = 'all';
+    let limit = 10;
+    let threshold = undefined;
+    let distanceType = 'cosine';
+    let format = 'json';
+    for(let i = 1; i < args.length; i++){
+        if (args[i] === '--type' && i + 1 < args.length) {
+            type = args[++i];
+        } else if (args[i] === '--limit' && i + 1 < args.length) {
+            limit = parseInt(args[++i], 10);
+        } else if (args[i] === '--threshold' && i + 1 < args.length) {
+            threshold = parseFloat(args[++i]);
+        } else if (args[i] === '--distance' && i + 1 < args.length) {
+            distanceType = args[++i];
+        } else if (args[i] === '--format' && i + 1 < args.length) {
+            format = args[++i];
+        }
+    }
+    const options = {
+        limit,
+        threshold,
+        distanceType
+    };
+    try {
+        console.error(`検索中: "${query}"\n`);
+        let results;
+        if (type === 'cards') {
+            const cards = await searchCards(query, options);
+            results = {
+                cards
+            };
+        } else if (type === 'faqs') {
+            const faqs = await searchFaqs(query, options);
+            results = {
+                faqs
+            };
+        } else if (type === 'all') {
+            results = await searchAll(query, options);
+        } else {
+            // カスタムテーブルの検索
+            const customResults = await searchTable(type, query, options);
+            results = {
+                [type]: customResults
+            };
+        }
+        // フォーマット出力
+        if (format === 'json') {
+            console.log(JSON.stringify(results, null, 2));
+        } else if (format === 'jsonl') {
+            // 全ての結果を配列に集める
+            const allResults = Object.values(results).flat();
+            for (const r of allResults){
+                console.log(JSON.stringify(r));
+            }
+        } else if (format === 'csv' || format === 'tsv') {
+            const sep = format === 'csv' ? ',' : '\t';
+            // 全ての結果を配列に集める
+            const allResults = Object.values(results).flat();
+            if (allResults.length > 0) {
+                console.log([
+                    'id',
+                    'score',
+                    'text_preview'
+                ].join(sep));
+                for (const r of allResults){
+                    const textPreview = r.text.substring(0, 100).replace(/\n/g, ' ');
+                    console.log([
+                        r.id,
+                        r.score.toFixed(4),
+                        `"${textPreview}..."`
+                    ].join(sep));
+                }
+            }
+        }
+    } catch (error) {
+        console.error('検索エラー:', error.message);
+        process.exit(1);
+    }
+}
+async function handleVectorSetupGenericCommand(args) {
+    if (args.length < 2 || args[0] === '--help' || args[0] === '-h') {
+        console.log(`Usage: ygo_search vector setup-generic <inputFile> <tableName> [options]
+
+汎用データからVector DBインデックスを構築
+
+Arguments:
+  inputFile             入力ファイル（yaml/jsonl/json/tsv/csv）
+  tableName             テーブル名
+
+Options:
+  --exclude-columns col1,col2    指定カラムをテキストから除外
+  --include-columns col1,col2    指定カラムのみテキストに含める
+  --keep-tmp                     一時JSONLファイルを削除せずに保持
+
+Required fields: id, title, text
+
+Examples:
+  ygo_search vector setup-generic rules.yml rules
+  ygo_search vector setup-generic data.json custom --exclude-columns cite,sourceFile
+  ygo_search vector setup-generic items.tsv items --include-columns category,priority
+`);
+        process.exit(0);
+    }
+    const { convertGenericToJsonl } = await import('../lib/vector/converter.js');
+    const { indexFromJsonl, cleanupTempTables } = await import('../lib/vector/indexer.js');
+    const fs = await import('fs/promises');
+    const inputFile = args[0];
+    const tableName = args[1];
+    // オプション解析
+    let excludeColumns = undefined;
+    let includeColumns = undefined;
+    let keepTmp = false;
+    for(let i = 2; i < args.length; i++){
+        if (args[i] === '--exclude-columns' && i + 1 < args.length) {
+            excludeColumns = args[++i].split(',').map((c)=>c.trim());
+        } else if (args[i] === '--include-columns' && i + 1 < args.length) {
+            includeColumns = args[++i].split(',').map((c)=>c.trim());
+        } else if (args[i] === '--keep-tmp') {
+            keepTmp = true;
+        }
+    }
+    // Validate exclusivity
+    if (excludeColumns && includeColumns) {
+        console.error('Error: Cannot specify both --exclude-columns and --include-columns');
+        process.exit(1);
+    }
+    const tmpFiles = [];
+    // SIGINT対応
+    let interrupted = false;
+    process.on('SIGINT', async ()=>{
+        console.error('\n\n中断を検出しました。一時テーブルをクリーンアップ中...');
+        interrupted = true;
+        try {
+            await cleanupTempTables();
+            console.error('クリーンアップ完了。既存のデータは保持されています。');
+        } catch (e) {
+            console.error('クリーンアップ中にエラー:', e);
+        }
+        process.exit(130);
+    });
+    try {
+        // 一時ディレクトリ作成
+        const tmpDir = getTmpDir();
+        await fs.mkdir(tmpDir, {
+            recursive: true
+        });
+        console.error(`\n=== ${tableName} のインデックス構築 ===`);
+        const jsonlPath = getTmpPath(`${tableName}_for_vectordb.jsonl`);
+        tmpFiles.push(jsonlPath);
+        console.error(`${inputFile} からJSONLに変換中...`);
+        const options = excludeColumns ? {
+            excludeColumns
+        } : includeColumns ? {
+            includeColumns
+        } : undefined;
+        const count = await convertGenericToJsonl(inputFile, jsonlPath, options);
+        console.error(`${count}件のレコードを変換しました`);
+        console.error('Vector DBインデックスを構築中...');
+        await indexFromJsonl(tableName, jsonlPath);
+        console.error('\nインデックス構築が完了しました');
+        // tmpファイルのクリーンアップ
+        if (!keepTmp && tmpFiles.length > 0) {
+            console.error('\n一時ファイルをクリーンアップ中...');
+            for (const tmpFile of tmpFiles){
+                try {
+                    await fs.unlink(tmpFile);
+                    console.error(`削除: ${tmpFile}`);
+                } catch (e) {
+                    if (e.code !== 'ENOENT') {
+                        console.error(`警告: ${tmpFile} の削除に失敗しました:`, e.message);
+                    }
+                }
+            }
+            console.error('クリーンアップ完了');
+        } else if (keepTmp) {
+            console.error('\n--keep-tmpオプションが指定されているため、一時ファイルを保持します');
+        }
+    } catch (error) {
+        console.error('インデックス構築中にエラーが発生しました:', error.message);
+        process.exit(1);
+    }
+}
 // update サブコマンド（旧 ygo_update_search）
 function handleUpdateCommand() {
     const scriptPath = path.join(__dirname, 'ygo_update_search.js');
@@ -666,6 +1020,9 @@ async function main() {
             break;
         case 'convert':
             handleConvertCommand(commandArgs);
+            break;
+        case 'vector':
+            await handleVectorCommand(commandArgs);
             break;
         case 'update':
             handleUpdateCommand();

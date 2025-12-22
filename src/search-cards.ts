@@ -550,14 +550,11 @@ async function main(){
     if(otherKeys.length>0){ console.error('mode partial is only allowed when filtering by name'); process.exit(2) }
   }
 
-  // Find project root (where package.json is)
-  const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const projectRoot = await findProjectRoot(__dirname)
-  
-  const dataDir = path.join(projectRoot, 'data')
-  const cardsFile = path.join(dataDir,'cards-all.tsv')
-  const detailFile = path.join(dataDir,'detail-all.tsv')
-  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error(`data files not found at ${dataDir}`); process.exit(2) }
+  // Get TSV file paths
+  const { getTsvPath } = await import('./lib/config/paths.js')
+  const cardsFile = getTsvPath('cards-all.tsv')
+  const detailFile = getTsvPath('detail-all.tsv')
+  if(!fs.existsSync(cardsFile) || !fs.existsSync(detailFile)){ console.error(`data files not found: ${cardsFile}, ${detailFile}`); process.exit(2) }
 
   const rl = readline.createInterface({ input: fs.createReadStream(cardsFile), crlfDelay: Infinity })
   let headers: string[] = []
