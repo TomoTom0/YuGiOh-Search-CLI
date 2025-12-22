@@ -2,7 +2,7 @@
  * 新しくexportされた関数のテスト
  */
 
-import { describe, test, expect } from 'bun:test'
+import { describe, it, expect } from 'vitest'
 import {
   extractCardPatterns,
   extractAndSearchCards,
@@ -14,7 +14,7 @@ import {
 } from '../../dist/index.js'
 
 describe('extractCardPatterns', () => {
-  test('柔軟パターンを抽出できる', () => {
+  it('柔軟パターンを抽出できる', () => {
     const text = 'Use {ブルーアイズ*} card'
     const patterns = extractCardPatterns(text)
 
@@ -24,7 +24,7 @@ describe('extractCardPatterns', () => {
     expect(patterns[0].pattern).toBe('{ブルーアイズ*}')
   })
 
-  test('厳密パターンを抽出できる', () => {
+  it('厳密パターンを抽出できる', () => {
     const text = 'Use 《青眼の白龍》 card'
     const patterns = extractCardPatterns(text)
 
@@ -34,7 +34,7 @@ describe('extractCardPatterns', () => {
     expect(patterns[0].pattern).toBe('《青眼の白龍》')
   })
 
-  test('cardIdパターンを抽出できる', () => {
+  it('cardIdパターンを抽出できる', () => {
     const text = 'Use {{青眼の白龍|89631139}} card'
     const patterns = extractCardPatterns(text)
 
@@ -45,7 +45,7 @@ describe('extractCardPatterns', () => {
     expect(patterns[0].originalName).toBe('青眼の白龍')
   })
 
-  test('複数パターンを抽出できる', () => {
+  it('複数パターンを抽出できる', () => {
     const text = 'Use {ブルーアイズ*} and 《青眼の白龍》 cards'
     const patterns = extractCardPatterns(text)
 
@@ -55,14 +55,14 @@ describe('extractCardPatterns', () => {
     expect(patterns[1].type).toBe('flexible')
   })
 
-  test('パターンがない場合は空配列を返す', () => {
+  it('パターンがない場合は空配列を返す', () => {
     const text = 'No patterns here'
     const patterns = extractCardPatterns(text)
 
     expect(patterns).toHaveLength(0)
   })
 
-  test('startIndexオプションを使用できる', () => {
+  it('startIndexオプションを使用できる', () => {
     const text = 'Use {ブルーアイズ*} card'
     const patterns = extractCardPatterns(text, { includeStartIndex: true })
 
@@ -72,7 +72,7 @@ describe('extractCardPatterns', () => {
 })
 
 describe('extractAndSearchCards', () => {
-  test('パターンを抽出して検索できる', async () => {
+  it('パターンを抽出して検索できる', async () => {
     const text = 'Use 《青眼の白龍》 card'
     const results = await extractAndSearchCards(text)
 
@@ -84,7 +84,7 @@ describe('extractAndSearchCards', () => {
     expect(results[0].results[0].name).toBe('青眼の白龍')
   })
 
-  test('パターンがない場合は空配列を返す', async () => {
+  it('パターンがない場合は空配列を返す', async () => {
     const text = 'No patterns here'
     const results = await extractAndSearchCards(text)
 
@@ -93,7 +93,7 @@ describe('extractAndSearchCards', () => {
 })
 
 describe('judgeAndReplace', () => {
-  test('厳密パターンを置換できる', async () => {
+  it('厳密パターンを置換できる', async () => {
     const text = 'Use 《青眼の白龍》 card'
     const result = await judgeAndReplace(text)
 
@@ -105,7 +105,7 @@ describe('judgeAndReplace', () => {
     expect(result.processedPatterns[0].status).toBe('resolved')
   })
 
-  test('柔軟検索で複数候補がある場合はmultipleステータスになる', async () => {
+  it('柔軟検索で複数候補がある場合はmultipleステータスになる', async () => {
     const text = 'Use {青眼*} card'
     const result = await judgeAndReplace(text)
 
@@ -115,7 +115,7 @@ describe('judgeAndReplace', () => {
     expect(result.processedText).toContain('{{`青眼*`_')
   })
 
-  test('mountParオプションで《》形式に置換できる（1件のみヒット）', async () => {
+  it('mountParオプションで《》形式に置換できる（1件のみヒット）', async () => {
     const text = 'Use 《青眼の白龍》 card'
     const result = await judgeAndReplace(text, { mountPar: true })
 
@@ -124,7 +124,7 @@ describe('judgeAndReplace', () => {
     expect(result.processedPatterns[0].status).toBe('resolved')
   })
 
-  test('パターンがない場合はそのまま返す', async () => {
+  it('パターンがない場合はそのまま返す', async () => {
     const text = 'No patterns here'
     const result = await judgeAndReplace(text)
 
@@ -135,7 +135,7 @@ describe('judgeAndReplace', () => {
 })
 
 describe('seekCards', () => {
-  test('デフォルトで10件のカードを取得できる', async () => {
+  it('デフォルトで10件のカードを取得できる', async () => {
     const cards = await seekCards()
 
     expect(cards.length).toBeLessThanOrEqual(10)
@@ -144,14 +144,14 @@ describe('seekCards', () => {
     expect(cards[0]).toHaveProperty('name')
   })
 
-  test('max指定で件数を制限できる', async () => {
+  it('max指定で件数を制限できる', async () => {
     const cards = await seekCards({ max: 5 })
 
     expect(cards.length).toBeLessThanOrEqual(5)
     expect(cards.length).toBeGreaterThan(0)
   })
 
-  test('range指定で範囲を絞れる', async () => {
+  it('range指定で範囲を絞れる', async () => {
     const cards = await seekCards({ range: [4000, 4100], max: 20 })
 
     for (const card of cards) {
@@ -161,7 +161,7 @@ describe('seekCards', () => {
     }
   })
 
-  test('cols指定で取得カラムを指定できる', async () => {
+  it('cols指定で取得カラムを指定できる', async () => {
     const cards = await seekCards({ max: 5, cols: ['cardId', 'name', 'text'] })
 
     expect(cards.length).toBeGreaterThan(0)
@@ -172,7 +172,7 @@ describe('seekCards', () => {
 })
 
 describe('format conversion functions', () => {
-  test('detectFormatで拡張子からフォーマットを検出できる', () => {
+  it('detectFormatで拡張子からフォーマットを検出できる', () => {
     expect(detectFormat('file.json')).toBe('json')
     expect(detectFormat('file.jsonl')).toBe('jsonl')
     expect(detectFormat('file.jsonc')).toBe('jsonc')
@@ -180,28 +180,28 @@ describe('format conversion functions', () => {
     expect(detectFormat('file.yml')).toBe('yaml')
   })
 
-  test('parseFormatStringでJSON文字列をパースできる', () => {
+  it('parseFormatStringでJSON文字列をパースできる', () => {
     const input = '{"key": "value"}'
     const result = parseFormatString(input, 'json')
 
     expect(result).toEqual({ key: 'value' })
   })
 
-  test('parseFormatStringでJSONL文字列をパースできる', () => {
+  it('parseFormatStringでJSONL文字列をパースできる', () => {
     const input = '{"a": 1}\n{"b": 2}'
     const result = parseFormatString(input, 'jsonl')
 
     expect(result).toEqual([{ a: 1 }, { b: 2 }])
   })
 
-  test('parseFormatStringでYAML文字列をパースできる', () => {
+  it('parseFormatStringでYAML文字列をパースできる', () => {
     const input = 'key: value'
     const result = parseFormatString(input, 'yaml')
 
     expect(result).toEqual({ key: 'value' })
   })
 
-  test('formatOutputでJSONフォーマットに変換できる', () => {
+  it('formatOutputでJSONフォーマットに変換できる', () => {
     const data = { key: 'value' }
     const result = formatOutput(data, 'json')
 
@@ -209,21 +209,21 @@ describe('format conversion functions', () => {
     expect(result).toContain('"value"')
   })
 
-  test('formatOutputでJSONLフォーマットに変換できる', () => {
+  it('formatOutputでJSONLフォーマットに変換できる', () => {
     const data = [{ a: 1 }, { b: 2 }]
     const result = formatOutput(data, 'jsonl')
 
     expect(result).toBe('{"a":1}\n{"b":2}')
   })
 
-  test('formatOutputでYAMLフォーマットに変換できる', () => {
+  it('formatOutputでYAMLフォーマットに変換できる', () => {
     const data = { key: 'value' }
     const result = formatOutput(data, 'yaml')
 
     expect(result).toContain('key: value')
   })
 
-  test('formatOutputでJSONCフォーマットに変換できる', () => {
+  it('formatOutputでJSONCフォーマットに変換できる', () => {
     const data = { key: 'value' }
     const result = formatOutput(data, 'jsonc')
 
