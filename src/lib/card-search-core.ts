@@ -6,7 +6,7 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { findProjectRoot } from '../utils/project-root.js'
+import { getTsvPath } from './config/paths.js'
 import { Card } from '../types/card.js'
 
 export interface CardSearchParams {
@@ -126,9 +126,7 @@ export async function searchCards(params: CardSearchParams): Promise<Card[]> {
     }
   }
 
-  const projectRoot = await findProjectRoot()
-  const dataDir = path.join(projectRoot, 'data')
-  const cardsFile = path.join(dataDir, 'cards-all.tsv')
+  const cardsFile = getTsvPath('cards-all.tsv')
 
   if (!fs.existsSync(cardsFile)) {
     throw new Error(`カードデータファイルが見つかりません: ${cardsFile}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`)
