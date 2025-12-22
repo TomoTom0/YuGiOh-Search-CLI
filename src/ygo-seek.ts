@@ -1,9 +1,5 @@
 #!/usr/bin/env node
-import fs from 'fs'
-import path from 'path'
-import url from 'url'
-import readline from 'readline'
-import { findProjectRoot } from './utils/project-root.js'
+import { seekCards } from './lib/seek-cards.js'
 
 interface SeekOptions {
   max: number
@@ -17,7 +13,7 @@ interface SeekOptions {
 
 async function main() {
   const args = process.argv.slice(2)
-  
+
   // Parse options
   const options: SeekOptions = {
     max: 10,
@@ -112,148 +108,15 @@ Examples:
     console.error('--all requires --range')
     process.exit(2)
   }
-  
-  // Find project root
-  const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-  const projectRoot = await findProjectRoot(__dirname)
-  
-  const dataDir = path.join(projectRoot, 'data')
-  const cardsFile = path.join(dataDir, 'cards-all.tsv')
-  const detailFile = path.join(dataDir, 'detail-all.tsv')
-  
-  if (!fs.existsSync(cardsFile)) {
-    console.error(`Data file not found: ${cardsFile}`)
-    process.exit(2)
-  }
-  
-  // Read cards-all.tsv
-  const rlCards = readline.createInterface({ 
-    input: fs.createReadStream(cardsFile), 
-    crlfDelay: Infinity 
-  })
-  
-  let cardsHeaders: string[] = []
-  const allCards: Record<string, string>[] = []
-  
-  for await (const line of rlCards) {
-    if (!line) continue
-    
-    if (cardsHeaders.length === 0) {
-      cardsHeaders = line.split('\t')
-      continue
-    }
-    
-    const values = line.split('\t')
-    const card: Record<string, string> = {}
-    
-    for (let i = 0; i < cardsHeaders.length; i++) {
-      card[cardsHeaders[i]] = values[i] || ''
-    }
-    
-    // Filter by range if specified
-    if (options.range) {
-      const cardId = parseInt(card.cardId)
-      if (isNaN(cardId) || cardId < options.range[0] || cardId > options.range[1]) {
-        continue
-      }
-    }
-    
-    allCards.push(card)
-  }
-  
-  // Read detail-all.tsv and merge by cardId
-  if (fs.existsSync(detailFile)) {
-    const rlDetail = readline.createInterface({ 
-      input: fs.createReadStream(detailFile), 
-      crlfDelay: Infinity 
-    })
-    
-    let detailHeaders: string[] = []
-    const detailMap = new Map<string, Record<string, string>>()
-    
-    for await (const line of rlDetail) {
-      if (!line) continue
-      
-      if (detailHeaders.length === 0) {
-        detailHeaders = line.split('\t')
-        continue
-      }
-      
-      const values = line.split('\t')
-      const detail: Record<string, string> = {}
-      let cardId = ''
-      
-      for (let i = 0; i < detailHeaders.length; i++) {
-        const header = detailHeaders[i]
-        detail[header] = values[i] || ''
-        if (header === 'cardId') {
-          cardId = values[i]
-        }
-      }
-      
-      if (cardId) {
-        detailMap.set(cardId, detail)
-      }
-    }
-    
-    // Merge detail info into cards (skip duplicate columns)
-    for (const card of allCards) {
-      const detail = detailMap.get(card.cardId)
-      if (detail) {
-        for (const [key, value] of Object.entries(detail)) {
-          // Skip if column already exists in card (avoid duplicates)
-          if (!card.hasOwnProperty(key)) {
-            card[key] = value
-          }
-        }
-      }
-    }
-    
-    // Update available columns for --col-all
-    if (options.colAll) {
-      // Get all unique column names from merged data
-      const allColumnNames = new Set<string>()
-      cardsHeaders.forEach(h => allColumnNames.add(h))
-      detailHeaders.forEach(h => allColumnNames.add(h))
-      options.cols = Array.from(allColumnNames)
-    }
-  } else {
-    // If detail file doesn't exist, just use cards headers
-    if (options.colAll) {
-      options.cols = cardsHeaders
-    }
-  }
-  
-  // Select cards
-  let selectedCards: Record<string, string>[]
-  
-  if (options.all) {
-    selectedCards = allCards
-  } else if (options.random) {
-    // Random selection
-    const count = Math.min(options.max, allCards.length)
-    selectedCards = []
-    const indices = new Set<number>()
-    
-    while (indices.size < count) {
-      indices.add(Math.floor(Math.random() * allCards.length))
-    }
-    
-    for (const idx of indices) {
-      selectedCards.push(allCards[idx])
-    }
-  } else {
-    // Take first N cards
-    selectedCards = allCards.slice(0, options.max)
-  }
-  
-  // Filter columns
-  const result = selectedCards.map(card => {
-    const filtered: Record<string, string> = {}
-    for (const col of options.cols) {
-      filtered[col] = card[col] || ''
-    }
-    return filtered
+
+  // Seek cards using the library function
+  const result = await seekCards({
+    max: options.max,
+    random: options.random,
+    range: options.range,
+    all: options.all,
+    cols: options.cols,
+    colAll: options.colAll
   })
   
   // Output in specified format

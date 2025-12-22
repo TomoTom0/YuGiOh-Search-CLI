@@ -1,20 +1,22 @@
 {
-  "name": "ygo-search-card-mcp",
+  "name": "ygo-search",
   "version": "1.3.0",
-  "description": "MCP server for Yu-Gi-Oh card search",
+  "description": "CLI tools for Yu-Gi-Oh card search with local database",
   "type": "module",
-  "main": "./dist/ygo-search-card-server.js",
-  "bin": {
-    "ygo-search-card-server": "./dist/ygo-search-card-server.js",
-    "ygo_search": "./dist/cli/ygo_search.js",
-    "ygo_bulk_search": "./dist/cli/ygo_bulk_search.js",
-    "ygo_extract": "./dist/cli/ygo_extract.js",
-    "ygo_convert": "./dist/cli/ygo_convert.js",
-    "ygo_replace": "./dist/cli/ygo_replace.js",
-    "ygo_seek": "./dist/cli/ygo_seek.js",
-    "ygo_faq_search": "./dist/cli/ygo_faq_search.js"
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
   },
-  "types": "./dist/ygo-search-card-server.d.ts",
+  "bin": {
+    "ygo_search": "./dist/cli/ygo_search.js",
+    "ygo_convert": "./dist/cli/ygo_convert.js"
+  },
   "files": [
     "dist",
     "data",
@@ -22,9 +24,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "tsx src/ygo-search-card-server.ts",
-    "build": "swc src -d dist --ignore '**/*.test.ts' && mv dist/src/* dist/ && rmdir dist/src && chmod +x dist/cli/*.js dist/ygo-search-card-server.js",
-    "start": "node dist/ygo-search-card-server.js",
+    "build": "swc src -d dist --ignore '**/*.test.ts' && mv dist/src/* dist/ && rmdir dist/src && chmod +x dist/cli/*.js && tsc --emitDeclarationOnly",
     "prebuild": "rm -rf dist",
     "prepublishOnly": "bun run build",
     "test": "vitest run",
@@ -40,7 +40,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.22.0",
     "js-yaml": "^4.1.1",
     "jsonc-parser": "^3.3.1",
     "tsx": "^4.20.6",

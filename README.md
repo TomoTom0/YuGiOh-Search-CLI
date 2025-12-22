@@ -13,6 +13,7 @@ Command-line tools for searching Yu-Gi-Oh! card database locally with full Japan
 - **ygo_seek** - Get random or range-specific card information
 - **ygo_convert** - Convert file formats (JSON, CSV, TSV, JSONL)
 - **ygo_faq_search** - Search Official FAQ database
+- **ygo_update_search** - Download/update card database (required for first use)
 
 ### Card Search Features
 
@@ -58,11 +59,14 @@ bun install
 # Build project (required!)
 bun run build
 
-# Download data files (37.6MB total)
-bash scripts/setup/setup-data.sh
-
 # Optional: Install CLI commands globally
 bun link
+
+# Download card data (37.6MB total) - required for first use
+ygo_update_search
+
+# Alternative: Download data manually
+bash scripts/setup/setup-data.sh
 ```
 
 ## Usage
@@ -97,6 +101,9 @@ ygo_seek --range 4000-4100 --all --format csv
 ygo_faq_search cardId=6808 limit=5
 ygo_faq_search cardName="青眼*" limit=10
 ygo_faq_search question="*シンクロ召喚*"
+
+# Update/download card database
+ygo_update_search
 
 # Convert file formats
 ygo_convert input.json:output.jsonl

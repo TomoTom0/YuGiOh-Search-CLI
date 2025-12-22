@@ -97,6 +97,9 @@ async function loadCards() {
     if (cardsCache) return cardsCache;
     const projectRoot = await findProjectRoot();
     const cardsPath = path.join(projectRoot, 'data', 'cards-all.tsv');
+    if (!fs.existsSync(cardsPath)) {
+        throw new Error(`カードデータファイルが見つかりません: ${cardsPath}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`);
+    }
     const fileStream = fs.createReadStream(cardsPath);
     const rl = readline.createInterface({
         input: fileStream,
@@ -143,6 +146,9 @@ export async function loadFAQIndex() {
     if (cachedIndex) return cachedIndex;
     const projectRoot = await findProjectRoot();
     const faqPath = path.join(projectRoot, 'data', 'faq-all.tsv');
+    if (!fs.existsSync(faqPath)) {
+        throw new Error(`FAQデータファイルが見つかりません: ${faqPath}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`);
+    }
     const fileStream = fs.createReadStream(faqPath);
     const rl = readline.createInterface({
         input: fileStream,

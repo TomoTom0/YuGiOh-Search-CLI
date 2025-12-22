@@ -2,10 +2,15 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import url from 'url';
+import { searchCards, type CardSearchParams } from '../lib/card-search-core.js';
+import { searchFAQ, type SearchFAQParams } from '../search-faq.js';
+import { extractAndSearchCards } from '../lib/extract-and-search-cards.js';
+import { judgeAndReplace, type JudgeAndReplaceOptions } from '../lib/judge-and-replace.js';
+import { seekCards, type SeekCardsOptions } from '../lib/seek-cards.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const scriptPath = path.join(__dirname, '..', 'search-cards.js');
 
+// カラム定義（旧 ygo_search.ts から）
 const COLUMN_DEFINITIONS = {
   // Basic information
   cardType: {
@@ -131,8 +136,8 @@ function showColumns() {
 ==================
 
 カラムは --cols または cols= パラメータで指定して出力できます：
-  ygo_search --name "青眼" --cols name,ruby,atk,def
-  ygo_search name=ドラゴン cols=name,race,levelValue
+  ygo_search card --name "青眼" --cols name,ruby,atk,def
+  ygo_search card name=ドラゴン cols=name,race,levelValue
 
 ほとんどのカラムはフィルタに対応していますが、フィルタ不可のカラムは下記に表記されています。
 フィルタ不可のカラムは --cols での出力のみに使用できます。
@@ -188,89 +193,244 @@ function showColumns() {
 `);
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  
-  // Handle subcommands
+// サブコマンドのヘルプメッセージ
+function showHelp() {
+  console.log(`Usage: ygo_search <command> [options]
+
+Yu-Gi-Oh カードデータベース検索ツール
+
+Commands:
+  card [filters]        カード検索（デフォルト）
+  faq [params]          FAQ検索
+  extract <text>        カード名抽出
+  replace <text>        カード名置換
+  seek [options]        ランダムカード取得
+  bulk [queries]        複数クエリを一括検索
+  convert <in:out>      フォーマット変換（JSON/JSONL/YAML）
+  update                データ更新
+  help                  このヘルプを表示
+
+Options:
+  --help, -h            コマンドのヘルプを表示
+
+Examples:
+  ygo_search card --name "青眼の白龍"
+  ygo_search faq cardId=6808
+  ygo_search extract "青眼の白龍とブラック・マジシャンを召喚"
+  ygo_search replace "{青眼}を召喚して攻撃"
+  ygo_search seek
+  ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
+  ygo_search convert input.json:output.yaml
+  ygo_search update
+
+詳細は各コマンドのヘルプを参照してください:
+  ygo_search card --help
+  ygo_search faq --help
+  ygo_search extract --help
+  ygo_search replace --help
+  ygo_search bulk --help
+  ygo_search convert --help
+`);
+}
+
+// card サブコマンド（旧 ygo_search）
+function handleCardCommand(args: string[]) {
+  // Handle columns subcommand
   if (args.length > 0 && (args[0] === 'columns' || args[0] === '--columns')) {
     showColumns();
     process.exit(0);
   }
-  
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo_search [command] [options]
 
-Search Yu-Gi-Oh cards database.
+  // Handle help
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search card [command] [options]
+
+Yu-Gi-Oh カードデータベース検索
 
 Commands:
-  columns               Show all available columns and their descriptions
-  (no command)          Search cards (default)
+  columns               利用可能な全カラムとその説明を表示
+  (no command)          カード検索（デフォルト）
 
 Filter Options (at least one required):
-  --name <value>            Card name filter
-  --text <value>            Card text filter
-  --cardId <value>          Card ID filter (supports: comma-separated values or JSON array)
-  --cardType <value>        Card type filter (monster, spell, trap)
-  --race <value>            Race/type filter (dragon, warrior, etc.)
-  --attribute <value>       Attribute filter (LIGHT, DARK, etc.)
-  --atk <value>             ATK value filter
-  --def <value>             DEF value filter
-  --level <value>           Level filter
-  --levelValue <value>      Level value filter (numeric)
-  --pendulumScale <value>   Pendulum scale filter
-  --ruby <value>            Ruby (reading) filter
-  --linkValue <value>       Link value filter
-  --linkArrows <value>      Link arrows filter
-  --monsterTypes <value>    Monster types (JSON array format, e.g. '["effect","fusion"]' or comma-separated)
+  --name <value>            カード名フィルタ
+  --text <value>            カードテキストフィルタ
+  --cardId <value>          カードIDフィルタ（カンマ区切りまたはJSON配列）
+  --cardType <value>        カード種別フィルタ（monster, spell, trap）
+  --race <value>            種族フィルタ（dragon, warrior, etc.）
+  --attribute <value>       属性フィルタ（LIGHT, DARK, etc.）
+  --atk <value>             攻撃力フィルタ
+  --def <value>             守備力フィルタ
+  --level <value>           レベルフィルタ
+  --levelValue <value>      レベル値フィルタ（数値）
+  --pendulumScale <value>   ペンデュラムスケールフィルタ
+  --ruby <value>            読み仮名フィルタ
+  --linkValue <value>       リンク値フィルタ
+  --linkArrows <value>      リンクマーカーフィルタ
+  --monsterTypes <value>    モンスタータイプ（JSON配列形式、例: '["effect","fusion"]' またはカンマ区切り）
 
 Output Options:
-  --cols <col1,col2,...>    Columns to return (comma-separated)
-  --max <N>                 Maximum results (default: 100)
-  --sort <field[:order]>    Sort by field (order: asc|desc)
+  --cols <col1,col2,...>    返却するカラム（カンマ区切り）
+  --max <N>                 最大結果数（デフォルト: 100）
+  --sort <field[:order]>    ソートフィールド（order: asc|desc）
                             Fields: cardId, name, ruby, atk, def, levelValue, etc.
-  --raw                     Raw output mode (suppresses warnings)
+  --raw                     Raw 出力モード（警告を抑制）
 
 Search Options:
-  --mode <exact|partial>    Search mode (default: exact)
-  --flagAllowWild <bool>    Enable wildcard search with * (default: true)
-  --flagAutoModify <bool>   Normalize text for matching (default: true)
-  --flagNearly <bool>       Fuzzy matching for typos (default: false)
-  --includeRuby <bool>      Search ruby field for name (default: true)
-  --flagAutoPend <bool>     Auto-include pendulum text (default: true)
-  --flagAutoSupply <bool>   Auto-include supplement info (default: true)
-  --flagAutoRuby <bool>     Auto-include ruby for name (default: true)
+  --mode <exact|partial>    検索モード（デフォルト: exact）
+  --flagAllowWild <bool>    ワイルドカード検索を有効化 (*) （デフォルト: true）
+  --flagAutoModify <bool>   一致のためにテキストを正規化（デフォルト: true）
+  --flagNearly <bool>       タイプミスの曖昧一致（デフォルト: false）
+  --includeRuby <bool>      名前検索時に読み仮名フィールドも検索（デフォルト: true）
+  --flagAutoPend <bool>     ペンデュラムテキストを自動含める（デフォルト: true）
+  --flagAutoSupply <bool>   補足情報を自動含める（デフォルト: true）
+  --flagAutoRuby <bool>     読み仮名を自動含める（デフォルト: true）
 
 Alternative Formats:
-  All options can also be specified as key=value:
+  全てのオプションは key=value 形式でも指定可能:
   name=青眼 text=*破壊* cols=name,cardId max=50 sort=atk:desc
 
-  Or as JSON format:
-  ygo_search '{"name":"青眼"}' cols=name,cardId
+  または JSON 形式:
+  ygo_search card '{"name":"青眼"}' cols=name,cardId
 
 Examples:
 
 Subcommands:
-  ygo_search columns
+  ygo_search card columns
 
 Basic Searches:
-  ygo_search --name "青眼の白龍"
-  ygo_search --name "青眼の白龍" --cols name,cardId,text
-  ygo_search --cardType trap --sort name --cols name,text
+  ygo_search card --name "青眼の白龍"
+  ygo_search card --name "青眼の白龍" --cols name,cardId,text
+  ygo_search card --cardType trap --sort name --cols name,text
 
 Advanced Filtering:
-  ygo_search --text "*破壊*" --max 50 --sort atk:desc
-  ygo_search --race dragon --atk 3000 --sort levelValue:asc --cols name,atk,def,race
+  ygo_search card --text "*破壊*" --max 50 --sort atk:desc
+  ygo_search card --race dragon --atk 3000 --sort levelValue:asc --cols name,atk,def,race
 
 Array Parameters:
-  ygo_search --cardId 19723,21820,21207 --cols name,cardId
-  ygo_search --monsterTypes '["effect","fusion"]' --cols name
+  ygo_search card --cardId 19723,21820,21207 --cols name,cardId
+  ygo_search card --monsterTypes '["effect","fusion"]' --cols name
 
 Alternative Formats:
-  ygo_search name=青眼の白龍 cols=name,cardId,text
-  ygo_search '{"name":"青眼の白龍"}' cols=name,cardId,text
+  ygo_search card name=青眼の白龍 cols=name,cardId,text
+  ygo_search card '{"name":"青眼の白龍"}' cols=name,cardId,text
 `);
     process.exit(0);
   }
+
+  const scriptPath = path.join(__dirname, '..', 'search-cards.js');
+  const proc = spawn('node', [scriptPath, ...args], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+// bulk サブコマンド（旧 ygo_bulk_search）
+function handleBulkCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search bulk <queries> [options]
+
+複数のカード検索クエリを一括実行します。
+
+Arguments:
+  queries               JSON配列形式のクエリリスト
+
+Examples:
+  ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
+  ygo_search bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
+`);
+    process.exit(0);
+  }
+
+  const bulkScriptPath = path.join(__dirname, '..', 'bulk-search-cards.js');
+  const proc = spawn('node', [bulkScriptPath, ...args], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+// convert サブコマンド（旧 ygo_convert）
+function handleConvertCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search convert <input:output> [<input:output> ...]
+
+JSON、JSONL、JSONC、YAMLフォーマット間の変換を行います。
+
+Arguments:
+  input:output          入力ファイルと出力ファイルのパスを':'で区切る
+                        フォーマットは拡張子から自動検出
+
+Supported formats:
+  .json                 標準JSON
+  .jsonl                JSON Lines（1行に1つのJSONオブジェクト）
+  .jsonc                コメント付きJSON
+  .yaml, .yml           YAML
+
+Examples:
+  ygo_search convert input.json:output.jsonl
+  ygo_search convert data.yaml:output.json
+  ygo_search convert a.json:a.yaml b.jsonl:b.json
+`);
+    process.exit(0);
+  }
+
+  const convertScriptPath = path.join(__dirname, '..', 'format-converter.js');
+  const proc = spawn('node', [convertScriptPath, ...args], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+// faq サブコマンド（旧 ygo_faq_search）
+function handleFaqCommand(args: string[]) {
+  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+    console.log(`Usage: ygo_search faq <params> [options]
+
+FAQ データベースを様々な条件で検索
+
+Parameters (key=value style):
+  faqId=N               - FAQ ID で検索
+  cardId=N              - カード ID で検索（このカードを参照する FAQ を検索）
+  cardName="name"       - カード名で検索（ワイルドカード * 対応）
+  cardFilter.key=value  - カードスペックで検索（例: cardFilter.race=dragon）
+  question="text"       - 質問テキストで検索（ワイルドカード対応）
+  answer="text"         - 回答テキストで検索（ワイルドカード対応）
+  limit=N               - 最大結果数（デフォルト: 50）
+
+Output Options:
+  --fcol a,b,c          - FAQ カラム（faqId,question,answer,updatedAt）
+  --col a,b,c           - カードカラム（cardId,name,atk,def,race,text,etc.）
+  --format FORMAT       - 出力形式: json|csv|tsv|jsonl（デフォルト: json）
+  --random              - 結果からランダムに選択
+  --range start-end     - FAQ ID 範囲でフィルタ
+  --all                 - 全結果を返す（--range と併用）
+
+Examples (key=value style):
+  ygo_search faq faqId=100
+  ygo_search faq cardId=6808 limit=5
+  ygo_search faq cardName="青眼*" --fcol faqId,question
+  ygo_search faq cardFilter.race=dragon cardFilter.levelValue=8
+  ygo_search faq question="*融合*" --format csv
+  ygo_search faq answer="*無効*" --col name,text
+
+Examples (JSON style - still supported):
+  ygo_search faq '{"faqId":10}'
+  ygo_search faq '{"cardId":6808,"limit":5}' --fcol faqId,question
+  ygo_search faq '{"cardName":"青眼*"}' --format csv
+  ygo_search faq '{"cardFilter":{"race":"dragon","levelValue":"8"}}'
+`);
+    process.exit(0);
+  }
+
+  const scriptPath = path.join(__dirname, '..', 'search-faq.js');
 
   const proc = spawn('node', [scriptPath, ...args], {
     stdio: 'inherit'
@@ -279,6 +439,144 @@ Alternative Formats:
   proc.on('exit', (code) => {
     process.exit(code || 0);
   });
+}
+
+// extract サブコマンド（旧 ygo_extract）
+async function handleExtractCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search extract <text> [options]
+
+カード名をテキストから抽出して検索します。
+
+Arguments:
+  text                テキスト（カード名を含む）
+
+Options:
+  cols=col1,col2      返却するカラム（カンマ区切り）
+
+Examples:
+  ygo_search extract "青眼の白龍とブラック・マジシャンを召喚"
+  ygo_search extract "青眼の白龍で攻撃" cols=name,cardId,atk
+`);
+    process.exit(0);
+  }
+
+  const text = args[0];
+  const cards = await extractAndSearchCards(text);
+  console.log(JSON.stringify({ cards }, null, 2));
+}
+
+// replace サブコマンド（旧 ygo_replace）
+async function handleReplaceCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search replace <text> [options]
+
+カード名パターンをテキストから抽出し、検索して検証済みパターンに置換します。
+
+Arguments:
+  text                カード名パターンを含むテキスト
+
+Options:
+  --raw               processedText のみを出力（JSON なし）
+  --mount-par         《公式カード名》形式で置換
+
+Pattern Types:
+  {card-name}         柔軟な検索（ワイルドカード対応）
+  《card-name》        完全一致検索
+  {{name|cardId}}     カードID で検索
+
+Examples:
+  ygo_search replace "{青眼}を召喚して攻撃"
+  ygo_search replace "Use {ブルーアイズ*} and 《青眼の白龍》"
+`);
+    process.exit(0);
+  }
+
+  const rawMode = args.includes('--raw');
+  const mountParMode = args.includes('--mount-par');
+  const text = args.filter(arg => !arg.startsWith('--'))[0];
+
+  if (!text) {
+    console.error('Error: No text provided');
+    process.exit(2);
+  }
+
+  const result = await judgeAndReplace(text, { mountPar: mountParMode });
+
+  if (rawMode) {
+    console.log(result.processedText);
+  } else {
+    console.log(JSON.stringify(result));
+  }
+}
+
+// seek サブコマンド（旧 ygo_seek）
+function handleSeekCommand(args: string[]) {
+  const scriptPath = path.join(__dirname, '..', 'ygo-seek.js');
+
+  const proc = spawn('node', [scriptPath, ...args], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+// update サブコマンド（旧 ygo_update_search）
+function handleUpdateCommand() {
+  const scriptPath = path.join(__dirname, 'ygo_update_search.js');
+
+  const proc = spawn('node', [scriptPath], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h' || args[0] === 'help') {
+    showHelp();
+    process.exit(0);
+  }
+
+  const command = args[0];
+  const commandArgs = args.slice(1);
+
+  switch (command) {
+    case 'card':
+      handleCardCommand(commandArgs);
+      break;
+    case 'faq':
+      handleFaqCommand(commandArgs);
+      break;
+    case 'extract':
+      await handleExtractCommand(commandArgs);
+      break;
+    case 'replace':
+      await handleReplaceCommand(commandArgs);
+      break;
+    case 'seek':
+      handleSeekCommand(commandArgs);
+      break;
+    case 'bulk':
+      handleBulkCommand(commandArgs);
+      break;
+    case 'convert':
+      handleConvertCommand(commandArgs);
+      break;
+    case 'update':
+      handleUpdateCommand();
+      break;
+    default:
+      // コマンドがサブコマンドでない場合、card コマンドとして扱う（後方互換性）
+      handleCardCommand(args);
+      break;
+  }
 }
 
 main().catch(err => {

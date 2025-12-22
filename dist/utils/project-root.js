@@ -7,13 +7,13 @@ export async function findProjectRoot(startDir) {
     while(true){
         if (fs.existsSync(path.join(projectRoot, 'package.json'))) {
             const pkg = JSON.parse(await fs.promises.readFile(path.join(projectRoot, 'package.json'), 'utf8'));
-            if (pkg.name === 'ygo-search-card-mcp') {
+            if (pkg.name === 'ygo-search') {
                 return projectRoot;
             }
         }
         const parentDir = path.dirname(projectRoot);
         if (parentDir === projectRoot) {
-            throw new Error('Could not find project root containing package.json with name "ygo-search-card-mcp".');
+            throw new Error('Could not find project root containing package.json with name "ygo-search".');
         }
         projectRoot = parentDir;
     }
