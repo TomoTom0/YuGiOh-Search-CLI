@@ -3,14 +3,9 @@
  * @packageDocumentation
  */
 
-import { spawn } from 'child_process'
-import path from 'path'
-import url from 'url'
 import type { Card, PatternType, ReplacementResult, ReplacementStatus } from '../types/card.js'
 import { extractCardPatterns } from '../utils/pattern-extractor.js'
-
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const bulkSearchScript = path.join(__dirname, '..', 'bulk-search-cards.js')
+import { searchCards } from './card-search-core.js'
 
 interface CardMatchWithIndex {
   pattern: string
@@ -42,65 +37,38 @@ async function bulkSearchCards(patterns: Array<{type: PatternType, query: string
     'supplementInfo', 'supplementDate', 'pendulumSupplementInfo', 'pendulumSupplementDate'
   ]
 
-  // Build queries for bulk search
-  const queries = patterns.map(pattern => {
-    const query: any = {}
+  // Execute searches in parallel using Promise.all
+  const searchPromises = patterns.map(async (pattern) => {
+    const filter: Record<string, string> = {}
 
     if (pattern.type === 'cardId') {
-      query.filter = { cardId: pattern.query }
+      filter.cardId = pattern.query
     } else {
-      query.filter = { name: pattern.query }
+      filter.name = pattern.query
     }
 
-    query.cols = cols
+    const searchParams: any = {
+      filter,
+      cols,
+    }
 
     if (pattern.type === 'flexible') {
-      query.flagAllowWild = true
-      query.flagAutoModify = true
+      searchParams.flagAllowWild = true
+      searchParams.flagAutoModify = true
     } else if (pattern.type === 'exact') {
-      query.flagAllowWild = false
-      query.flagAutoModify = true
+      searchParams.flagAllowWild = false
+      searchParams.flagAutoModify = true
     }
 
-    return query
+    try {
+      const results = await searchCards(searchParams)
+      return results as Card[]
+    } catch (e) {
+      return []
+    }
   })
 
-  return new Promise((resolve) => {
-    const child = spawn('node', [bulkSearchScript, JSON.stringify(queries)], {
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString()
-    })
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        // Return empty results for all patterns on error
-        resolve(patterns.map(() => []))
-        return
-      }
-
-      try {
-        const lines = stdout.trim().split('\n')
-        const result: Card[][] = lines.map(line => JSON.parse(line))
-        resolve(result)
-      } catch (e) {
-        resolve(patterns.map(() => []))
-      }
-    })
-
-    child.on('error', () => {
-      resolve(patterns.map(() => []))
-    })
-  })
+  return Promise.all(searchPromises)
 }
 
 /**

@@ -3,14 +3,9 @@
  * @packageDocumentation
  */
 
-import { spawn } from 'child_process'
-import path from 'path'
-import url from 'url'
 import type { Card, CardMatch, PatternType } from '../types/card.js'
 import { extractCardPatterns } from '../utils/pattern-extractor.js'
-
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
-const bulkSearchScript = path.join(__dirname, '..', 'bulk-search-cards.js')
+import { searchCards } from './card-search-core.js'
 
 /**
  * 複数のパターンを一括検索する内部関数
@@ -24,8 +19,8 @@ async function bulkSearchCards(patterns: Array<{pattern: string, type: PatternTy
     'supplementInfo', 'supplementDate', 'pendulumSupplementInfo', 'pendulumSupplementDate'
   ]
 
-  // Build queries for bulk search
-  const queries = patterns.map(p => {
+  // Execute searches in parallel using Promise.all
+  const searchPromises = patterns.map(async (p) => {
     const filter: Record<string, string> = {}
     if (p.type === 'cardId') {
       filter.cardId = p.query
@@ -33,77 +28,38 @@ async function bulkSearchCards(patterns: Array<{pattern: string, type: PatternTy
       filter.name = p.query
     }
 
-    const query: any = {
+    const searchParams: any = {
       filter,
       cols,
     }
 
     if (p.type === 'flexible') {
-      query.flagAllowWild = true
-      query.flagAutoModify = true
+      searchParams.flagAllowWild = true
+      searchParams.flagAutoModify = true
     } else if (p.type === 'exact') {
-      query.flagAllowWild = false
-      query.flagAutoModify = true
+      searchParams.flagAllowWild = false
+      searchParams.flagAutoModify = true
     }
 
-    return query
-  })
-
-  return new Promise((resolve) => {
-    const child = spawn('node', [bulkSearchScript, JSON.stringify(queries)], {
-      stdio: ['ignore', 'pipe', 'pipe']
-    })
-
-    let stdout = ''
-    let stderr = ''
-
-    child.stdout.on('data', (data) => {
-      stdout += data.toString()
-    })
-
-    child.stderr.on('data', (data) => {
-      stderr += data.toString()
-    })
-
-    child.on('close', (code) => {
-      if (code !== 0) {
-        resolve(patterns.map(p => ({
-          pattern: p.pattern,
-          type: p.type,
-          query: p.query,
-          results: []
-        })))
-        return
+    try {
+      const results = await searchCards(searchParams)
+      return {
+        pattern: p.pattern,
+        type: p.type,
+        query: p.query,
+        results: results as Card[]
       }
-
-      try {
-        const lines = stdout.trim().split('\n')
-        const results: Card[][] = lines.map(line => JSON.parse(line))
-        resolve(patterns.map((p, i) => ({
-          pattern: p.pattern,
-          type: p.type,
-          query: p.query,
-          results: results[i] || []
-        })))
-      } catch (e) {
-        resolve(patterns.map(p => ({
-          pattern: p.pattern,
-          type: p.type,
-          query: p.query,
-          results: []
-        })))
-      }
-    })
-
-    child.on('error', () => {
-      resolve(patterns.map(p => ({
+    } catch (e) {
+      return {
         pattern: p.pattern,
         type: p.type,
         query: p.query,
         results: []
-      })))
-    })
+      }
+    }
   })
+
+  return Promise.all(searchPromises)
 }
 
 /**

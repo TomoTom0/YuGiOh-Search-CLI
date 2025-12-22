@@ -205,6 +205,26 @@ function formatBytes(bytes: number): string {
 }
 
 /**
+ * ディレクトリを再帰的に探索してTSVファイルを見つける
+ */
+async function findTsvFiles(dir: string): Promise<string[]> {
+  const results: string[] = []
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true })
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      const subResults = await findTsvFiles(fullPath)
+      results.push(...subResults)
+    } else if (entry.isFile() && entry.name.endsWith('.tsv')) {
+      results.push(fullPath)
+    }
+  }
+
+  return results
+}
+
+/**
  * メイン処理
  */
 async function main() {
@@ -245,8 +265,7 @@ async function main() {
 
       // TSV ファイルを検出
       console.log('データファイルを検出中...')
-      const { stdout } = await execAsync(`find "${tempDir}" -type f -name "*.tsv"`)
-      const tsvFiles = stdout.trim().split('\n').filter(f => f)
+      const tsvFiles = await findTsvFiles(tempDir)
 
       const detectedFiles: Partial<Record<FileType, string>> = {}
 

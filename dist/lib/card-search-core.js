@@ -13,8 +13,17 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
     if (cond === '' || cond === null || cond === undefined) {
         return fieldValue === '' || fieldValue === null || fieldValue === undefined;
     }
+    // Check for wildcard BEFORE normalization
+    const hasWildcard = flagAllowWild && String(cond).includes('*');
     let searchTarget = flagAutoModify ? normalizedVal !== undefined ? normalizedVal : normalizeForSearch(fieldValue) : fieldValue;
-    let searchPattern = flagAutoModify ? normalizeForSearch(String(cond)) : String(cond);
+    let searchPattern = String(cond);
+    // For wildcard patterns, normalize each part separately to preserve *
+    if (hasWildcard && flagAutoModify) {
+        const parts = searchPattern.split('*');
+        searchPattern = parts.map((p)=>normalizeForSearch(p)).join('*');
+    } else if (flagAutoModify) {
+        searchPattern = normalizeForSearch(searchPattern);
+    }
     if (isTextField && String(cond).includes('-"')) {
         const negativeMatches = String(cond).match(/-["'`]([^"'`]+)["'`]/g);
         if (negativeMatches) {
@@ -27,13 +36,18 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
             }
             searchPattern = String(cond).replace(/-["'`][^"'`]+["'`]/g, '').trim();
             if (!searchPattern) return true;
-            searchPattern = flagAutoModify ? normalizeForSearch(searchPattern) : searchPattern;
+            if (hasWildcard && flagAutoModify) {
+                const parts = searchPattern.split('*');
+                searchPattern = parts.map((p)=>normalizeForSearch(p)).join('*');
+            } else if (flagAutoModify) {
+                searchPattern = normalizeForSearch(searchPattern);
+            }
         }
     }
     if (mode === 'partial') {
         return searchTarget.includes(searchPattern);
     }
-    if (flagAllowWild && searchPattern.includes('*')) {
+    if (hasWildcard) {
         const regexPattern = searchPattern.split('*').map((s)=>s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*');
         const regex = new RegExp(`^${regexPattern}$`, 'i');
         return regex.test(searchTarget);

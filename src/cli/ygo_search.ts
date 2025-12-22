@@ -2,6 +2,11 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import url from 'url';
+import { searchCards, type CardSearchParams } from '../lib/card-search-core.js';
+import { searchFAQ, type SearchFAQParams } from '../search-faq.js';
+import { extractAndSearchCards } from '../lib/extract-and-search-cards.js';
+import { judgeAndReplace, type JudgeAndReplaceOptions } from '../lib/judge-and-replace.js';
+import { seekCards, type SeekCardsOptions } from '../lib/seek-cards.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -200,6 +205,8 @@ Commands:
   extract <text>        カード名抽出
   replace <text>        カード名置換
   seek [options]        ランダムカード取得
+  bulk [queries]        複数クエリを一括検索
+  convert <in:out>      フォーマット変換（JSON/JSONL/YAML）
   update                データ更新
   help                  このヘルプを表示
 
@@ -212,6 +219,8 @@ Examples:
   ygo_search extract "青眼の白龍とブラック・マジシャンを召喚"
   ygo_search replace "{青眼}を召喚して攻撃"
   ygo_search seek
+  ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
+  ygo_search convert input.json:output.yaml
   ygo_search update
 
 詳細は各コマンドのヘルプを参照してください:
@@ -219,10 +228,12 @@ Examples:
   ygo_search faq --help
   ygo_search extract --help
   ygo_search replace --help
+  ygo_search bulk --help
+  ygo_search convert --help
 `);
 }
 
-// card サブコマンド（旧 ygo_search + ygo_bulk_search）
+// card サブコマンド（旧 ygo_search）
 function handleCardCommand(args: string[]) {
   // Handle columns subcommand
   if (args.length > 0 && (args[0] === 'columns' || args[0] === '--columns')) {
@@ -274,9 +285,6 @@ Search Options:
   --flagAutoSupply <bool>   補足情報を自動含める（デフォルト: true）
   --flagAutoRuby <bool>     読み仮名を自動含める（デフォルト: true）
 
-Bulk Search:
-  --bulk                    一括検索モード（複数フィルタセットを使用）
-
 Alternative Formats:
   全てのオプションは key=value 形式でも指定可能:
   name=青眼 text=*破壊* cols=name,cardId max=50 sort=atk:desc
@@ -305,41 +313,80 @@ Array Parameters:
 Alternative Formats:
   ygo_search card name=青眼の白龍 cols=name,cardId,text
   ygo_search card '{"name":"青眼の白龍"}' cols=name,cardId,text
-
-Bulk Search:
-  ygo_search card --bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
-  ygo_search card --bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
 `);
     process.exit(0);
   }
 
   const scriptPath = path.join(__dirname, '..', 'search-cards.js');
+  const proc = spawn('node', [scriptPath, ...args], {
+    stdio: 'inherit'
+  });
 
-  // --bulk オプションをチェック
-  const hasBulkOption = args.includes('--bulk');
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
 
-  if (hasBulkOption) {
-    // bulk-search-cards.js を使用
-    const bulkScriptPath = path.join(__dirname, '..', 'bulk-search-cards.js');
-    const filteredArgs = args.filter(arg => arg !== '--bulk');
+// bulk サブコマンド（旧 ygo_bulk_search）
+function handleBulkCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search bulk <queries> [options]
 
-    const proc = spawn('node', [bulkScriptPath, ...filteredArgs], {
-      stdio: 'inherit'
-    });
+複数のカード検索クエリを一括実行します。
 
-    proc.on('exit', (code) => {
-      process.exit(code || 0);
-    });
-  } else {
-    // search-cards.js を使用
-    const proc = spawn('node', [scriptPath, ...args], {
-      stdio: 'inherit'
-    });
+Arguments:
+  queries               JSON配列形式のクエリリスト
 
-    proc.on('exit', (code) => {
-      process.exit(code || 0);
-    });
+Examples:
+  ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
+  ygo_search bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
+`);
+    process.exit(0);
   }
+
+  const bulkScriptPath = path.join(__dirname, '..', 'bulk-search-cards.js');
+  const proc = spawn('node', [bulkScriptPath, ...args], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
+}
+
+// convert サブコマンド（旧 ygo_convert）
+function handleConvertCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search convert <input:output> [<input:output> ...]
+
+JSON、JSONL、JSONC、YAMLフォーマット間の変換を行います。
+
+Arguments:
+  input:output          入力ファイルと出力ファイルのパスを':'で区切る
+                        フォーマットは拡張子から自動検出
+
+Supported formats:
+  .json                 標準JSON
+  .jsonl                JSON Lines（1行に1つのJSONオブジェクト）
+  .jsonc                コメント付きJSON
+  .yaml, .yml           YAML
+
+Examples:
+  ygo_search convert input.json:output.jsonl
+  ygo_search convert data.yaml:output.json
+  ygo_search convert a.json:a.yaml b.jsonl:b.json
+`);
+    process.exit(0);
+  }
+
+  const convertScriptPath = path.join(__dirname, '..', 'format-converter.js');
+  const proc = spawn('node', [convertScriptPath, ...args], {
+    stdio: 'inherit'
+  });
+
+  proc.on('exit', (code) => {
+    process.exit(code || 0);
+  });
 }
 
 // faq サブコマンド（旧 ygo_faq_search）
@@ -395,9 +442,7 @@ Examples (JSON style - still supported):
 }
 
 // extract サブコマンド（旧 ygo_extract）
-function handleExtractCommand(args: string[]) {
-  const scriptPath = path.join(__dirname, '..', 'extract-and-search-cards.js');
-
+async function handleExtractCommand(args: string[]) {
   if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
     console.log(`Usage: ygo_search extract <text> [options]
 
@@ -416,19 +461,13 @@ Examples:
     process.exit(0);
   }
 
-  const proc = spawn('node', [scriptPath, ...args], {
-    stdio: 'inherit'
-  });
-
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
-  });
+  const text = args[0];
+  const cards = await extractAndSearchCards(text);
+  console.log(JSON.stringify({ cards }, null, 2));
 }
 
 // replace サブコマンド（旧 ygo_replace）
-function handleReplaceCommand(args: string[]) {
-  const scriptPath = path.join(__dirname, '..', 'judge-and-replace.js');
-
+async function handleReplaceCommand(args: string[]) {
   if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
     console.log(`Usage: ygo_search replace <text> [options]
 
@@ -453,13 +492,22 @@ Examples:
     process.exit(0);
   }
 
-  const proc = spawn('node', [scriptPath, ...args], {
-    stdio: 'inherit'
-  });
+  const rawMode = args.includes('--raw');
+  const mountParMode = args.includes('--mount-par');
+  const text = args.filter(arg => !arg.startsWith('--'))[0];
 
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
-  });
+  if (!text) {
+    console.error('Error: No text provided');
+    process.exit(2);
+  }
+
+  const result = await judgeAndReplace(text, { mountPar: mountParMode });
+
+  if (rawMode) {
+    console.log(result.processedText);
+  } else {
+    console.log(JSON.stringify(result));
+  }
 }
 
 // seek サブコマンド（旧 ygo_seek）
@@ -507,13 +555,19 @@ async function main() {
       handleFaqCommand(commandArgs);
       break;
     case 'extract':
-      handleExtractCommand(commandArgs);
+      await handleExtractCommand(commandArgs);
       break;
     case 'replace':
-      handleReplaceCommand(commandArgs);
+      await handleReplaceCommand(commandArgs);
       break;
     case 'seek':
       handleSeekCommand(commandArgs);
+      break;
+    case 'bulk':
+      handleBulkCommand(commandArgs);
+      break;
+    case 'convert':
+      handleConvertCommand(commandArgs);
       break;
     case 'update':
       handleUpdateCommand();
