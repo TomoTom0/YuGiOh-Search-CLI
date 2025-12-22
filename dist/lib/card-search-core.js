@@ -76,7 +76,7 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
     const dataDir = path.join(projectRoot, 'data');
     const cardsFile = path.join(dataDir, 'cards-all.tsv');
     if (!fs.existsSync(cardsFile)) {
-        throw new Error(`Cards file not found: ${cardsFile}`);
+        throw new Error(`カードデータファイルが見つかりません: ${cardsFile}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`);
     }
     const rl = readline.createInterface({
         input: fs.createReadStream(cardsFile),

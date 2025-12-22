@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup script to download card data files for YGO MCP Server
+# Setup script to download card data files for YGO CLI
 
 set -e
 
@@ -132,7 +132,7 @@ verify_file_size() {
   echo "$filesize"
 }
 
-echo "=== YGO MCP Server - Data Setup ==="
+echo "=== YGO CLI - Data Setup ==="
 echo ""
 echo "Downloading card data files from YuGiOh-Scraping repository..."
 echo ""
@@ -219,6 +219,6 @@ for file_type in "${!OUTPUT_FILES[@]}"; do
   echo "  - $filepath ($formatted_size)"
 done
 echo ""
-echo "You can now use the MCP server:"
-echo "  node dist/ygo-search-card-server.js"
+echo "You can now use the CLI commands:"
+echo "  ygo_search '{\"name\":\"青眼\"}'"
 echo ""

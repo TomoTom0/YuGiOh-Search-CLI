@@ -115,7 +115,7 @@ export async function searchCards(params: CardSearchParams): Promise<Card[]> {
   const cardsFile = path.join(dataDir, 'cards-all.tsv')
 
   if (!fs.existsSync(cardsFile)) {
-    throw new Error(`Cards file not found: ${cardsFile}`)
+    throw new Error(`カードデータファイルが見つかりません: ${cardsFile}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`)
   }
 
   const rl = readline.createInterface({
