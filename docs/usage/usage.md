@@ -244,17 +244,3 @@ ygo_seek --help
 ygo_faq_search --help
 ygo_convert --help
 ```
-
-## MCP Server (Deprecated)
-
-For historical reference, the MCP server can still be used:
-
-```bash
-# Start MCP server (CLI recommended instead)
-node dist/ygo-search-card-server.js
-
-# Or via npm
-bun start
-```
-
-However, the CLI commands are the recommended way to use this project.

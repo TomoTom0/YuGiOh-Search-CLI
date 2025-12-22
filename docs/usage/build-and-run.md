@@ -93,8 +93,6 @@ TypeScriptファイルの変更は自動的にJavaScriptにコンパイルされ
 bun add -D tsx
 
 # TypeScriptを直接実行
-bun run dev
-# または
 npx tsx src/cli/ygo_search.ts '{"name":"青眼"}'
 ```
 
@@ -161,7 +159,7 @@ rm -rf dist/
 bun run build
 
 # CLIコマンドを再リンク
-bun unlink ygo-search-card-mcp 2>/dev/null || true
+bun unlink ygo-search 2>/dev/null || true
 bun link
 ```
 
@@ -181,9 +179,8 @@ src/
 │   ├── card-search-core.ts
 │   ├── normalize.ts
 │   └── db.ts
-├── utils/                  # ユーティリティ
-│   └── pattern-extractor.ts
-└── ygo-search-card-server.ts  # MCPサーバー（廃止予定）
+└── utils/                  # ユーティリティ
+    └── pattern-extractor.ts
 
 dist/                       # コンパイル済みJavaScript（ビルド後）
 ├── cli/
@@ -223,4 +220,3 @@ bun test --coverage
 | CLIをグローバルインストール | `bun link` |
 | CLIコマンド実行 | `ygo_search '{"name":"青眼"}'` |
 | テスト実行 | `bun test` |
-| 開発モード | `bun run dev` |
