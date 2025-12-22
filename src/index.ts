@@ -186,6 +186,86 @@ export {
 export type { Format } from './lib/format-converter.js'
 
 // ============================================================================
+// Vector search
+// ============================================================================
+
+/**
+ * Vector検索機能
+ * @example
+ * ```ts
+ * import { vectorSearchCards, vectorSearchFaqs, vectorSearchAll, searchTable, listTables } from 'ygo-search'
+ *
+ * // カード検索
+ * const cardResults = await vectorSearchCards('墓地から特殊召喚', { limit: 5 })
+ *
+ * // FAQ検索
+ * const faqResults = await vectorSearchFaqs('チェーンブロック', { limit: 5 })
+ *
+ * // 全体検索（全テーブル）
+ * const allResults = await vectorSearchAll('融合召喚', { limit: 10 })
+ * // { cards: [...], faqs: [...], rules: [...], ... }
+ *
+ * // カスタムテーブル検索
+ * const customResults = await searchTable('rules', 'ターン', { limit: 5 })
+ *
+ * // テーブル一覧取得
+ * const tables = await listTables()
+ * ```
+ */
+export {
+  searchCards as vectorSearchCards,
+  searchFaqs as vectorSearchFaqs,
+  searchAll as vectorSearchAll,
+  searchTable,
+  listTables
+} from './lib/vector/searcher.js'
+
+export type {
+  SearchResult as VectorSearchResult,
+  VectorSearchOptions,
+  CardSearchOptions as VectorCardSearchOptions,
+  FaqSearchOptions as VectorFaqSearchOptions
+} from './lib/vector/searcher.js'
+
+// ============================================================================
+// Vector DB setup and conversion
+// ============================================================================
+
+/**
+ * Vector DBインデックス構築とデータ変換機能
+ * @example
+ * ```ts
+ * import { convertCardsToJsonl, convertFaqsToJsonl, convertGenericToJsonl, indexFromJsonl } from 'ygo-search'
+ *
+ * // カードデータをJSONLに変換
+ * const count = await convertCardsToJsonl('cards.tsv', 'detail.tsv', 'cards.jsonl')
+ *
+ * // FAQデータをJSONLに変換
+ * const faqCount = await convertFaqsToJsonl('faqs.tsv', 'faqs.jsonl')
+ *
+ * // 汎用データをJSONLに変換
+ * const genericCount = await convertGenericToJsonl('data.json', 'output.jsonl', {
+ *   excludeColumns: ['cite', 'sourceFile']
+ * })
+ *
+ * // Vector DBインデックスを構築
+ * await indexFromJsonl('cards', 'cards.jsonl')
+ * ```
+ */
+export {
+  convertCardsToJsonl,
+  convertFaqsToJsonl,
+  convertGenericToJsonl
+} from './lib/vector/converter.js'
+
+export type {
+  VectorRecord,
+  GenericConversionOptions
+} from './lib/vector/converter.js'
+
+export { indexFromJsonl } from './lib/vector/indexer.js'
+
+// ============================================================================
 // Utilities
 // ============================================================================
 

@@ -7,6 +7,7 @@ Command-line tools for searching Yu-Gi-Oh! card database locally with full Japan
 ### CLI Commands
 
 - **ygo_search** - Search cards with flexible filters
+- **ygo_search vector** - Vector search (semantic search) for cards, FAQs, and rules
 - **ygo_bulk_search** - Efficient bulk search (up to 50 queries)
 - **ygo_extract** - Extract card patterns from text
 - **ygo_replace** - Extract and replace patterns with card IDs or names
@@ -45,6 +46,14 @@ Automatically handles:
 - Filter by FAQ ID, card ID, card name patterns
 - Search by card specifications (race, level, type, etc.)
 - Search question/answer text with wildcards
+
+### Vector Search (Semantic Search)
+
+- **Semantic search**: Find cards, FAQs, and rules by meaning, not just keywords
+- **Multi-table search**: Search across cards, FAQs, and custom tables simultaneously
+- **Custom data import**: Import any YAML/JSON/JSONL/TSV/CSV data with id/title/text fields
+- **Hierarchy support**: Automatically extracts and includes hierarchical paths from YAML/JSON
+- **Multilingual embeddings**: Uses multilingual-e5-small model for accurate semantic matching
 
 ## Installation
 
@@ -102,6 +111,11 @@ ygo_faq_search cardId=6808 limit=5
 ygo_faq_search cardName="青眼*" limit=10
 ygo_faq_search question="*シンクロ召喚*"
 
+# Vector search (semantic search)
+ygo_search vector setup all                         # Setup vector DB
+ygo_search vector search "墓地から特殊召喚"          # Search all tables
+ygo_search vector search "チェーン" --type rules --limit 5
+
 # Update/download card database
 ygo_update_search
 
@@ -116,6 +130,80 @@ node dist/cli/ygo_search.js '{"name":"青眼"}' cols=name,cardId
 node dist/cli/ygo_extract.js "{青眼の白龍}"
 node dist/cli/ygo_replace.js "{青眼}を召喚" --raw
 node dist/cli/ygo_convert.js input.json:output.csv
+```
+
+### Library Usage (TypeScript/JavaScript)
+
+```typescript
+import {
+  // Card search
+  searchCards,
+
+  // FAQ search
+  searchFAQ,
+
+  // Pattern extraction and replacement
+  extractCardPatterns,
+  extractAndSearchCards,
+  judgeAndReplace,
+
+  // Card retrieval
+  seekCards,
+
+  // Format conversion
+  convertFormatFile,
+  formatOutput,
+  parseFormatString,
+
+  // Vector search
+  vectorSearchCards,
+  vectorSearchFaqs,
+  vectorSearchAll,
+  searchTable,
+  listTables,
+
+  // Vector DB setup
+  convertCardsToJsonl,
+  convertFaqsToJsonl,
+  convertGenericToJsonl,
+  indexFromJsonl
+} from 'ygo-search'
+
+// Card search
+const cards = await searchCards({
+  filter: { name: '青眼の白龍' },
+  cols: ['name', 'cardId', 'text']
+})
+
+// FAQ search
+const faqs = await searchFAQ({
+  cardName: '青眼の白龍',
+  limit: 10
+})
+
+// Pattern extraction
+const patterns = extractCardPatterns('{ブルーアイズ*}と《青眼の白龍》')
+
+// Pattern search
+const results = await extractAndSearchCards('{ブルーアイズ*}を召喚')
+
+// Pattern replacement
+const replaced = await judgeAndReplace('{青眼の白龍}を召喚', {
+  replaceFormat: 'id-in-brace'
+})
+
+// Random card retrieval
+const randomCards = await seekCards({ max: 10 })
+
+// Vector search (semantic search)
+const vectorResults = await vectorSearchAll('墓地から特殊召喚', { limit: 5 })
+
+// Custom table search
+const rulesResults = await searchTable('rules', 'チェーンブロック', { limit: 5 })
+
+// Format conversion
+await convertFormatFile('input.json', 'output.csv')
+const yamlString = formatOutput({ key: 'value' }, 'yaml')
 ```
 
 ## Database

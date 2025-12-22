@@ -5,7 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { findProjectRoot } from '../utils/project-root.js'
+import { getTsvPath, getDataDir } from '../lib/config/paths.js'
 
 const execAsync = promisify(exec)
 
@@ -234,9 +234,8 @@ async function main() {
     console.log('YuGiOh-Scraping リポジトリからカードデータをダウンロードします...')
     console.log('')
 
-    // プロジェクトルートと data ディレクトリを確認
-    const projectRoot = await findProjectRoot()
-    const dataDir = path.join(projectRoot, 'data')
+    // TSVファイル保存先ディレクトリ
+    const dataDir = path.join(getDataDir(), 'tsv')
 
     if (!fs.existsSync(dataDir)) {
       await fs.promises.mkdir(dataDir, { recursive: true })
@@ -319,7 +318,8 @@ async function main() {
       }
       console.log('')
       console.log('以下のコマンドで検索できます:')
-      console.log('  ygo_search \'{"name":"青眼"}\'')
+      console.log('  ygo_search \'{"name":"*青眼*"}\'  # ワイルドカード検索')
+      console.log('  ygo_search \'{"name":"青眼の白龍"}\'  # 完全一致')
       console.log('')
 
     } finally {

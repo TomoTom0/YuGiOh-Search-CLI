@@ -191,6 +191,388 @@ ygo_convert a.json:a.csv b.jsonl:b.tsv c.csv:c.json
 # Supported formats: .json, .jsonl, .csv, .tsv
 ```
 
+### ygo_search vector - Vector Search (Semantic Search)
+
+Vector検索機能は、意味的な類似性に基づいてカード、FAQ、ルールを検索します。
+
+#### セットアップ
+
+```bash
+# カード・FAQのVector DBインデックス構築
+ygo_search vector setup cards    # カードのみ
+ygo_search vector setup faqs     # FAQのみ
+ygo_search vector setup all      # 全て
+
+# ルールデータのインポート（YAML形式）
+ygo_search vector setup-generic rules.yml rules --include-columns name,notes,examples
+
+# 汎用データのインポート（yaml/json/jsonl/tsv/csv対応）
+ygo_search vector setup-generic data.json custom-table
+```
+
+#### 検索
+
+```bash
+# 全テーブルを検索（cards, faqs, rules全て）
+ygo_search vector search "墓地から特殊召喚"
+
+# 特定テーブルのみ検索
+ygo_search vector search "チェーンブロック" --type cards
+ygo_search vector search "効果の発動タイミング" --type faqs
+ygo_search vector search "ターンの流れ" --type rules
+
+# 結果数の制限
+ygo_search vector search "融合召喚" --limit 5
+
+# スコア閾値による絞り込み
+ygo_search vector search "シンクロ召喚" --threshold 0.7
+
+# 出力フォーマット指定
+ygo_search vector search "ドラゴン" --format json
+ygo_search vector search "ドラゴン" --format jsonl
+ygo_search vector search "ドラゴン" --format csv
+ygo_search vector search "ドラゴン" --format tsv
+
+# 距離メトリック指定
+ygo_search vector search "墓地" --distance cosine  # デフォルト
+ygo_search vector search "墓地" --distance l2
+ygo_search vector search "墓地" --distance dot
+```
+
+#### 汎用データインポートの詳細
+
+```bash
+# 必須フィールド: id, title, text
+# その他のフィールドは自動的に検索テキストに含まれる
+
+# 特定カラムのみ含める
+ygo_search vector setup-generic data.yml table --include-columns name,notes,examples
+
+# 特定カラムを除外
+ygo_search vector setup-generic data.json table --exclude-columns cite,sourceFile
+
+# 一時JSONLファイルを保持（デバッグ用）
+ygo_search vector setup-generic data.yml table --keep-tmp
+
+# 対応フォーマット:
+# - YAML (.yml, .yaml) - 階層構造から自動抽出
+# - JSON (.json)       - 階層構造から自動抽出
+# - JSONL (.jsonl)     - 1行1レコード
+# - TSV (.tsv)         - タブ区切り（ヘッダー必須）
+# - CSV (.csv)         - カンマ区切り（ヘッダー必須）
+#                        注: 値にカンマが含まれる場合は正しく処理されません。
+#                        複雑なCSVの場合はTSVまたはJSON形式を推奨します。
+```
+
+#### Vector検索の特徴
+
+- **意味的検索**: キーワードの完全一致ではなく、意味の類似性で検索
+- **多言語対応**: multilingual-e5-smallモデルを使用
+- **階層構造対応**: YAML/JSONの階層パスが自動的に検索テキストに含まれる
+- **並列検索**: 複数テーブルを並列に高速検索
+- **カスタムテーブル**: 任意のデータをインポート可能
+
+#### 検索結果の例
+
+```json
+{
+  "cards": [
+    {
+      "id": "card-6808",
+      "text": "【カード名】 青眼の白龍\n...",
+      "metadata": { "cardId": 6808, "cardType": "monster" },
+      "score": 0.15
+    }
+  ],
+  "faqs": [
+    {
+      "id": "faq-123",
+      "text": "# 質問\n...\n# 回答\n...",
+      "metadata": { "faqId": 123 },
+      "score": 0.18
+    }
+  ],
+  "rules": [
+    {
+      "id": "EC07",
+      "text": "【効果の解決】\n【階層】\nEffectsAndChains > Resolution\n...",
+      "metadata": { "id": "EC07" },
+      "score": 0.12
+    }
+  ]
+}
+```
+
+## Library Usage (TypeScript/JavaScript)
+
+ygo-searchはライブラリとしてプログラムから利用することもできます。
+
+### インストール
+
+```bash
+npm install ygo-search
+# または
+bun add ygo-search
+```
+
+### 基本的な使用例
+
+#### カード検索
+
+```typescript
+import { searchCards, type CardSearchParams } from 'ygo-search'
+
+// 基本検索
+const cards = await searchCards({
+  filter: { name: '青眼の白龍' },
+  cols: ['name', 'cardId', 'text']
+})
+
+// ワイルドカード検索
+const dragons = await searchCards({
+  filter: { name: 'ブルーアイズ*', race: 'ドラゴン族' },
+  cols: ['name', 'atk', 'def']
+})
+
+// 部分一致検索
+const partial = await searchCards({
+  filter: { text: '破壊' },
+  mode: 'partial',
+  cols: ['name', 'text']
+})
+```
+
+#### FAQ検索
+
+```typescript
+import { searchFAQ, type SearchFAQParams } from 'ygo-search'
+
+// カードIDでFAQ検索
+const faqs = await searchFAQ({
+  cardId: 6808,
+  limit: 10
+})
+
+// カード名でFAQ検索
+const faqsByName = await searchFAQ({
+  cardName: '青眼*',
+  limit: 20
+})
+
+// 質問文で検索
+const faqsByQuestion = await searchFAQ({
+  question: '*シンクロ召喚*',
+  limit: 10
+})
+```
+
+#### パターン抽出と置換
+
+```typescript
+import {
+  extractCardPatterns,
+  extractAndSearchCards,
+  judgeAndReplace
+} from 'ygo-search'
+
+// パターン抽出
+const patterns = extractCardPatterns('{ブルーアイズ*}と《青眼の白龍》')
+// [
+//   { pattern: '{ブルーアイズ*}', type: 'flexible', query: 'ブルーアイズ*' },
+//   { pattern: '《青眼の白龍》', type: 'exact', query: '青眼の白龍' }
+// ]
+
+// パターン抽出と検索
+const results = await extractAndSearchCards('{ブルーアイズ*}を召喚')
+
+// パターン判定と置換
+const replaced = await judgeAndReplace('{青眼の白龍}を召喚', {
+  replaceFormat: 'id-in-brace'  // {{カード名|カードID}}形式
+})
+
+const replacedName = await judgeAndReplace('{青眼の白龍}を召喚', {
+  replaceFormat: 'name-in-mount-par'  // 《カード名》形式
+})
+```
+
+#### ランダム/範囲指定カード取得
+
+```typescript
+import { seekCards, type SeekCardsOptions } from 'ygo-search'
+
+// ランダムに10件取得
+const randomCards = await seekCards({ max: 10 })
+
+// 範囲指定で取得
+const rangeCards = await seekCards({
+  range: [4000, 5000],
+  max: 20,
+  cols: ['name', 'cardId', 'atk', 'def']
+})
+
+// ランダム順でなく順番通りに取得
+const orderedCards = await seekCards({
+  range: [4000, 4100],
+  noRandom: true,
+  max: 50
+})
+```
+
+#### フォーマット変換
+
+```typescript
+import {
+  convertFormatFile,
+  formatOutput,
+  parseFormatString,
+  detectFormat
+} from 'ygo-search'
+
+// ファイル変換
+await convertFormatFile('input.json', 'output.csv')
+await convertFormatFile('input.jsonl', 'output.yaml')
+
+// データ変換
+const yamlString = formatOutput({ key: 'value', data: [1, 2, 3] }, 'yaml')
+const csvString = formatOutput([{ name: 'card1' }, { name: 'card2' }], 'csv')
+
+// パース
+const data = parseFormatString('{"key":"value"}', 'json')
+const yamlData = parseFormatString('key: value\ndata:\n  - 1\n  - 2', 'yaml')
+
+// フォーマット自動検出
+const format = detectFormat('data.jsonl')  // 'jsonl'
+```
+
+### Vector検索（意味的検索）
+
+#### Vector DBセットアップ
+
+```typescript
+import {
+  convertCardsToJsonl,
+  convertFaqsToJsonl,
+  convertGenericToJsonl,
+  indexFromJsonl
+} from 'ygo-search'
+
+// カードデータをVector DB用に変換
+const cardCount = await convertCardsToJsonl(
+  'data/cards-all.tsv',
+  'data/detail-all.tsv',
+  'tmp/cards.jsonl'
+)
+
+// FAQデータをVector DB用に変換
+const faqCount = await convertFaqsToJsonl(
+  'data/faq-all.tsv',
+  'tmp/faqs.jsonl'
+)
+
+// 汎用データをVector DB用に変換
+const genericCount = await convertGenericToJsonl(
+  'rules.yml',
+  'tmp/rules.jsonl',
+  {
+    includeColumns: ['name', 'notes', 'examples']  // 特定カラムのみ含める
+    // または
+    // excludeColumns: ['cite', 'sourceFile']  // 特定カラムを除外
+  }
+)
+
+// Vector DBインデックス構築
+await indexFromJsonl('cards', 'tmp/cards.jsonl')
+await indexFromJsonl('faqs', 'tmp/faqs.jsonl')
+await indexFromJsonl('rules', 'tmp/rules.jsonl')
+```
+
+#### Vector検索
+
+```typescript
+import {
+  vectorSearchCards,
+  vectorSearchFaqs,
+  vectorSearchAll,
+  searchTable,
+  listTables,
+  type VectorSearchOptions,
+  type VectorSearchResult
+} from 'ygo-search'
+
+// カードをVector検索
+const cards = await vectorSearchCards('墓地から特殊召喚', {
+  limit: 10,
+  threshold: 0.7,      // スコア閾値
+  distanceType: 'cosine'  // cosine / l2 / dot
+})
+
+// FAQをVector検索
+const faqs = await vectorSearchFaqs('チェーンブロック', {
+  limit: 5
+})
+
+// 全テーブルを検索（cards, faqs, rulesなど全て）
+const allResults = await vectorSearchAll('融合召喚', {
+  limit: 10
+})
+// 結果: { cards: [...], faqs: [...], rules: [...] }
+
+// カスタムテーブルを検索
+const rulesResults = await searchTable('rules', 'ターンの流れ', {
+  limit: 5,
+  threshold: 0.6
+})
+
+// 利用可能なテーブル一覧を取得
+const tables = await listTables()
+// ['cards', 'faqs', 'rules', ...]
+
+// 検索結果の型
+interface VectorSearchResult {
+  id: string
+  text: string
+  metadata: Record<string, any>
+  score: number  // 距離スコア（小さいほど類似）
+}
+```
+
+### 型定義
+
+ライブラリは完全な型定義を提供しています：
+
+```typescript
+import type {
+  // Card types
+  Card,
+  CardDetail,
+  CardSearchParams,
+
+  // FAQ types
+  FAQRecord,
+  SearchFAQParams,
+
+  // Pattern types
+  ExtractedPattern,
+  ReplacementResult,
+
+  // Vector search types
+  VectorSearchResult,
+  VectorSearchOptions,
+  VectorRecord,
+  GenericConversionOptions,
+
+  // Format types
+  Format
+} from 'ygo-search'
+```
+
+### 環境変数
+
+```typescript
+// データディレクトリをカスタマイズ
+process.env.YGO_SEARCH_WORKDIR = './custom-data'
+```
+
 ## Advanced Usage
 
 ### Search Pattern Normalization
