@@ -15,7 +15,7 @@
 # 依存関係のインストール
 bun install
 
-# 開発サーバーの起動
+# 開発サーバーの起動 (http://localhost:40100)
 bun run dev
 
 # ビルド
