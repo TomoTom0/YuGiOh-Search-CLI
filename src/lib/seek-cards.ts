@@ -126,7 +126,8 @@ export async function seekCards(options: SeekCardsOptions = {}): Promise<Record<
     const card: Record<string, string> = {}
 
     for (let i = 0; i < cardsHeaders.length; i++) {
-      card[cardsHeaders[i]] = values[i] || ''
+      const value = values[i] || ''
+      card[cardsHeaders[i]] = value.replace(/\\n/g, '\n')
     }
 
     // Filter by range if specified
@@ -166,7 +167,8 @@ export async function seekCards(options: SeekCardsOptions = {}): Promise<Record<
 
       for (let i = 0; i < detailHeaders.length; i++) {
         const header = detailHeaders[i]
-        detail[header] = values[i] || ''
+        const value = values[i] || ''
+        detail[header] = value.replace(/\\n/g, '\n')
         if (header === 'cardId') {
           cardId = values[i]
         }

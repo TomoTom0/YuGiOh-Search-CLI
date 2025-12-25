@@ -106,7 +106,8 @@ function valueMatches(fieldValue, cond, mode, flagAutoModify, isNameField, norma
         const parts = line.split('\t');
         const obj = {};
         for(let i = 0; i < headers.length; i++){
-            obj[headers[i]] = parts[i] === undefined ? '' : parts[i];
+            const value = parts[i] === undefined ? '' : parts[i];
+            obj[headers[i]] = value.replace(/\\n/g, '\n');
         }
         let ok = true;
         for (const k of Object.keys(filter)){

@@ -96,7 +96,7 @@ async function loadCards(): Promise<Map<string, Card>> {
       cardId: parts[4],
       ciid: parts[5] || undefined,
       imgs: parts[6] || undefined,
-      text: parts[7] || undefined,
+      text: parts[7] ? parts[7].replace(/\\n/g, '\n') : undefined,
       attribute: parts[8] && isAttribute(parts[8]) ? parts[8] : undefined,
       levelType: parts[9] && isLevelType(parts[9]) ? parts[9] : undefined,
       levelValue: parts[10] || undefined,
@@ -106,7 +106,7 @@ async function loadCards(): Promise<Map<string, Card>> {
       def: parts[14] || undefined,
       linkMarkers: parts[15] || undefined,
       pendulumScale: parts[16] || undefined,
-      pendulumText: parts[17] || undefined,
+      pendulumText: parts[17] ? parts[17].replace(/\\n/g, '\n') : undefined,
       isExtraDeck: parts[18] || undefined,
       spellEffectType: parts[19] && isSpellEffectType(parts[19]) ? parts[19] : undefined,
       trapEffectType: parts[20] && isTrapEffectType(parts[20]) ? parts[20] : undefined,
@@ -148,8 +148,8 @@ export async function loadFAQIndex(): Promise<FAQIndex> {
     if (parts.length < 4) continue
     
     const faqId = parseInt(parts[0])
-    const question = parts[1]
-    const answer = parts[2]
+    const question = parts[1].replace(/\\n/g, '\n')
+    const answer = parts[2].replace(/\\n/g, '\n')
     const updatedAt = parts[3]
     
     const faq: FAQRecord = { faqId, question, answer, updatedAt }
