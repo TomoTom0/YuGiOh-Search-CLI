@@ -14,9 +14,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "ygo_search": "./dist/cli/ygo_search.js",
-    "ygo_convert": "./dist/cli/ygo_convert.js",
-    "ygo_docs": "./dist/cli/ygo_docs.js"
+    "ygo_search": "./dist/cli/ygo_search.js"
   },
   "files": [
     "dist",

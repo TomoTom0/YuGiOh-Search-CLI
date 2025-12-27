@@ -12,10 +12,10 @@ Command-line tools for searching Yu-Gi-Oh! card database locally with full Japan
 - **ygo_search replace** - Extract and replace patterns with card IDs or names
 - **ygo_search seek** - Get random or range-specific card information
 - **ygo_search bulk** - Efficient bulk search (up to 50 queries)
+- **ygo_search convert** - Convert file formats (JSON, CSV, TSV, JSONL)
 - **ygo_search vector** - Vector search (semantic search) for cards, FAQs, and rules
+- **ygo_search docs** - View API documentation for library usage
 - **ygo_search update** - Download/update card database (required for first use)
-- **ygo_convert** - Convert file formats (JSON, CSV, TSV, JSONL)
-- **ygo_docs** - View API documentation for library usage
 
 ### Card Search Features
 
@@ -121,12 +121,12 @@ ygo_search vector search "チェーン" --type rules --limit 5
 ygo_search update
 
 # Convert file formats
-ygo_convert input.json:output.jsonl
+ygo_search convert input.json:output.jsonl
 
 # View API documentation
-ygo_docs list                 # List all available documentation
-ygo_docs searchCards          # Show searchCards function documentation
-ygo_docs Card                 # Show Card interface documentation
+ygo_search docs list                 # List all available documentation
+ygo_search docs searchCards          # Show searchCards function documentation
+ygo_search docs Card                 # Show Card interface documentation
 ```
 
 ### Direct Node Execution
@@ -135,8 +135,8 @@ ygo_docs Card                 # Show Card interface documentation
 node dist/cli/ygo_search.js card --name "青眼" --cols name,cardId
 node dist/cli/ygo_search.js extract "{青眼の白龍}"
 node dist/cli/ygo_search.js replace "{青眼}を召喚" --raw
-node dist/cli/ygo_convert.js input.json:output.csv
-node dist/cli/ygo_docs.js list
+node dist/cli/ygo_search.js convert input.json:output.csv
+node dist/cli/ygo_search.js docs list
 ```
 
 ### Library Usage (TypeScript/JavaScript)
@@ -246,9 +246,9 @@ const yamlString = formatOutput({ key: 'value' }, 'yaml')
 
 View documentation using the CLI:
 ```bash
-ygo_docs list              # List all available documentation
-ygo_docs searchCards       # Show function documentation
-ygo_docs Card              # Show interface documentation
+ygo_search docs list              # List all available documentation
+ygo_search docs searchCards       # Show function documentation
+ygo_search docs Card              # Show interface documentation
 ```
 
 Or browse directly:
