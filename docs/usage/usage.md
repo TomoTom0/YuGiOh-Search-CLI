@@ -173,22 +173,22 @@ ygo_faq_search question="*効果*" answer="*無効*" limit=10
 # --random         - Random selection from results
 ```
 
-### ygo_convert - Convert File Formats
+### ygo_search convert - Convert File Formats
 
 ```bash
 # Convert JSON to JSONL
-ygo_convert input.json:output.jsonl
+ygo_search convert input.json:output.jsonl
 
 # Convert JSON to CSV
-ygo_convert input.json:output.csv
+ygo_search convert input.json:output.csv
 
 # Convert JSONL to TSV
-ygo_convert input.jsonl:output.tsv
+ygo_search convert input.jsonl:output.tsv
 
 # Multiple conversions
-ygo_convert a.json:a.csv b.jsonl:b.tsv c.csv:c.json
+ygo_search convert a.json:a.csv b.jsonl:b.tsv c.csv:c.json
 
-# Supported formats: .json, .jsonl, .csv, .tsv
+# Supported formats: .json, .jsonl, .csv, .tsv, .yaml
 ```
 
 ### ygo_search vector - Vector Search (Semantic Search)
@@ -622,7 +622,8 @@ ygo_search --help
 ygo_bulk_search --help
 ygo_extract --help
 ygo_replace --help
-ygo_seek --help
-ygo_faq_search --help
-ygo_convert --help
+ygo_search seek --help
+ygo_search faq --help
+ygo_search convert --help
+ygo_search docs --help
 ```
