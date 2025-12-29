@@ -52,7 +52,8 @@ function parseTsvLine(line: string, headers: string[]): Record<string, string> {
   const values = line.split('\t');
   const record: Record<string, string> = {};
   headers.forEach((header, index) => {
-    record[header] = values[index] || '';
+    const value = values[index] || '';
+    record[header] = value.replace(/\\n/g, '\n');
   });
   return record;
 }

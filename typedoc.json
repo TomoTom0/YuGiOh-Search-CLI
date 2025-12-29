@@ -1,0 +1,25 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "skipErrorChecking": false,
+  "includeVersion": true,
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Core Functions",
+    "Search Functions",
+    "Pattern Functions",
+    "Vector Search",
+    "Utilities",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "hideGenerator": false,
+  "gitRevision": "main",
+  "outputFileStrategy": "members"
+}

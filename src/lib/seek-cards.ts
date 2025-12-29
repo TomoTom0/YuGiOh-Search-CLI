@@ -6,7 +6,7 @@
 import fs from 'fs'
 import path from 'path'
 import readline from 'readline'
-import { findProjectRoot } from '../utils/project-root.js'
+import { getTsvPath } from './config/paths.js'
 
 export interface SeekCardsOptions {
   /**
@@ -94,12 +94,9 @@ export async function seekCards(options: SeekCardsOptions = {}): Promise<Record<
     throw new Error('--all requires --range')
   }
 
-  // Find project root
-  const projectRoot = await findProjectRoot()
-
-  const dataDir = path.join(projectRoot, 'data')
-  const cardsFile = path.join(dataDir, 'cards-all.tsv')
-  const detailFile = path.join(dataDir, 'detail-all.tsv')
+  // Get TSV file paths
+  const cardsFile = getTsvPath('cards-all.tsv')
+  const detailFile = getTsvPath('detail-all.tsv')
 
   if (!fs.existsSync(cardsFile)) {
     throw new Error(`Data file not found: ${cardsFile}`)
@@ -126,7 +123,8 @@ export async function seekCards(options: SeekCardsOptions = {}): Promise<Record<
     const card: Record<string, string> = {}
 
     for (let i = 0; i < cardsHeaders.length; i++) {
-      card[cardsHeaders[i]] = values[i] || ''
+      const value = values[i] || ''
+      card[cardsHeaders[i]] = value.replace(/\\n/g, '\n')
     }
 
     // Filter by range if specified
@@ -166,7 +164,8 @@ export async function seekCards(options: SeekCardsOptions = {}): Promise<Record<
 
       for (let i = 0; i < detailHeaders.length; i++) {
         const header = detailHeaders[i]
-        detail[header] = values[i] || ''
+        const value = values[i] || ''
+        detail[header] = value.replace(/\\n/g, '\n')
         if (header === 'cardId') {
           cardId = values[i]
         }

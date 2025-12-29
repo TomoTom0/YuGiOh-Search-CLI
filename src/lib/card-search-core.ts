@@ -153,7 +153,8 @@ export async function searchCards(params: CardSearchParams): Promise<Card[]> {
     const parts = line.split('\t')
     const obj: any = {}
     for (let i = 0; i < headers.length; i++) {
-      obj[headers[i]] = parts[i] === undefined ? '' : parts[i]
+      const value = parts[i] === undefined ? '' : parts[i]
+      obj[headers[i]] = value.replace(/\\n/g, '\n')
     }
 
     let ok = true

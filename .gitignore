@@ -5,6 +5,7 @@ bun.lock
 
 # Data files (use setup-data.sh to download)
 data/*.tsv
+web/public/data/tsv
 
 # Logs
 *.log
@@ -28,3 +29,8 @@ tmp/
 
 # Build output
 dist/
+web/dist/
+
+# Test coverage
+coverage/
+.nyc_output/
