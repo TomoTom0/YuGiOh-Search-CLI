@@ -239,7 +239,8 @@ Examples:
   ygo_search card --name "青眼の白龍"
   ygo_search faq cardId=6808
   ygo_search extract "青眼の白龍とブラック・マジシャンを召喚"
-  ygo_search replace "{青眼}を召喚して攻撃"
+  ygo_search replace "{青眼の白龍}を召喚して攻撃"
+    # => {"processedText":"{{青眼の白龍|4007}}を召喚して攻撃",...}
   ygo_search seek
   ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
   ygo_search convert input.json:output.yaml
@@ -508,8 +509,12 @@ Pattern Types:
   {{name|cardId}}     カードID で検索
 
 Examples:
-  ygo_search replace "{青眼}を召喚して攻撃"
-  ygo_search replace "Use {ブルーアイズ*} and 《青眼の白龍》"
+  ygo_search replace "{青眼の白龍}を召喚して攻撃"
+    # => {"processedText":"{{青眼の白龍|4007}}を召喚して攻撃",...}
+  ygo_search replace "{青眼*}を召喚"
+    # => 複数候補: {{青眼の白龍|4007}}, {{青眼の亜白龍|12253}}, ...
+  ygo_search replace "《青眼の白龍》を召喚" --mount-par
+    # => 《青眼の白龍》を召喚（完全一致、そのまま維持）
 `);
     process.exit(0);
   }
@@ -557,10 +562,11 @@ Subcommands:
                         type: cards, faqs, all (デフォルト: all)
                         Options:
                           --keep-tmp    一時JSONLファイルを削除せずに保持
-  setup-generic <file> <table>  汎用データをインポート
-                        file: yaml/jsonl/json/tsv/csv
-                        table: テーブル名
+  setup-generic <files...> --table <name>
+                        汎用データをインポート
+                        files: yaml/jsonl/json/tsv/csv（複数指定可、glob対応）
                         Options:
+                          --table <name>  テーブル名（必須）
                           --exclude-columns col1,col2
                           --include-columns col1,col2
                           --keep-tmp
@@ -571,8 +577,8 @@ Examples:
   ygo_search vector setup cards          カードのみ
   ygo_search vector setup faqs           FAQのみ
   ygo_search vector setup --keep-tmp     一時ファイルを保持
-  ygo_search vector setup-generic rules.yml rules --exclude-columns cite
-  ygo_search vector setup-generic data.json custom --include-columns category
+  ygo_search vector setup-generic rules.yml --table rules --exclude-columns cite
+  ygo_search vector setup-generic aa/*.yml bb/data.yml --table rules
   ygo_search vector search "墓地から特殊召喚" --limit 5
   ygo_search vector search "融合召喚" --type cards --threshold 0.8
 `);
@@ -792,26 +798,27 @@ Examples:
 }
 
 async function handleVectorSetupGenericCommand(args: string[]) {
-  if (args.length < 2 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo_search vector setup-generic <inputFile> <tableName> [options]
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search vector setup-generic <files...> --table <tableName> [options]
 
 汎用データからVector DBインデックスを構築
 
 Arguments:
-  inputFile             入力ファイル（yaml/jsonl/json/tsv/csv）
-  tableName             テーブル名
+  files...              入力ファイル（yaml/jsonl/json/tsv/csv）
+                        複数ファイル指定可、シェルのglob展開に対応
 
 Options:
-  --exclude-columns col1,col2    指定カラムをテキストから除外
-  --include-columns col1,col2    指定カラムのみテキストに含める
-  --keep-tmp                     一時JSONLファイルを削除せずに保持
+  --table <name>               テーブル名（必須）
+  --exclude-columns col1,col2  指定カラムをテキストから除外
+  --include-columns col1,col2  指定カラムのみテキストに含める
+  --keep-tmp                   一時JSONLファイルを削除せずに保持
 
 Required fields: id, title, text
 
 Examples:
-  ygo_search vector setup-generic rules.yml rules
-  ygo_search vector setup-generic data.json custom --exclude-columns cite,sourceFile
-  ygo_search vector setup-generic items.tsv items --include-columns category,priority
+  ygo_search vector setup-generic rules.yml --table rules
+  ygo_search vector setup-generic aa/*.yml bb/data.yml --table rules --exclude-columns cite
+  ygo_search vector setup-generic data.json --table custom --include-columns category,priority
 `);
     process.exit(0);
   }
@@ -820,22 +827,36 @@ Examples:
   const { indexFromJsonl } = await import('../lib/vector/indexer.js');
   const fs = await import('fs/promises');
 
-  const inputFile = args[0];
-  const tableName = args[1];
-
   // オプション解析
+  let tableName: string | undefined = undefined;
   let excludeColumns: string[] | undefined = undefined;
   let includeColumns: string[] | undefined = undefined;
   let keepTmp = false;
+  const inputFiles: string[] = [];
 
-  for (let i = 2; i < args.length; i++) {
-    if (args[i] === '--exclude-columns' && i + 1 < args.length) {
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--table' && i + 1 < args.length) {
+      tableName = args[++i];
+    } else if (args[i] === '--exclude-columns' && i + 1 < args.length) {
       excludeColumns = args[++i].split(',').map(c => c.trim());
     } else if (args[i] === '--include-columns' && i + 1 < args.length) {
       includeColumns = args[++i].split(',').map(c => c.trim());
     } else if (args[i] === '--keep-tmp') {
       keepTmp = true;
+    } else if (!args[i].startsWith('--')) {
+      inputFiles.push(args[i]);
     }
+  }
+
+  // バリデーション
+  if (!tableName) {
+    console.error('Error: --table オプションは必須です');
+    process.exit(1);
+  }
+
+  if (inputFiles.length === 0) {
+    console.error('Error: 入力ファイルを指定してください');
+    process.exit(1);
   }
 
   // Validate exclusivity
@@ -859,10 +880,33 @@ Examples:
     const jsonlPath = getTmpPath(`${tableName}_for_vectordb.jsonl`);
     tmpFiles.push(jsonlPath);
 
-    console.error(`${inputFile} からJSONLに変換中...`);
+    // 既存のJSONLファイルを削除（追記モードのため）
+    try {
+      await fs.unlink(jsonlPath);
+    } catch (e: any) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+
     const options = excludeColumns ? { excludeColumns } : includeColumns ? { includeColumns } : undefined;
-    const count = await convertGenericToJsonl(inputFile, jsonlPath, options);
-    console.error(`${count}件のレコードを変換しました`);
+    let totalCount = 0;
+
+    for (const inputFile of inputFiles) {
+      console.error(`${inputFile} からJSONLに変換中...`);
+      // 一時ファイルに変換してから追記
+      const tempJsonlPath = getTmpPath(`${tableName}_temp.jsonl`);
+      const count = await convertGenericToJsonl(inputFile, tempJsonlPath, options);
+      console.error(`  ${count}件のレコードを変換しました`);
+      totalCount += count;
+
+      // メインのJSONLファイルに追記
+      const tempContent = await fs.readFile(tempJsonlPath, 'utf-8');
+      await fs.appendFile(jsonlPath, tempContent);
+
+      // 一時ファイル削除
+      await fs.unlink(tempJsonlPath);
+    }
+
+    console.error(`合計 ${totalCount}件のレコードを変換しました`);
 
     console.error('Vector DBインデックスを構築中...');
     await indexFromJsonl(tableName, jsonlPath);

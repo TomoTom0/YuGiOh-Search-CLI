@@ -134,7 +134,7 @@ ygo_search docs Card                 # Show Card interface documentation
 ```bash
 node dist/cli/ygo_search.js card --name "青眼" --cols name,cardId
 node dist/cli/ygo_search.js extract "{青眼の白龍}"
-node dist/cli/ygo_search.js replace "{青眼}を召喚" --raw
+node dist/cli/ygo_search.js replace "{青眼の白龍}を召喚" --raw
 node dist/cli/ygo_search.js convert input.json:output.csv
 node dist/cli/ygo_search.js docs list
 ```
