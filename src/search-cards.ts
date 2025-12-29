@@ -571,7 +571,10 @@ async function main(){
     }
     const parts = line.split('\t')
     const obj: any = {}
-    for(let i=0;i<headers.length;i++) obj[headers[i]] = parts[i] === undefined ? '' : parts[i]
+    for(let i=0;i<headers.length;i++) {
+      const value = parts[i] === undefined ? '' : parts[i]
+      obj[headers[i]] = value.replace(/\\n/g, '\n')
+    }
     let ok = true
     for(const k of Object.keys(filter)){
       const f = filter[k]
@@ -610,7 +613,10 @@ async function main(){
       if(dheaders.length===0){ dheaders = line.split('\t'); continue }
       const parts = line.split('\t')
       const obj: any = {}
-      for(let i=0;i<dheaders.length;i++) obj[dheaders[i]] = parts[i] === undefined ? '' : parts[i]
+      for(let i=0;i<dheaders.length;i++) {
+        const value = parts[i] === undefined ? '' : parts[i]
+        obj[dheaders[i]] = value.replace(/\\n/g, '\n')
+      }
       if(neededCardIds.has(obj.cardId)) detailsMap[obj.cardId] = obj
     }
   }

@@ -25,7 +25,7 @@ This creates global commands:
 - `ygo_replace` - Replace card patterns with card IDs or names
 - `ygo_seek` - Get random or range-specific cards
 - `ygo_faq_search` - Search FAQ database
-- `ygo_convert` - Convert between JSON/JSONL/CSV/TSV formats
+- `ygo_search convert` - Convert between JSON/JSONL/CSV/TSV formats
 
 **Note**: After build, scripts work with `node` (no tsx required)!
 
@@ -146,22 +146,22 @@ ygo_faq_search cardId=6808 --col name,atk,def
 ygo_faq_search cardName="青眼*" --format csv
 ```
 
-### ygo_convert - Convert file formats
+### ygo_search convert - Convert file formats
 
 ```bash
 # JSON to JSONL
-ygo_convert input.json:output.jsonl
+ygo_search convert input.json:output.jsonl
 
 # JSON to CSV
-ygo_convert input.json:output.csv
+ygo_search convert input.json:output.csv
 
 # JSONL to TSV
-ygo_convert input.jsonl:output.tsv
+ygo_search convert input.jsonl:output.tsv
 
 # Multiple conversions
-ygo_convert a.json:a.csv b.jsonl:b.tsv
+ygo_search convert a.json:a.csv b.jsonl:b.tsv
 
-# Supported formats: .json, .jsonl, .csv, .tsv
+# Supported formats: .json, .jsonl, .csv, .tsv, .yaml
 ```
 
 ## Environment Variables
@@ -187,9 +187,15 @@ All search commands support:
 
 ```bash
 ygo_search --help
-ygo_bulk_search --help
-ygo_extract --help
-ygo_convert --help
+ygo_search card --help
+ygo_search faq --help
+ygo_search extract --help
+ygo_search replace --help
+ygo_search seek --help
+ygo_search bulk --help
+ygo_search convert --help
+ygo_search docs --help
+ygo_search vector --help
 ```
 
 ## Uninstall

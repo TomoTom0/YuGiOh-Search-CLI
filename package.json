@@ -14,8 +14,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "ygo_search": "./dist/cli/ygo_search.js",
-    "ygo_convert": "./dist/cli/ygo_convert.js"
+    "ygo_search": "./dist/cli/ygo_search.js"
   },
   "files": [
     "dist",
@@ -27,6 +26,8 @@
     "build": "swc src -d dist --ignore '**/*.test.ts' && mv dist/src/* dist/ && rmdir dist/src && chmod +x dist/cli/*.js && tsc --emitDeclarationOnly",
     "prebuild": "rm -rf dist",
     "prepublishOnly": "bun run build",
+    "docs": "typedoc",
+    "docs:watch": "typedoc --watch",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -52,6 +53,8 @@
     "@swc/core": "^1.15.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.10.1",
+    "typedoc": "^0.28.15",
+    "typedoc-plugin-markdown": "^4.9.0",
     "typescript": "^5.7.3",
     "vitest": "^4.0.10"
   }

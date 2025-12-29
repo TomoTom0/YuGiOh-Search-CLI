@@ -8,6 +8,7 @@ import { extractAndSearchCards } from '../lib/extract-and-search-cards.js';
 import { judgeAndReplace, type JudgeAndReplaceOptions } from '../lib/judge-and-replace.js';
 import { seekCards, type SeekCardsOptions } from '../lib/seek-cards.js';
 import { getTsvPath, getTmpPath, getTmpDir } from '../lib/config/paths.js';
+import { findDocs, showDoc, listDocs, findDocByName } from '../lib/cli-docs.js';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -227,6 +228,7 @@ Commands:
   bulk [queries]        複数クエリを一括検索
   convert <in:out>      フォーマット変換（JSON/JSONL/YAML）
   vector setup [type]   Vector DBセットアップ（cards/faqs/all）
+  docs [name]           APIドキュメント参照
   update                データ更新
   help                  このヘルプを表示
 
@@ -903,6 +905,54 @@ function handleUpdateCommand() {
   });
 }
 
+// docs サブコマンド - APIドキュメント参照
+async function handleDocsCommand(args: string[]) {
+  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
+    console.log(`Usage: ygo_search docs [name]
+
+APIドキュメント参照
+
+Arguments:
+  [name]                  Show documentation for a function, interface, or type
+  list                    List all available documentation
+
+Examples:
+  ygo_search docs searchCards    Show searchCards function documentation
+  ygo_search docs Card           Show Card interface documentation
+  ygo_search docs list           List all available items
+
+Note: If documentation is not found, run 'bun run docs' to generate it.
+`);
+    process.exit(0);
+  }
+
+  const DOCS_DIR = path.join(__dirname, '..', '..', 'docs', 'api');
+  const entries = await findDocs(DOCS_DIR);
+
+  if (args[0] === 'list') {
+    await listDocs(entries);
+    return;
+  }
+
+  const query = args[0];
+  const found = findDocByName(entries, query);
+
+  if (found) {
+    try {
+      await showDoc(found.path);
+    } catch (err: any) {
+      console.error(`Error: ${err.message}`);
+      process.exit(1);
+    }
+  } else {
+    console.error(`Error: Documentation for '${query}' not found.`);
+    console.error('\nAvailable items:');
+    console.error(entries.map(e => `  - ${e.name}`).join('\n'));
+    console.error('\nRun "ygo_search docs list" to see all available documentation.');
+    process.exit(1);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
 
@@ -938,6 +988,9 @@ async function main() {
       break;
     case 'vector':
       await handleVectorCommand(commandArgs);
+      break;
+    case 'docs':
+      await handleDocsCommand(commandArgs);
       break;
     case 'update':
       handleUpdateCommand();

@@ -43,7 +43,7 @@ bun run build
 
 ```bash
 ls -la dist/cli/
-# 出力: ygo_search.js, ygo_extract.js, ygo_replace.js, ygo_convert.js など
+# 出力: ygo_search.js, ygo_update_search.js
 ```
 
 ## CLIコマンドの実行
@@ -55,22 +55,24 @@ ls -la dist/cli/
 bun link
 
 # 任意の場所でコマンド使用可能
-ygo_search '{"name":"青眼"}' cols=name,cardId
-ygo_extract "{青眼の白龍}"
-ygo_replace "{青眼}を召喚"
-ygo_seek --max 10
-ygo_faq_search cardId=6808
+ygo_search card --name "青眼" --cols name,cardId
+ygo_search extract "{青眼の白龍}"
+ygo_search replace "{青眼}を召喚"
+ygo_search seek --max 10
+ygo_search faq cardId=6808
+ygo_search docs list
 ```
 
 ### オプション2: 直接実行
 
 ```bash
 # グローバルインストール不要
-node dist/cli/ygo_search.js '{"name":"青眼"}' cols=name,cardId
-node dist/cli/ygo_extract.js "{青眼の白龍}"
-node dist/cli/ygo_replace.js "{青眼}を召喚"
-node dist/cli/ygo_seek.js --max 10
-node dist/cli/ygo_faq_search.js cardId=6808
+node dist/cli/ygo_search.js card --name "青眼" --cols name,cardId
+node dist/cli/ygo_search.js extract "{青眼の白龍}"
+node dist/cli/ygo_search.js replace "{青眼}を召喚"
+node dist/cli/ygo_search.js seek --max 10
+node dist/cli/ygo_search.js faq cardId=6808
+node dist/cli/ygo_search.js docs list
 ```
 
 ## 開発ワークフロー
@@ -168,13 +170,8 @@ bun link
 ```
 src/
 ├── cli/                    # CLIコマンドスクリプト
-│   ├── ygo_search.ts
-│   ├── ygo_extract.ts
-│   ├── ygo_replace.ts
-│   ├── ygo_convert.ts
-│   ├── ygo_seek.ts
-│   ├── ygo_bulk_search.ts
-│   └── ygo_faq_search.ts
+│   ├── ygo_search.ts       # メインCLI（すべてのサブコマンドを含む）
+│   └── ygo_update_search.ts
 ├── lib/                    # コアライブラリ
 │   ├── card-search-core.ts
 │   ├── normalize.ts
@@ -184,9 +181,8 @@ src/
 
 dist/                       # コンパイル済みJavaScript（ビルド後）
 ├── cli/
-│   ├── ygo_search.js
-│   ├── ygo_extract.js
-│   ├── ...
+│   ├── ygo_search.js       # すべての機能を含む統合CLI
+│   └── ygo_update_search.js
 ├── lib/
 ├── utils/
 └── ...
