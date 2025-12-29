@@ -57,7 +57,8 @@ bun link
 # 任意の場所でコマンド使用可能
 ygo_search card --name "青眼" --cols name,cardId
 ygo_search extract "{青眼の白龍}"
-ygo_search replace "{青眼}を召喚"
+ygo_search replace "{青眼の白龍}を召喚"
+# => {"processedText":"{{青眼の白龍|4007}}を召喚",...}
 ygo_search seek --max 10
 ygo_search faq cardId=6808
 ygo_search docs list
@@ -69,7 +70,8 @@ ygo_search docs list
 # グローバルインストール不要
 node dist/cli/ygo_search.js card --name "青眼" --cols name,cardId
 node dist/cli/ygo_search.js extract "{青眼の白龍}"
-node dist/cli/ygo_search.js replace "{青眼}を召喚"
+node dist/cli/ygo_search.js replace "{青眼の白龍}を召喚"
+# => {"processedText":"{{青眼の白龍|4007}}を召喚",...}
 node dist/cli/ygo_search.js seek --max 10
 node dist/cli/ygo_search.js faq cardId=6808
 node dist/cli/ygo_search.js docs list
