@@ -204,10 +204,13 @@ ygo_search vector setup faqs     # FAQのみ
 ygo_search vector setup all      # 全て
 
 # ルールデータのインポート（YAML形式）
-ygo_search vector setup-generic rules.yml rules --include-columns name,notes,examples
+ygo_search vector setup-generic rules.yml --table rules --include-columns name,notes,examples
+
+# 複数ファイルのインポート（glob展開・併記対応）
+ygo_search vector setup-generic aa/*.yml bb/data.yml --table rules
 
 # 汎用データのインポート（yaml/json/jsonl/tsv/csv対応）
-ygo_search vector setup-generic data.json custom-table
+ygo_search vector setup-generic data.json --table custom-table
 ```
 
 #### 検索
@@ -246,13 +249,16 @@ ygo_search vector search "墓地" --distance dot
 # その他のフィールドは自動的に検索テキストに含まれる
 
 # 特定カラムのみ含める
-ygo_search vector setup-generic data.yml table --include-columns name,notes,examples
+ygo_search vector setup-generic data.yml --table mytable --include-columns name,notes,examples
 
 # 特定カラムを除外
-ygo_search vector setup-generic data.json table --exclude-columns cite,sourceFile
+ygo_search vector setup-generic data.json --table mytable --exclude-columns cite,sourceFile
 
 # 一時JSONLファイルを保持（デバッグ用）
-ygo_search vector setup-generic data.yml table --keep-tmp
+ygo_search vector setup-generic data.yml --table mytable --keep-tmp
+
+# 複数ファイル指定（シェルのglob展開を利用）
+ygo_search vector setup-generic rules/*.yml --table rules
 
 # 対応フォーマット:
 # - YAML (.yml, .yaml) - 階層構造から自動抽出
