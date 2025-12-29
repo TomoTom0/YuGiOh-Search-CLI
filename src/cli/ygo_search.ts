@@ -894,6 +894,8 @@ Examples:
       console.error(`${inputFile} からJSONLに変換中...`);
       // 一時ファイルに変換してから追記
       const tempJsonlPath = getTmpPath(`${tableName}_temp.jsonl`);
+      tmpFiles.push(tempJsonlPath); // クリーンアップリストに追加
+
       const count = await convertGenericToJsonl(inputFile, tempJsonlPath, options);
       console.error(`  ${count}件のレコードを変換しました`);
       totalCount += count;
@@ -902,8 +904,7 @@ Examples:
       const tempContent = await fs.readFile(tempJsonlPath, 'utf-8');
       await fs.appendFile(jsonlPath, tempContent);
 
-      // 一時ファイル削除
-      await fs.unlink(tempJsonlPath);
+      // 一時ファイルは関数の最後でまとめて削除するため、ここではunlinkしない
     }
 
     console.error(`合計 ${totalCount}件のレコードを変換しました`);
