@@ -15,6 +15,14 @@
 # 依存関係のインストール
 bun install
 
+# データファイルの準備（初回のみ）
+# プロジェクトルートで以下を実行してTSVデータを取得
+cd .. && bun run update && cd web
+
+# public/data/tsv/ にTSVファイルを配置
+mkdir -p public/data/tsv
+cp ~/.local/ygo-search/*.tsv public/data/tsv/
+
 # 開発サーバーの起動 (http://localhost:40100)
 bun run dev
 
@@ -24,6 +32,13 @@ bun run build
 # プレビュー（本番ビルドの確認）
 bun run preview
 ```
+
+### ビルド時に含まれるファイル
+
+ビルド時に以下のファイルが `dist/` に自動でコピーされます：
+
+- `public/data/tsv/` - カード・FAQデータ（TSV形式）
+- `../docs/` - APIドキュメント（vite-plugin-static-copyによるコピー）
 
 ## ディレクトリ構造
 
