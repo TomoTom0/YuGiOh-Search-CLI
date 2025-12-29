@@ -58,10 +58,22 @@ Automatically handles:
 
 ## Installation
 
+### From npm (Recommended)
+
+```bash
+# Install globally
+npm install -g ygo-search
+
+# Download card data (required for first use)
+ygo_search update
+```
+
+### From Source
+
 ```bash
 # Clone repository
-git clone https://github.com/TomoTom0/YuGiOh-Search-CLI.git
-cd YuGiOh-Search-CLI
+git clone https://github.com/TomoTom0/ygo-search.git
+cd ygo-search
 
 # Install dependencies
 bun install
@@ -73,10 +85,18 @@ bun run build
 bun link
 
 # Download card data (37.6MB total) - required for first use
-ygo_update_search
+ygo_search update
+```
 
-# Alternative: Download data manually
-bash scripts/setup/setup-data.sh
+### As a Library
+
+```bash
+# Add to your project
+npm install ygo-search
+# or
+pnpm add ygo-search
+# or
+bun add ygo-search
 ```
 
 ## Usage
