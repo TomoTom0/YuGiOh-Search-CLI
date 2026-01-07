@@ -1,9 +1,8 @@
 import fs from 'fs'
-import path from 'path'
 import readline from 'readline'
 import { FAQRecord, FAQIndex, CardReference } from '../types/faq.js'
 import { Card, CardType, Attribute, LevelType, Race, SpellEffectType, TrapEffectType } from '../types/card.js'
-import { findProjectRoot } from './project-root.js'
+import { getTsvPath } from '../lib/config/paths.js'
 
 let cachedIndex: FAQIndex | null = null
 let cardsCache: Map<string, Card> | null = null
@@ -66,8 +65,7 @@ function isTrapEffectType(value: string): value is TrapEffectType {
 async function loadCards(): Promise<Map<string, Card>> {
   if (cardsCache) return cardsCache
 
-  const projectRoot = await findProjectRoot()
-  const cardsPath = path.join(projectRoot, 'data', 'cards-all.tsv')
+  const cardsPath = getTsvPath('cards-all.tsv')
 
   if (!fs.existsSync(cardsPath)) {
     throw new Error(`カードデータファイルが見つかりません: ${cardsPath}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`)
@@ -122,8 +120,7 @@ async function loadCards(): Promise<Map<string, Card>> {
 export async function loadFAQIndex(): Promise<FAQIndex> {
   if (cachedIndex) return cachedIndex
 
-  const projectRoot = await findProjectRoot()
-  const faqPath = path.join(projectRoot, 'data', 'faq-all.tsv')
+  const faqPath = getTsvPath('faq-all.tsv')
 
   if (!fs.existsSync(faqPath)) {
     throw new Error(`FAQデータファイルが見つかりません: ${faqPath}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`)
