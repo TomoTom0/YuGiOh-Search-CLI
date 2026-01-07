@@ -1,7 +1,6 @@
 import fs from 'fs';
-import path from 'path';
 import readline from 'readline';
-import { findProjectRoot } from './project-root.js';
+import { getTsvPath } from '../lib/config/paths.js';
 let cachedIndex = null;
 let cardsCache = null;
 export function extractCardReferences(text) {
@@ -95,8 +94,7 @@ function isTrapEffectType(value) {
 }
 async function loadCards() {
     if (cardsCache) return cardsCache;
-    const projectRoot = await findProjectRoot();
-    const cardsPath = path.join(projectRoot, 'data', 'cards-all.tsv');
+    const cardsPath = getTsvPath('cards-all.tsv');
     if (!fs.existsSync(cardsPath)) {
         throw new Error(`カードデータファイルが見つかりません: ${cardsPath}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`);
     }
@@ -144,8 +142,7 @@ async function loadCards() {
 }
 export async function loadFAQIndex() {
     if (cachedIndex) return cachedIndex;
-    const projectRoot = await findProjectRoot();
-    const faqPath = path.join(projectRoot, 'data', 'faq-all.tsv');
+    const faqPath = getTsvPath('faq-all.tsv');
     if (!fs.existsSync(faqPath)) {
         throw new Error(`FAQデータファイルが見つかりません: ${faqPath}\n\n以下のコマンドでデータをダウンロードしてください:\n  ygo_update_search`);
     }
