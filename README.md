@@ -141,12 +141,21 @@ ygo_search vector search "チェーン" --type rules --limit 5
 ygo_search update
 
 # Convert file formats
+<<<<<<< HEAD
 ygo_search convert input.json:output.jsonl
 
 # View API documentation
 ygo_search docs list                 # List all available documentation
 ygo_search docs searchCards          # Show searchCards function documentation
 ygo_search docs Card                 # Show Card interface documentation
+=======
+ygo_convert input.json:output.jsonl
+
+# View API documentation
+ygo_docs list                 # List all available documentation
+ygo_docs searchCards          # Show searchCards function documentation
+ygo_docs Card                 # Show Card interface documentation
+>>>>>>> 4a4cc77 (feat: Add API documentation with TypeDoc and ygo_docs CLI command)
 ```
 
 ### Direct Node Execution
@@ -154,9 +163,15 @@ ygo_search docs Card                 # Show Card interface documentation
 ```bash
 node dist/cli/ygo_search.js card --name "青眼" --cols name,cardId
 node dist/cli/ygo_search.js extract "{青眼の白龍}"
+<<<<<<< HEAD
 node dist/cli/ygo_search.js replace "{青眼の白龍}を召喚" --raw
 node dist/cli/ygo_search.js convert input.json:output.csv
 node dist/cli/ygo_search.js docs list
+=======
+node dist/cli/ygo_search.js replace "{青眼}を召喚" --raw
+node dist/cli/ygo_convert.js input.json:output.csv
+node dist/cli/ygo_docs.js list
+>>>>>>> 4a4cc77 (feat: Add API documentation with TypeDoc and ygo_docs CLI command)
 ```
 
 ### Library Usage (TypeScript/JavaScript)
@@ -266,9 +281,15 @@ const yamlString = formatOutput({ key: 'value' }, 'yaml')
 
 View documentation using the CLI:
 ```bash
+<<<<<<< HEAD
 ygo_search docs list              # List all available documentation
 ygo_search docs searchCards       # Show function documentation
 ygo_search docs Card              # Show interface documentation
+=======
+ygo_docs list              # List all available documentation
+ygo_docs searchCards       # Show function documentation
+ygo_docs Card              # Show interface documentation
+>>>>>>> 4a4cc77 (feat: Add API documentation with TypeDoc and ygo_docs CLI command)
 ```
 
 Or browse directly:

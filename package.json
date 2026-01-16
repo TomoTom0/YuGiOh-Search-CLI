@@ -14,7 +14,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "ygo_search": "./dist/cli/ygo_search.js"
+"ygo_search": "./dist/cli/ygo_search.js"
   },
   "files": [
     "dist",
