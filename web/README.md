@@ -39,7 +39,6 @@ bun run preview
 
 - `public/data/tsv/` - カード・FAQデータ（TSV形式）
 - `../docs/` - APIドキュメント（vite-plugin-static-copyによるコピー）
-
 ## ディレクトリ構造
 
 ```
