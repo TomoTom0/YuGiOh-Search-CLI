@@ -49,7 +49,6 @@ export async function findDocs(docsDir: string): Promise<DocEntry[]> {
       return [];
     }
     throw err;
-    return [];
   }
 
   return entries;
