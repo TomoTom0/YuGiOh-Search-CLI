@@ -1,6 +1,6 @@
 {
   "name": "ygo-search",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "CLI tools for Yu-Gi-Oh card search with local database",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,7 +14,7 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "ygo_search": "./dist/cli/ygo_search.js"
+"ygo_search": "./dist/cli/ygo_search.js"
   },
   "files": [
     "dist",
