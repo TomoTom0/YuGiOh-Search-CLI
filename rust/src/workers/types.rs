@@ -82,7 +82,7 @@ pub struct SearchCardsResponse {
     pub cards: Vec<CardInfo>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CardInfo {
     pub card_id: String,
     pub name: String,
@@ -130,7 +130,7 @@ pub struct FaqInfo {
     pub card_info: Option<CardInfo>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CardReferenceInfo {
     pub name: String,
     pub card_id: String,

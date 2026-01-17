@@ -48,24 +48,7 @@ pub async fn search_cards_by_name(db: &D1Database, query: &str, limit: usize) ->
     };
 
     let results = stmt.all().await?;
-    let rows = results.results::<serde_json::Value>()?;
-
-    Ok(rows
-        .into_iter()
-        .filter_map(|row| {
-            Some(CardInfo {
-                card_id: row.get("card_id")?.as_str()?.to_string(),
-                name: row.get("name")?.as_str()?.to_string(),
-                normalized_name: row.get("normalized_name").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                card_type: row.get("card_type").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                attribute: row.get("attribute").and_then(|v| v.as_str()).map(|s| s.to_string()),
-                level: row.get("level").and_then(|v| v.as_i64()).map(|n| n as i32),
-                atk: row.get("atk").and_then(|v| v.as_i64()).map(|n| n as i32),
-                def: row.get("def").and_then(|v| v.as_i64()).map(|n| n as i32),
-                description: row.get("description").and_then(|v| v.as_str()).map(|s| s.to_string()),
-            })
-        })
-        .collect())
+    results.results::<CardInfo>()?.into_iter().collect()
 }
 
 /// D1からカードIDでカードを検索する
@@ -78,21 +61,7 @@ pub async fn search_card_by_id(db: &D1Database, card_id: &str) -> Result<Option<
         .prepare("SELECT card_id, name, normalized_name, card_type, attribute, level, atk, def, description FROM cards WHERE card_id = ?")
         .bind(&[card_id.into()])?;
 
-    let results = stmt.first::<serde_json::Value>(None).await?;
-
-    Ok(results.and_then(|row| {
-        Some(CardInfo {
-            card_id: row.get("card_id")?.as_str()?.to_string(),
-            name: row.get("name")?.as_str()?.to_string(),
-            normalized_name: row.get("normalized_name").and_then(|v| v.as_str()).map(|s| s.to_string()),
-            card_type: row.get("card_type").and_then(|v| v.as_str()).map(|s| s.to_string()),
-            attribute: row.get("attribute").and_then(|v| v.as_str()).map(|s| s.to_string()),
-            level: row.get("level").and_then(|v| v.as_i64()).map(|n| n as i32),
-            atk: row.get("atk").and_then(|v| v.as_i64()).map(|n| n as i32),
-            def: row.get("def").and_then(|v| v.as_i64()).map(|n| n as i32),
-            description: row.get("description").and_then(|v| v.as_str()).map(|s| s.to_string()),
-        })
-    }))
+    Ok(stmt.first::<CardInfo>(None).await?)
 }
 
 /// D1からFAQをテキスト検索する
@@ -117,30 +86,48 @@ pub async fn search_faqs_by_text(db: &D1Database, query: &str, limit: usize) -> 
     let results = stmt.all().await?;
     let rows = results.results::<serde_json::Value>()?;
 
-    let mut faqs = Vec::new();
-    for row in rows {
-        if let (Some(faq_id), Some(card_id), Some(question), Some(answer)) = (
-            row.get("faq_id").and_then(|v| v.as_i64()),
-            row.get("card_id").and_then(|v| v.as_str()),
-            row.get("question").and_then(|v| v.as_str()),
-            row.get("answer").and_then(|v| v.as_str()),
-        ) {
-            // カード参照を取得
-            let card_refs = get_faq_card_references(db, faq_id as u32).await?;
+    // FAQを一括取得
+    let faq_list: Vec<(u32, String, String, String)> = rows
+        .into_iter()
+        .filter_map(|row| {
+            let faq_id = row.get("faq_id").and_then(|v| v.as_i64())? as u32;
+            let card_id = row.get("card_id")?.as_str()?.to_string();
+            let question = row.get("question")?.as_str()?.to_string();
+            let answer = row.get("answer")?.as_str()?.to_string();
+            Some((faq_id, card_id, question, answer))
+        })
+        .collect();
 
-            // カード情報を取得
-            let card_info = search_card_by_id(db, card_id).await?;
-
-            faqs.push(FaqInfo {
-                faq_id: faq_id as u32,
-                card_id: card_id.to_string(),
-                question: question.to_string(),
-                answer: answer.to_string(),
-                card_references: card_refs,
-                card_info,
-            });
-        }
+    if faq_list.is_empty() {
+        return Ok(vec![]);
     }
+
+    // FAQのIDリストとカードIDリストを抽出
+    let faq_ids: Vec<String> = faq_list.iter().map(|(id, _, _, _)| id.to_string()).collect();
+    let card_ids: Vec<String> = faq_list.iter().map(|(_, card_id, _, _)| card_id.clone()).collect();
+
+    // カード参照をIN句で一括取得
+    let card_refs_map = get_faq_card_references_batch(db, &faq_ids).await?;
+
+    // カード情報をIN句で一括取得
+    let card_info_map = search_cards_by_ids(db, &card_ids).await?;
+
+    // マッピング
+    let faqs = faq_list
+        .into_iter()
+        .map(|(faq_id, card_id, question, answer)| {
+            let card_references = card_refs_map.get(&faq_id.to_string()).cloned().unwrap_or_default();
+            let card_info = card_info_map.get(&card_id).cloned();
+            FaqInfo {
+                faq_id,
+                card_id,
+                question,
+                answer,
+                card_references,
+                card_info,
+            }
+        })
+        .collect();
 
     Ok(faqs)
 }
@@ -164,30 +151,48 @@ pub async fn search_faqs_by_card_id(db: &D1Database, card_id: &str, limit: usize
     let results = stmt.all().await?;
     let rows = results.results::<serde_json::Value>()?;
 
-    let mut faqs = Vec::new();
-    for row in rows {
-        if let (Some(faq_id), Some(card_id), Some(question), Some(answer)) = (
-            row.get("faq_id").and_then(|v| v.as_i64()),
-            row.get("card_id").and_then(|v| v.as_str()),
-            row.get("question").and_then(|v| v.as_str()),
-            row.get("answer").and_then(|v| v.as_str()),
-        ) {
-            // カード参照を取得
-            let card_refs = get_faq_card_references(db, faq_id as u32).await?;
+    // FAQを一括取得
+    let faq_list: Vec<(u32, String, String, String)> = rows
+        .into_iter()
+        .filter_map(|row| {
+            let faq_id = row.get("faq_id").and_then(|v| v.as_i64())? as u32;
+            let card_id = row.get("card_id")?.as_str()?.to_string();
+            let question = row.get("question")?.as_str()?.to_string();
+            let answer = row.get("answer")?.as_str()?.to_string();
+            Some((faq_id, card_id, question, answer))
+        })
+        .collect();
 
-            // カード情報を取得
-            let card_info = search_card_by_id(db, card_id).await?;
-
-            faqs.push(FaqInfo {
-                faq_id: faq_id as u32,
-                card_id: card_id.to_string(),
-                question: question.to_string(),
-                answer: answer.to_string(),
-                card_references: card_refs,
-                card_info,
-            });
-        }
+    if faq_list.is_empty() {
+        return Ok(vec![]);
     }
+
+    // FAQのIDリストとカードIDリストを抽出
+    let faq_ids: Vec<String> = faq_list.iter().map(|(id, _, _, _)| id.to_string()).collect();
+    let card_ids: Vec<String> = faq_list.iter().map(|(_, card_id, _, _)| card_id.clone()).collect();
+
+    // カード参照をIN句で一括取得
+    let card_refs_map = get_faq_card_references_batch(db, &faq_ids).await?;
+
+    // カード情報をIN句で一括取得
+    let card_info_map = search_cards_by_ids(db, &card_ids).await?;
+
+    // マッピング
+    let faqs = faq_list
+        .into_iter()
+        .map(|(faq_id, card_id, question, answer)| {
+            let card_references = card_refs_map.get(&faq_id.to_string()).cloned().unwrap_or_default();
+            let card_info = card_info_map.get(&card_id).cloned();
+            FaqInfo {
+                faq_id,
+                card_id,
+                question,
+                answer,
+                card_references,
+                card_info,
+            }
+        })
+        .collect();
 
     Ok(faqs)
 }
@@ -199,15 +204,74 @@ async fn get_faq_card_references(db: &D1Database, faq_id: u32) -> Result<Vec<Car
         .bind(&[(faq_id as i32).into()])?;
 
     let results = stmt.all().await?;
+    results.results::<CardReferenceInfo>()?.into_iter().collect()
+}
+
+/// 複数のFAQのカード参照をIN句で一括取得する
+async fn get_faq_card_references_batch(db: &D1Database, faq_ids: &[String]) -> Result<std::collections::HashMap<String, Vec<CardReferenceInfo>>> {
+    if faq_ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+
+    let placeholders = faq_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT faq_id, card_id, card_name FROM faq_card_references WHERE faq_id IN ({})",
+        placeholders
+    );
+
+    let bindings: Vec<worker::Binding> = faq_ids
+        .iter()
+        .map(|id| id.clone().into())
+        .collect();
+
+    let stmt = db.prepare(&sql).bind(&bindings)?;
+    let results = stmt.all().await?;
     let rows = results.results::<serde_json::Value>()?;
 
-    Ok(rows
+    let mut map = std::collections::HashMap::new();
+    for row in rows {
+        if let (Some(faq_id), Some(card_id), Some(card_name)) = (
+            row.get("faq_id").and_then(|v| v.as_i64()).map(|v| v.to_string()),
+            row.get("card_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
+            row.get("card_name").and_then(|v| v.as_str()).map(|s| s.to_string()),
+        ) {
+            map.entry(faq_id.clone())
+                .or_insert_with(Vec::new)
+                .push(CardReferenceInfo {
+                    name: card_name,
+                    card_id,
+                });
+        }
+    }
+
+    Ok(map)
+}
+
+/// 複数のカード情報をIN句で一括取得する
+async fn search_cards_by_ids(db: &D1Database, card_ids: &[String]) -> Result<std::collections::HashMap<String, CardInfo>> {
+    if card_ids.is_empty() {
+        return Ok(std::collections::HashMap::new());
+    }
+
+    let placeholders = card_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let sql = format!(
+        "SELECT card_id, name, normalized_name, card_type, attribute, level, atk, def, description FROM cards WHERE card_id IN ({})",
+        placeholders
+    );
+
+    let bindings: Vec<worker::Binding> = card_ids
+        .iter()
+        .map(|id| id.clone().into())
+        .collect();
+
+    let stmt = db.prepare(&sql).bind(&bindings)?;
+    let results = stmt.all().await?;
+    let rows = results.results::<CardInfo>()?;
+
+    let map = rows
         .into_iter()
-        .filter_map(|row| {
-            Some(CardReferenceInfo {
-                name: row.get("card_name")?.as_str()?.to_string(),
-                card_id: row.get("card_id")?.as_str()?.to_string(),
-            })
-        })
-        .collect())
+        .map(|card| (card.card_id.clone(), card))
+        .collect();
+
+    Ok(map)
 }
