@@ -22,7 +22,6 @@ cd .. && bun run update && cd web
 # public/data/tsv/ にTSVファイルを配置
 mkdir -p public/data/tsv
 cp ~/.local/ygo-search/*.tsv public/data/tsv/
-
 # 開発サーバーの起動 (http://localhost:40100)
 bun run dev
 
@@ -39,7 +38,6 @@ bun run preview
 
 - `public/data/tsv/` - カード・FAQデータ（TSV形式）
 - `../docs/` - APIドキュメント（vite-plugin-static-copyによるコピー）
-
 ## ディレクトリ構造
 
 ```
