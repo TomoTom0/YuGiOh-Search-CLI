@@ -60,7 +60,9 @@ describe('cli-docs', () => {
     });
 
     it('should return empty array when directory does not exist', async () => {
-      (fs.readdir as any).mockRejectedValue(new Error('ENOENT'));
+      const enoentError = new Error('ENOENT') as NodeJS.ErrnoException;
+      enoentError.code = 'ENOENT';
+      (fs.readdir as any).mockRejectedValue(enoentError);
 
       const entries = await findDocs('/nonexistent');
 

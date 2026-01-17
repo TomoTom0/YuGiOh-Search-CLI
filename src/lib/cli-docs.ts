@@ -44,9 +44,11 @@ export async function findDocs(docsDir: string): Promise<DocEntry[]> {
       });
     }
   } catch (err) {
-// ENOENTエラー（ディレクトリが存在しない）場合は空配列を返す
-    if (err instanceof Error && 'code' in err && (err as NodeJS.ErrnoException).code === 'ENOENT') {
-      return [];
+    if (err instanceof Error) {
+      const errnoException = err as NodeJS.ErrnoException;
+      if (errnoException.code === 'ENOENT' || err.message === 'ENOENT') {
+        return [];
+      }
     }
     throw err;
   }
