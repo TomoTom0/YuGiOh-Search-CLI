@@ -49,11 +49,8 @@ impl FAQSearcher {
 
         faqs.iter()
             .filter(|faq| {
-                let normalized_question = normalize_for_search(&faq.question);
-                let normalized_answer = normalize_for_search(&faq.answer);
-
-                normalized_question.contains(&normalized_query)
-                    || normalized_answer.contains(&normalized_query)
+                faq.normalized_question.contains(&normalized_query)
+                    || faq.normalized_answer.contains(&normalized_query)
             })
             .collect()
     }

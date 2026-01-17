@@ -14,6 +14,8 @@ pub struct FAQRecord {
     pub card_id: String,
     pub question: String,
     pub answer: String,
+    pub normalized_question: String,
+    pub normalized_answer: String,
     pub card_references: Vec<CardReference>,
     pub card_info: Option<Card>,
 }
@@ -25,11 +27,15 @@ impl FAQRecord {
         question: &str,
         answer: &str,
     ) -> Self {
+        let normalized_question = crate::normalize::normalize_for_search(question);
+        let normalized_answer = crate::normalize::normalize_for_search(answer);
         Self {
             faq_id,
             card_id: card_id.to_string(),
             question: question.to_string(),
             answer: answer.to_string(),
+            normalized_question,
+            normalized_answer,
             card_references: Vec::new(),
             card_info: None,
         }
