@@ -8,7 +8,6 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 
 interface Card {
   cardId: string;
