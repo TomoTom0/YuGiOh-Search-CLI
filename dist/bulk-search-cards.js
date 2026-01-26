@@ -6,8 +6,14 @@ import url from 'url';
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const searchScript = path.join(__dirname, 'search-cards.js');
 async function executeQuery(query) {
+    // Support both {filter: {...}} and {...} formats
+    const filter = query.filter || query;
+    if (!filter) {
+        console.error(`Error: query is empty. Full query:`, JSON.stringify(query));
+        return [];
+    }
     const args = [
-        JSON.stringify(query.filter)
+        JSON.stringify(filter)
     ];
     if (query.cols && query.cols.length > 0) {
         args.push(`cols=${query.cols.join(',')}`);
@@ -55,6 +61,7 @@ async function executeQuery(query) {
         child.on('close', (code)=>{
             if (code !== 0) {
                 // Return empty array on error instead of failing
+                console.error(`Error in query ${JSON.stringify(query.filter)}:`, stderr);
                 resolve([]);
                 return;
             }
@@ -67,10 +74,12 @@ async function executeQuery(query) {
                 const result = lines.map((line)=>JSON.parse(line));
                 resolve(result);
             } catch (e) {
+                console.error(`Error parsing output for query ${JSON.stringify(query.filter)}:`, e);
                 resolve([]);
             }
         });
-        child.on('error', ()=>{
+        child.on('error', (err)=>{
+            console.error(`Failed to execute query ${JSON.stringify(query.filter)}:`, err);
             resolve([]);
         });
     });
