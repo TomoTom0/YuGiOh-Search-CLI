@@ -347,28 +347,28 @@ function normalizeForAPI(str: string): string {
 async function searchCardsExtended(query: string, env: Env, limit: number, offset: number, options: SearchOptions) {
   const conditions: string[] = []
   const params: any[] = []
-  
+
   if (query) {
     const normalizedQuery = query.toLowerCase().replace(/[\s・]/g, '')
     conditions.push('normalized_name LIKE ?')
     params.push(`%${normalizedQuery}%`)
   }
-  
+
   if (options.attribute) {
     conditions.push('attribute = ?')
-    params.push(options.attribute)
+    params.push(normalizeForAPI(options.attribute))
   }
-  
+
   if (options.race) {
     conditions.push('race = ?')
     params.push(normalizeForAPI(options.race))
   }
-  
+
   if (options.cardType) {
     conditions.push('card_type = ?')
-    params.push(options.cardType)
+    params.push(normalizeForAPI(options.cardType))
   }
-  
+
   if (options.level) {
     const levelNum = parseInt(options.level)
     if (!isNaN(levelNum)) {
@@ -376,7 +376,7 @@ async function searchCardsExtended(query: string, env: Env, limit: number, offse
       params.push(levelNum)
     }
   }
-  
+
   if (options.atk) {
     const atkNum = parseInt(options.atk)
     if (!isNaN(atkNum)) {
@@ -384,7 +384,7 @@ async function searchCardsExtended(query: string, env: Env, limit: number, offse
       params.push(atkNum)
     }
   }
-  
+
   if (options.def) {
     const defNum = parseInt(options.def)
     if (!isNaN(defNum)) {
@@ -392,107 +392,35 @@ async function searchCardsExtended(query: string, env: Env, limit: number, offse
       params.push(defNum)
     }
   }
-  
+
   if (options.text) {
     const normalizedText = normalizeForAPI(options.text)
     conditions.push('description LIKE ?')
     params.push(`%${normalizedText}%`)
   }
-  
+
   if (options.monster_types) {
     conditions.push('monster_types = ?')
     params.push(normalizeForAPI(options.monster_types))
   }
-  
+
   if (options.spell_effect_type) {
     conditions.push('spell_effect_type = ?')
     params.push(normalizeForAPI(options.spell_effect_type))
   }
-  
+
   if (options.trap_effect_type) {
     conditions.push('trap_effect_type = ?')
     params.push(normalizeForAPI(options.trap_effect_type))
   }
-  
+
   if (options.link_markers) {
     conditions.push('link_markers = ?')
     params.push(normalizeForAPI(options.link_markers))
   }
-  
+
   if (options.link_value) {
     const linkValueNum = parseInt(options.link_value)
-    if (!isNaN(linkValueNum)) {
-      conditions.push('link_value = ?')
-      params.push(linkValueNum)
-    }
-  }
-  
-  if (options.race) {
-    conditions.push('race = ?')
-    params.push(normalizeForAPI(options.race))
-  }
-  
-  if (options.attribute) {
-    conditions.push('attribute = ?')
-    params.push(normalizeForAPI(options.attribute))
-  }
-  
-  if (options.cardType) {
-    conditions.push('card_type = ?')
-    params.push(normalizeForAPI(options.cardType))
-  }
-  
-  if (options.level) {
-    const levelNum = parseInt(options.level)
-    if (!isNaN(levelNum)) {
-      conditions.push('level = ?')
-      params.push(levelNum)
-    }
-  }
-  
-  if (options.atk) {
-    const atkNum = parseInt(options.atk)
-    if (!isNaN(atkNum)) {
-      conditions.push('atk = ?')
-      params.push(atkNum)
-    }
-  }
-  
-  if (options.def) {
-    const defNum = parseInt(options.def)
-    if (!isNaN(defNum)) {
-      conditions.push('def = ?')
-      params.push(defNum)
-    }
-  }
-  
-  if (options.race) {
-    conditions.push('race = ?')
-    params.push(normalizeForAPI(options.race))
-  }
-  
-  if (options.monsterTypes) {
-    conditions.push('monster_types = ?')
-    params.push(normalizeForAPI(options.monsterTypes))
-  }
-  
-  if (options.spellEffectType) {
-    conditions.push('spell_effect_type = ?')
-    params.push(normalizeForAPI(options.spellEffectType))
-  }
-  
-  if (options.trapEffectType) {
-    conditions.push('trap_effect_type = ?')
-    params.push(normalizeForAPI(options.trapEffectType))
-  }
-  
-  if (options.linkMarkers) {
-    conditions.push('link_markers = ?')
-    params.push(normalizeForAPI(options.linkMarkers))
-  }
-  
-  if (options.linkValue) {
-    const linkValueNum = parseInt(options.linkValue)
     if (!isNaN(linkValueNum)) {
       conditions.push('link_value = ?')
       params.push(linkValueNum)

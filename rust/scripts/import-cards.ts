@@ -82,10 +82,9 @@ function parseCardsFile(filepath: string): Map<string, Partial<Card>> {
       name: row.name || '',
       cardType: row.cardType || row.card_type,
       attribute: row.attribute,
-      level: row.level ? parseInt(row.level) : undefined,
+      level: row.levelValue ? parseInt(row.levelValue) : undefined,
       atk: row.atk ? parseInt(row.atk) : undefined,
       def: row.def ? parseInt(row.def) : undefined,
-      description: detailsMap.get(cardId),
       race: row.race,
       monsterTypes: row.monsterTypes,
       spellEffectType: row.spellEffectType || row.spell_effect_type,
@@ -93,10 +92,7 @@ function parseCardsFile(filepath: string): Map<string, Partial<Card>> {
       linkMarkers: row.linkMarkers || row.link_markers,
     });
   }
-  
-  return cards;
-}
-  
+
   return cards;
 }
 
@@ -118,7 +114,7 @@ function parseDetailsFile(filepath: string): Map<string, string> {
     const cardId = row.cardId || row.card_id || row.id;
     if (!cardId) continue;
 
-    details.set(cardId, row.text || row.description || '');
+    details.set(cardId, row.supplementInfo || row.text || row.description || '');
   }
 
   return details;
@@ -204,7 +200,7 @@ async function main() {
   console.log(`Generating SQL for ${cards.length} cards...`);
   const sql = generateSQL(cards);
 
-  const outputFile = 'import-cards.sql';
+  const outputFile = './tmp/import-cards.sql';
   fs.writeFileSync(outputFile, sql, 'utf-8');
 
   console.log(`SQL written to ${outputFile}`);
