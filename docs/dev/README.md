@@ -10,6 +10,9 @@
 **例:**
 - `2025-11-19_merge-conflict-resolution.md` - マージ競合の解決記録
 
+### ドキュメント一覧
+- [cloudflare-workers-api-development-plan.md](cloudflare-workers-api-development-plan.md) - Cloudflare Workers API開発計画と設計方針
+
 ## 用途
 
 このディレクトリは主に以下の目的で使用されます：

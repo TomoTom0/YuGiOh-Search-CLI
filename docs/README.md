@@ -28,6 +28,12 @@
 開発履歴とトラブルシューティング記録
 
 - `records/` - マージ競合解決、重要な開発決定の記録
+- `cloudflare-workers-api-development-plan.md` - Cloudflare Workers API開発計画
+
+### Cloudflare Workers API
+Web APIのデプロイと運用
+
+- [/tmp/DEPLOYMENT.md](/tmp/DEPLOYMENT.md) - 本番デプロイ手順、エンドポイント一覧、環境設定
 
 ## ドキュメント選択ガイド
 
