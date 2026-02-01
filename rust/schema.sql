@@ -2,7 +2,9 @@
 CREATE TABLE IF NOT EXISTS cards (
     card_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    ruby TEXT,
     normalized_name TEXT NOT NULL,
+    normalized_ruby TEXT,
     card_type TEXT,
     attribute TEXT,
     level INTEGER,
