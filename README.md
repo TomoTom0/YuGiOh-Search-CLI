@@ -15,7 +15,7 @@ Command-line tools and Web API for searching Yu-Gi-Oh! card database with full J
 - 一括検索、ランダム取得
 - フォーマット変換
 
-詳細は`tmp/DEPLOYMENT.md`を参照してください。
+詳細は[docs/deployment.md](docs/deployment.md)を参照してください。
 
 ### CLI Commands
 

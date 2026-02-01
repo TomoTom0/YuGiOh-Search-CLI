@@ -33,7 +33,7 @@
 ### Cloudflare Workers API
 Web APIのデプロイと運用
 
-- [/tmp/DEPLOYMENT.md](/tmp/DEPLOYMENT.md) - 本番デプロイ手順、エンドポイント一覧、環境設定
+- [deployment.md](deployment.md) - 本番デプロイ手順、エンドポイント一覧、環境設定
 
 ## ドキュメント選択ガイド
 
