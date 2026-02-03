@@ -39,11 +39,21 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, X-API-Secret, Authorization',
           'Access-Control-Max-Age': '86400'
         }
       })
+    }
+
+    // Authentication check (skip only for /api/docs)
+    if (path !== '/api/docs') {
+      const authResult = checkAuth(request, env)
+      if (!authResult.authorized) {
+        const duration = Date.now() - startTime
+        logRequest(env, request, 401, duration, 'unauthorized')
+        return authResult.response!
+      }
     }
 
     let response: Response
@@ -246,6 +256,25 @@ function validateSearchParams(limit: number, offset: number, mode: string): stri
   }
 
   return errors
+}
+
+/**
+ * Check API authentication
+ */
+function checkAuth(request: Request, env: Env): { authorized: boolean; response?: Response } {
+  const apiSecret = request.headers.get('X-API-Secret') || request.headers.get('Authorization')?.replace('Bearer ', '')
+
+  if (!apiSecret || apiSecret !== env.API_SECRET) {
+    return {
+      authorized: false,
+      response: errorResponse('Unauthorized - API token required', 401, 'UNAUTHORIZED', [
+        'Include X-API-Secret header with your API token',
+        'Example: curl -H "X-API-Secret: your-token" https://...'
+      ])
+    }
+  }
+
+  return { authorized: true }
 }
 
 function normalizeForSearch(str: string): string {
