@@ -81,6 +81,11 @@ wrangler vectorize create ygo-search-vectors --dimension=1536
 ## 6. 環境変数とシークレットの設定
 
 ```bash
+# API認証キーを設定（必須）
+wrangler secret put API_SECRET
+# プロンプトで強力なランダムキーを入力
+# 生成例: openssl rand -base64 32
+
 # Azure OpenAI API Keyをシークレットとして設定
 wrangler secret put AZURE_API_KEY
 # プロンプトでAzure OpenAI API Keyを入力
@@ -93,6 +98,8 @@ wrangler secret put AZURE_ENDPOINT
 wrangler secret put ENVIRONMENT --production
 # プロンプトで "production" を入力
 ```
+
+**重要**: API_SECRETは全エンドポイント（/api/docs以外）の認証に使用されます。強力なランダム文字列を設定してください。
 
 ## 7. Workersのデプロイ
 
@@ -139,75 +146,90 @@ chmod +x scripts/verify-deployment.sh
 
 ### 手動確認
 
+**認証について**: 全エンドポイント（/api/docs以外）は認証が必要です。
+
 ```bash
 PROD_URL="https://ygo-search.api.scioj.com"
+API_SECRET="your-api-secret-here"  # 設定したAPI_SECRETに置き換える
 
-# ヘルスチェック
-curl "$PROD_URL/health"
-
-# 統計情報
-curl "$PROD_URL/api/stats"
-
-# カード検索（名前検索）
-curl -G --data-urlencode 'filter[name]=青眼の白龍' "$PROD_URL/api/cards/search"
-
-# カード検索（セマンティック検索）
-curl -G --data-urlencode 'q=ドラゴン' --data-urlencode 'limit=5' "$PROD_URL/api/cards/semantic-search"
-
-# FAQ検索
-curl -G --data-urlencode 'q=召喚' --data-urlencode 'limit=5' "$PROD_URL/api/faqs/search"
-
-# カードパターン抽出
-curl -X POST -H "Content-Type: application/json" -d '{"text":"Use {青眼} card"}' "$PROD_URL/api/cards/extract"
-
-# APIドキュメント
+# APIドキュメント（認証不要）
 curl "$PROD_URL/api/docs?list"
+
+# ヘルスチェック（認証必要）
+curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/health"
+
+# 統計情報（認証必要）
+curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/api/stats"
+
+# カード検索（名前検索、認証必要）
+curl -H "X-API-Secret: $API_SECRET" \
+  -G --data-urlencode 'filter[name]=青眼の白龍' "$PROD_URL/api/cards/search"
+
+# カード検索（セマンティック検索、認証必要）
+curl -H "X-API-Secret: $API_SECRET" \
+  -G --data-urlencode 'q=ドラゴン' --data-urlencode 'limit=5' \
+  "$PROD_URL/api/cards/semantic-search"
+
+# FAQ検索（認証必要）
+curl -H "X-API-Secret: $API_SECRET" \
+  -G --data-urlencode 'q=召喚' --data-urlencode 'limit=5' "$PROD_URL/api/faqs/search"
+
+# カードパターン抽出（認証必要）
+curl -H "X-API-Secret: $API_SECRET" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"text":"Use {青眼} card"}' "$PROD_URL/api/cards/extract"
 ```
+
+**認証ヘッダーの形式**:
+- `X-API-Secret: your-token` （推奨）
+- `Authorization: Bearer your-token` （代替）
 
 ## APIエンドポイント一覧
 
+**認証**: 全エンドポイント（/api/docs以外）は`X-API-Secret`ヘッダーが必要です。
+
 ### 基本機能（3エンドポイント）
 
-| エンドポイント | メソッド | 説明 |
-|------------|---------|------|
-| `/health` | GET | ヘルスチェック |
-| `/api/stats` | GET | 統計情報取得（カード数、FAQ数） |
-| `/api/docs` | GET | APIドキュメント（`?list`でエンドポイント一覧） |
+| エンドポイント | メソッド | 認証 | 説明 |
+|------------|---------|------|------|
+| `/health` | GET | 必要 | ヘルスチェック |
+| `/api/stats` | GET | 必要 | 統計情報取得（カード数、FAQ数） |
+| `/api/docs` | GET | 不要 | APIドキュメント（`?list`でエンドポイント一覧） |
 
 ### カード検索（7エンドポイント）
 
-| エンドポイント | メソッド | 説明 |
-|------------|---------|------|
-| `/api/cards/search` | GET | フィルタ検索（名前、属性、種族など） |
-| `/api/cards/by-id` | GET | カードIDで検索 |
-| `/api/cards/seek` | GET | ランダムまたは範囲指定でカード取得 |
-| `/api/cards/bulk` | POST | 一括検索（最大50クエリ） |
-| `/api/cards/extract` | POST | テキストからカードパターン抽出 |
-| `/api/cards/replace` | POST | カードパターンを正規化形式に置換 |
-| `/api/cards/semantic-search` | GET | セマンティック検索（意味検索） |
+| エンドポイント | メソッド | 認証 | 説明 |
+|------------|---------|------|------|
+| `/api/cards/search` | GET | 必要 | フィルタ検索（名前、属性、種族など） |
+| `/api/cards/by-id` | GET | 必要 | カードIDで検索 |
+| `/api/cards/seek` | GET | 必要 | ランダムまたは範囲指定でカード取得 |
+| `/api/cards/bulk` | POST | 必要 | 一括検索（最大50クエリ） |
+| `/api/cards/extract` | POST | 必要 | テキストからカードパターン抽出 |
+| `/api/cards/replace` | POST | 必要 | カードパターンを正規化形式に置換 |
+| `/api/cards/semantic-search` | GET | 必要 | セマンティック検索（意味検索） |
 
 ### FAQ検索（2エンドポイント）
 
-| エンドポイント | メソッド | 説明 |
-|------------|---------|------|
-| `/api/faqs/search` | GET | キーワード検索 |
-| `/api/faqs/semantic-search` | GET | セマンティック検索 |
+| エンドポイント | メソッド | 認証 | 説明 |
+|------------|---------|------|------|
+| `/api/faqs/search` | GET | 必要 | キーワード検索 |
+| `/api/faqs/semantic-search` | GET | 必要 | セマンティック検索 |
 
 ### ベクトル関連（4エンドポイント）
 
-| エンドポイント | メソッド | 説明 | 認証 |
+| エンドポイント | メソッド | 認証 | 説明 |
 |------------|---------|------|------|
-| `/api/vectorize/cards` | POST | カードデータのベクトル化（全件） | 不要 |
-| `/api/vectorize/faqs` | POST | FAQデータのベクトル化（全件） | 不要 |
-| `/api/vector/setup` | POST | ベクトルセットアップ（バッチ処理） | 必要 |
-| `/api/vector/setup-generic` | POST | 汎用ベクトルセットアップ | 必要 |
+| `/api/vectorize/cards` | POST | 必要 | カードデータのベクトル化（全件、Azure OpenAI使用） |
+| `/api/vectorize/faqs` | POST | 必要 | FAQデータのベクトル化（全件、Azure OpenAI使用） |
+| `/api/vector/setup` | POST | 必要 | ベクトルセットアップ（バッチ処理） |
+| `/api/vector/setup-generic` | POST | 必要 | 汎用ベクトルセットアップ |
 
 ### ユーティリティ（2エンドポイント）
 
-| エンドポイント | メソッド | 説明 | 認証 |
+| エンドポイント | メソッド | 認証 | 説明 |
 |------------|---------|------|------|
-| `/api/convert` | POST | フォーマット変換（JSON/JSONL/YAML） | 不要 |
-| `/api/update` | POST | R2からデータ更新 | 必要 |
+| `/api/convert` | POST | 必要 | フォーマット変換（JSON/JSONL/YAML） |
+| `/api/update` | POST | 必要 | R2からデータ更新（Cron対応） |
 
 **合計**: 18エンドポイント
 

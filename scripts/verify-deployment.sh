@@ -2,12 +2,26 @@
 # 本番環境の動作確認スクリプト
 
 PROD_URL="${PROD_URL:-https://ygo-search.api.scioj.com}"
+API_SECRET="${API_SECRET}"
+
+if [ -z "$API_SECRET" ]; then
+  echo "エラー: API_SECRET環境変数が設定されていません"
+  echo "使用方法: API_SECRET=your-token ./scripts/verify-deployment.sh"
+  exit 1
+fi
 
 echo "======================================"
 echo "本番環境動作確認"
 echo "URL: $PROD_URL"
+echo "認証: あり"
 echo "======================================"
 echo ""
+
+# 認証付きcurl関数（共通）
+# 元のcurlコマンドをオーバーライドして、自動的に認証ヘッダーを追加
+curl() {
+  /usr/bin/curl -H "X-API-Secret: $API_SECRET" "$@"
+}
 
 # テスト結果カウンタ
 PASSED=0
@@ -32,11 +46,11 @@ test_endpoint() {
 
 # 1. ヘルスチェック
 test_endpoint "ヘルスチェック" \
-  "curl -s '$PROD_URL/health' | jq -e '.status == \"healthy\"' > /dev/null && curl -s '$PROD_URL/health' | jq -c '{status, timestamp}'"
+  "curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/health' | jq -e '.status == \"healthy\"' > /dev/null && curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/health' | jq -c '{status, timestamp}'"
 
 # 2. 統計情報
 test_endpoint "統計情報" \
-  "curl -s '$PROD_URL/api/stats' | jq -e '.cards > 0 and .faqs > 0' > /dev/null && curl -s '$PROD_URL/api/stats' | jq -c '{cards, faqs}'"
+  "curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/api/stats' | jq -e '.cards > 0 and .faqs > 0' > /dev/null && curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/api/stats' | jq -c '{cards, faqs}'"
 
 # 3. カード検索（名前完全一致）
 test_endpoint "カード検索（名前）" \
@@ -74,9 +88,9 @@ test_endpoint "フォーマット変換" \
 test_endpoint "FAQ検索" \
   "curl -s -G --data-urlencode 'q=召喚' --data-urlencode 'limit=3' '$PROD_URL/api/faqs/search' | jq -e 'has(\"data\")' > /dev/null && curl -s -G --data-urlencode 'q=召喚' --data-urlencode 'limit=3' '$PROD_URL/api/faqs/search' | jq -c '{total, query}'"
 
-# 12. APIドキュメント
-test_endpoint "APIドキュメント" \
-  "curl -s '$PROD_URL/api/docs?list' | jq -e '.endpoints | length > 0' > /dev/null && curl -s '$PROD_URL/api/docs?list' | jq -c '{version, endpoint_count: .total}'"
+# 12. APIドキュメント（認証不要）
+test_endpoint "APIドキュメント（認証不要）" \
+  "/usr/bin/curl -s '$PROD_URL/api/docs?list' | jq -e '.endpoints | length > 0' > /dev/null && /usr/bin/curl -s '$PROD_URL/api/docs?list' | jq -c '{version, endpoint_count: .total}'"
 
 echo "======================================"
 echo "テスト結果"
