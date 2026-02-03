@@ -15,6 +15,10 @@ Command-line tools and Web API for searching Yu-Gi-Oh! card database with full J
 - 一括検索、ランダム取得
 - フォーマット変換
 
+**認証**: ほとんどのエンドポイントは`X-API-Secret`ヘッダーによる認証が必要です。
+- 認証不要: `/health` (ヘルスチェック), `/api/docs` (APIドキュメント)
+- 認証方法: `X-API-Secret: your-token` または `Authorization: Bearer your-token`
+
 詳細は[docs/deployment.md](docs/deployment.md)を参照してください。
 
 ### CLI Commands

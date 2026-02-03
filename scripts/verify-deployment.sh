@@ -1,12 +1,18 @@
 #!/bin/bash
 # 本番環境の動作確認スクリプト
 
+# .envファイルから環境変数を読み込む
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
 PROD_URL="${PROD_URL:-https://ygo-search.api.scioj.com}"
 API_SECRET="${API_SECRET}"
 
 if [ -z "$API_SECRET" ]; then
   echo "エラー: API_SECRET環境変数が設定されていません"
   echo "使用方法: API_SECRET=your-token ./scripts/verify-deployment.sh"
+  echo "または、プロジェクトルートの.envファイルにAPI_SECRETを設定してください"
   exit 1
 fi
 
@@ -44,13 +50,13 @@ test_endpoint() {
   echo ""
 }
 
-# 1. ヘルスチェック
-test_endpoint "ヘルスチェック" \
-  "curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/health' | jq -e '.status == \"healthy\"' > /dev/null && curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/health' | jq -c '{status, timestamp}'"
+# 1. ヘルスチェック（認証不要）
+test_endpoint "ヘルスチェック（認証不要）" \
+  "/usr/bin/curl -s '$PROD_URL/health' | jq -e '.status == \"healthy\"' > /dev/null && /usr/bin/curl -s '$PROD_URL/health' | jq -c '{status, timestamp}'"
 
 # 2. 統計情報
 test_endpoint "統計情報" \
-  "curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/api/stats' | jq -e '.cards > 0 and .faqs > 0' > /dev/null && curl -s -H 'X-API-Secret: $API_SECRET' '$PROD_URL/api/stats' | jq -c '{cards, faqs}'"
+  "curl -s '$PROD_URL/api/stats' | jq -e '.cards > 0 and .faqs > 0' > /dev/null && curl -s '$PROD_URL/api/stats' | jq -c '{cards, faqs}'"
 
 # 3. カード検索（名前完全一致）
 test_endpoint "カード検索（名前）" \

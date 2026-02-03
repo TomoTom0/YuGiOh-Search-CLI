@@ -138,25 +138,38 @@ curl -X POST https://ygo-search.api.scioj.com/api/vectorize/faqs
 
 ### 自動テストスクリプトの実行
 
+**推奨**: `.env`ファイルにAPI_SECRETを設定しておくと、環境変数の指定が不要になります。
+
 ```bash
-# 動作確認スクリプトを実行
+# .envファイルを作成（.env.exampleを参考に）
+cp .env.example .env
+# .envファイルを編集してAPI_SECRETを設定
+# API_SECRET=your-api-secret-here
+
+# 動作確認スクリプトを実行（.envから自動読み込み）
 chmod +x scripts/verify-deployment.sh
 ./scripts/verify-deployment.sh
 ```
 
+または、環境変数で直接指定：
+
+```bash
+API_SECRET="your-api-secret-here" ./scripts/verify-deployment.sh
+```
+
 ### 手動確認
 
-**認証について**: 全エンドポイント（/api/docs以外）は認証が必要です。
+**認証について**: ほとんどのエンドポイントは認証が必要です。認証不要: `/health`, `/api/docs`
 
 ```bash
 PROD_URL="https://ygo-search.api.scioj.com"
 API_SECRET="your-api-secret-here"  # 設定したAPI_SECRETに置き換える
 
+# ヘルスチェック（認証不要 - 監視用）
+curl "$PROD_URL/health"
+
 # APIドキュメント（認証不要）
 curl "$PROD_URL/api/docs?list"
-
-# ヘルスチェック（認証必要）
-curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/health"
 
 # 統計情報（認証必要）
 curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/api/stats"
@@ -186,13 +199,13 @@ curl -H "X-API-Secret: $API_SECRET" \
 
 ## APIエンドポイント一覧
 
-**認証**: 全エンドポイント（/api/docs以外）は`X-API-Secret`ヘッダーが必要です。
+**認証**: ほとんどのエンドポイントは`X-API-Secret`ヘッダーが必要です。認証不要: `/health`, `/api/docs`
 
 ### 基本機能（3エンドポイント）
 
 | エンドポイント | メソッド | 認証 | 説明 |
 |------------|---------|------|------|
-| `/health` | GET | 必要 | ヘルスチェック |
+| `/health` | GET | 不要 | ヘルスチェック（監視・死活監視用） |
 | `/api/stats` | GET | 必要 | 統計情報取得（カード数、FAQ数） |
 | `/api/docs` | GET | 不要 | APIドキュメント（`?list`でエンドポイント一覧） |
 

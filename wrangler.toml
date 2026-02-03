@@ -34,11 +34,11 @@ bucket_name = "ygo-search-data"
 [vars]
 ENVIRONMENT = "development"
 AZURE_MODEL = "text-embedding-3-small"
-API_SECRET = "dev-secret-key-for-testing"
 
-# Secrets (set with: wrangler secret put AZURE_API_KEY)
+# Secrets (set with: wrangler secret put SECRET_NAME)
 # AZURE_API_KEY
 # AZURE_ENDPOINT
+# API_SECRET
 
 # Routing rules for monitoring
 [triggers]

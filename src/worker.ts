@@ -20,7 +20,8 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const startTime = Date.now()
     const url = new URL(request.url)
-    const path = url.pathname
+    // Normalize path: remove trailing slash except for root
+    const path = url.pathname === '/' ? '/' : url.pathname.replace(/\/$/, '')
 
     // Health check
     if (path === '/health') {
@@ -120,7 +121,10 @@ export default {
       }
       response = await handleUpdate(request, env)
     } else {
-      response = jsonResponse({ message: 'YGO Search API', version: '1.0.0' })
+      response = errorResponse('Endpoint not found', 404, 'NOT_FOUND', [
+        'API documentation: GET /api/docs?list',
+        'See all available endpoints at /api/docs'
+      ])
     }
 
     const duration = Date.now() - startTime
@@ -269,7 +273,8 @@ function checkAuth(request: Request, env: Env): { authorized: boolean; response?
       authorized: false,
       response: errorResponse('Unauthorized - API token required', 401, 'UNAUTHORIZED', [
         'Include X-API-Secret header with your API token',
-        'Example: curl -H "X-API-Secret: your-token" https://...'
+        'Example: curl -H "X-API-Secret: your-token" https://...',
+        'API documentation: /api/docs'
       ])
     }
   }
