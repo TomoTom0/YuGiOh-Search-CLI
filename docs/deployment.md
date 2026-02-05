@@ -58,7 +58,7 @@ npx wrangler d1 execute ygo-search-db --remote --command "ALTER TABLE cards ADD 
 ```bash
 # カードデータのインポート
 for i in tmp/sql-batches/batch-*.sql; do
-  wrangler d1 execute DB --remote --file "$i"
+  wrangler d1 execute ygo-search-db --remote --file "$i"
 done
 ```
 
@@ -67,7 +67,7 @@ FAQデータのインポート:
 ```bash
 # FAQデータのインポート
 for i in tmp/sql-batches-faq/batch-*.sql; do
-  wrangler d1 execute DB --remote --file "$i"
+  wrangler d1 execute ygo-search-db --remote --file "$i"
 done
 ```
 
@@ -257,12 +257,12 @@ curl -H "X-API-Secret: $API_SECRET" \
 
 ```bash
 # データのクリア
-wrangler d1 execute DB --remote --command "DELETE FROM cards;"
-wrangler d1 execute DB --remote --command "DELETE FROM faqs;"
+wrangler d1 execute ygo-search-db --remote --command "DELETE FROM cards;"
+wrangler d1 execute ygo-search-db --remote --command "DELETE FROM faqs;"
 
 # インポート再実行
 for i in tmp/sql-batches/batch-*.sql; do
-  wrangler d1 execute DB --remote --file "$i"
+  wrangler d1 execute ygo-search-db --remote --file "$i"
 done
 
 # ベクトル化再実行
