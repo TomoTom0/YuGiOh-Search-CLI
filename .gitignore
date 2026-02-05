@@ -29,6 +29,7 @@ tmp/
 
 # Environment variables
 .env
+.wrangler/
 
 # Build output
 dist/
