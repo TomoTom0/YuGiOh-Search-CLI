@@ -4,7 +4,11 @@
  * FAQからカード参照を抽出してfaq_card_referencesを再構築するスクリプト
  *
  * 使い方:
- *   tsx scripts/rebuild-faq-card-references.ts
+ *   tsx rust/scripts/rebuild-faq-card-references.ts <input-faq-file.tsv> [output-sql-file.sql]
+ *
+ * 例:
+ *   tsx rust/scripts/rebuild-faq-card-references.ts data/faq-all.tsv
+ *   tsx rust/scripts/rebuild-faq-card-references.ts data/faq-all.tsv rust/rebuild-faq-card-references.sql
  */
 
 import fs from 'fs';
@@ -85,7 +89,19 @@ function generateSQL(references: FAQCardReference[]): string {
 }
 
 async function main() {
-  const faqsFile = '/home/tomo/work/app/ygo/ygo-search/data/faq-all.tsv';
+  const args = process.argv.slice(2);
+
+  if (args.length < 1) {
+    console.error('Usage: tsx rust/scripts/rebuild-faq-card-references.ts <input-faq-file.tsv> [output-sql-file.sql]');
+    console.error('');
+    console.error('Examples:');
+    console.error('  tsx rust/scripts/rebuild-faq-card-references.ts data/faq-all.tsv');
+    console.error('  tsx rust/scripts/rebuild-faq-card-references.ts data/faq-all.tsv rust/rebuild-faq-card-references.sql');
+    process.exit(1);
+  }
+
+  const faqsFile = args[0];
+  const outputFile = args[1] || 'rust/rebuild-faq-card-references.sql';
 
   console.log('Parsing FAQs file...');
   const references = parseFaqsFile(faqsFile);
@@ -93,7 +109,6 @@ async function main() {
   console.log(`Found ${references.length} card references`);
   const sql = generateSQL(references);
 
-  const outputFile = '/home/tomo/work/app/ygo/ygo-search/rust/rebuild-faq-card-references.sql';
   fs.writeFileSync(outputFile, sql, 'utf-8');
 
   console.log(`SQL written to ${outputFile}`);
