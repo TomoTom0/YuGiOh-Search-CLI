@@ -20,7 +20,13 @@ interface QueryParams {
 }
 
 async function executeQuery(query: QueryParams): Promise<any[]> {
-  const args = [JSON.stringify(query.filter)]
+  // Support both {filter: {...}} and {...} formats
+  const filter = query.filter || query
+  if (!filter) {
+    console.error(`Error: query is empty. Full query:`, JSON.stringify(query))
+    return []
+  }
+  const args = [JSON.stringify(filter)]
   
   if (query.cols && query.cols.length > 0) {
     args.push(`cols=${query.cols.join(',')}`)
@@ -66,6 +72,7 @@ async function executeQuery(query: QueryParams): Promise<any[]> {
     child.on('close', (code) => {
       if (code !== 0) {
         // Return empty array on error instead of failing
+        console.error(`Error in query ${JSON.stringify(query.filter)}:`, stderr)
         resolve([])
         return
       }
@@ -79,11 +86,13 @@ async function executeQuery(query: QueryParams): Promise<any[]> {
         const result = lines.map(line => JSON.parse(line))
         resolve(result)
       } catch (e) {
+        console.error(`Error parsing output for query ${JSON.stringify(query.filter)}:`, e)
         resolve([])
       }
     })
     
-    child.on('error', () => {
+    child.on('error', (err) => {
+      console.error(`Failed to execute query ${JSON.stringify(query.filter)}:`, err)
       resolve([])
     })
   })

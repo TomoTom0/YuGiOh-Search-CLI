@@ -27,6 +27,10 @@ Thumbs.db
 .cache/
 tmp/
 
+# Environment variables
+.env
+.wrangler/
+
 # Build output
 dist/
 web/dist/
