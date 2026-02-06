@@ -1,8 +1,25 @@
-# Yu-Gi-Oh! Card Database CLI
+# Yu-Gi-Oh! Card Database CLI & API
 
-Command-line tools for searching Yu-Gi-Oh! card database locally with full Japanese card data.
+Command-line tools and Web API for searching Yu-Gi-Oh! card database with full Japanese card data.
 
 ## Features
+
+### Web API (Cloudflare Workers)
+
+**Production URL**: https://ygo-search.api.scioj.com
+
+18個のAPIエンドポイントを提供：
+- カード検索（フィルタ検索、ID検索、セマンティック検索）
+- FAQ検索（キーワード検索、セマンティック検索）
+- カードパターン抽出・置換
+- 一括検索、ランダム取得
+- フォーマット変換
+
+**認証**: ほとんどのエンドポイントは`X-API-Secret`ヘッダーによる認証が必要です。
+- 認証不要: `/health` (ヘルスチェック), `/api/docs` (APIドキュメント)
+- 認証方法: `X-API-Secret: your-token` または `Authorization: Bearer your-token`
+
+詳細は[docs/deployment.md](docs/deployment.md)を参照してください。
 
 ### CLI Commands
 

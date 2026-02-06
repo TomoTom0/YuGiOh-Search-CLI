@@ -19,6 +19,11 @@ interface Card {
   atk?: number;
   def?: number;
   description?: string;
+  race?: string;
+  monsterTypes?: string;
+  spellEffectType?: string;
+  trapEffectType?: string;
+  linkMarkers?: string;
 }
 
 // Rustの正規化関数と同じロジック（簡易版）
@@ -58,28 +63,33 @@ function parseCardsFile(filepath: string): Map<string, Partial<Card>> {
   const content = fs.readFileSync(filepath, 'utf-8');
   const lines = content.trim().split('\n');
   const headers = lines[0].split('\t');
-
+  
   const cards = new Map<string, Partial<Card>>();
-
+  
   for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split('\t');
     const row: any = {};
-
+    
     headers.forEach((header, index) => {
       row[header] = values[index] || null;
     });
-
+    
     const cardId = row.cardId || row.card_id || row.id;
     if (!cardId) continue;
-
+    
     cards.set(cardId, {
       cardId,
       name: row.name || '',
       cardType: row.cardType || row.card_type,
       attribute: row.attribute,
-      level: row.level ? parseInt(row.level) : undefined,
+      level: row.levelValue ? parseInt(row.levelValue) : undefined,
       atk: row.atk ? parseInt(row.atk) : undefined,
       def: row.def ? parseInt(row.def) : undefined,
+      race: row.race,
+      monsterTypes: row.monsterTypes,
+      spellEffectType: row.spellEffectType || row.spell_effect_type,
+      trapEffectType: row.trapEffectType || row.trap_effect_type,
+      linkMarkers: row.linkMarkers || row.link_markers,
     });
   }
 
@@ -104,30 +114,44 @@ function parseDetailsFile(filepath: string): Map<string, string> {
     const cardId = row.cardId || row.card_id || row.id;
     if (!cardId) continue;
 
-    details.set(cardId, row.text || row.description || '');
+    details.set(cardId, row.supplementInfo || row.text || row.description || '');
   }
 
   return details;
 }
 
 function generateSQL(cards: Card[]): string {
-  const inserts = cards.map(card => {
-    const values = [
-      `'${card.cardId.replace(/'/g, "''")}'`,
-      `'${card.name.replace(/'/g, "''")}'`,
-      `'${card.normalizedName.replace(/'/g, "''")}'`,
-      card.cardType ? `'${card.cardType.replace(/'/g, "''")}'` : 'NULL',
-      card.attribute ? `'${card.attribute.replace(/'/g, "''")}'` : 'NULL',
-      card.level !== undefined ? card.level : 'NULL',
-      card.atk !== undefined ? card.atk : 'NULL',
-      card.def !== undefined ? card.def : 'NULL',
-      card.description ? `'${card.description.replace(/'/g, "''")}'` : 'NULL',
-    ];
+  const batchSize = 1000;
+  const batches: string[] = [];
 
-    return `INSERT INTO cards (card_id, name, normalized_name, card_type, attribute, level, atk, def, description) VALUES (${values.join(', ')});`;
-  });
+  for (let i = 0; i < cards.length; i += batchSize) {
+    const batch = cards.slice(i, i + batchSize);
+    const inserts = batch.map(card => {
+      const values = [
+        `'${card.cardId.replace(/'/g, "''")}'`,
+        `'${card.name.replace(/'/g, "''")}'`,
+        `'${card.normalizedName.replace(/'/g, "''")}'`,
+        card.cardType ? `'${card.cardType.replace(/'/g, "''")}'` : 'NULL',
+        card.attribute ? `'${card.attribute.replace(/'/g, "''")}'` : 'NULL',
+        card.level !== undefined && !isNaN(card.level) ? card.level : 'NULL',
+        card.atk !== undefined && !isNaN(card.atk) ? card.atk : 'NULL',
+        card.def !== undefined && !isNaN(card.def) ? card.def : 'NULL',
+        card.description ? `'${card.description.replace(/'/g, "''")}'` : 'NULL',
+        card.race ? `'${card.race.replace(/'/g, "''")}'` : 'NULL',
+        card.monsterTypes ? `'${card.monsterTypes.replace(/'/g, "''")}'` : 'NULL',
+        card.spellEffectType ? `'${card.spellEffectType.replace(/'/g, "''")}'` : 'NULL',
+        card.trapEffectType ? `'${card.trapEffectType.replace(/'/g, "''")}'` : 'NULL',
+        card.linkMarkers ? `'${card.linkMarkers.replace(/'/g, "''")}'` : 'NULL',
+      ];
 
-  return inserts.join('\n');
+      return `INSERT INTO cards (card_id, name, normalized_name, card_type, attribute, level, atk, def, description, race, monster_types, spell_effect_type, trap_effect_type, link_markers) VALUES (${values.join(', ')});`;
+    });
+
+    batches.push(`-- Batch ${Math.floor(i / batchSize) + 1} (cards ${i + 1}-${Math.min(i + batchSize, cards.length)})`);
+    batches.push(inserts.join('\n'));
+  }
+
+  return batches.join('\n\n');
 }
 
 async function main() {
@@ -150,27 +174,33 @@ async function main() {
   console.log('Merging data...');
   const cards: Card[] = [];
 
-  for (const [cardId, card] of cardsMap) {
-    const description = detailsMap.get(cardId);
-    const normalizedName = normalizeForSearch(card.name || '');
+  for (const cardId of cardsMap.keys()) {
+    const cardData = cardsMap.get(cardId)!;
+    const details = detailsMap.get(cardId);
+    const normalizedName = normalizeForSearch(cardData.name || '');
 
     cards.push({
       cardId,
-      name: card.name || '',
+      name: cardData.name || '',
       normalizedName,
-      cardType: card.cardType,
-      attribute: card.attribute,
-      level: card.level,
-      atk: card.atk,
-      def: card.def,
-      description,
+      cardType: cardData.cardType,
+      attribute: cardData.attribute,
+      level: cardData.level,
+      atk: cardData.atk,
+      def: cardData.def,
+      description: details,
+      race: cardData.race || null,
+      monsterTypes: cardData.monsterTypes || null,
+      spellEffectType: cardData.spellEffectType || null,
+      trapEffectType: cardData.trapEffectType || null,
+      linkMarkers: cardData.linkMarkers || null,
     });
   }
 
   console.log(`Generating SQL for ${cards.length} cards...`);
   const sql = generateSQL(cards);
 
-  const outputFile = 'import-cards.sql';
+  const outputFile = './tmp/import-cards.sql';
   fs.writeFileSync(outputFile, sql, 'utf-8');
 
   console.log(`SQL written to ${outputFile}`);

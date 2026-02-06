@@ -1,0 +1,45 @@
+name = "ygo-search"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+
+# Analytics Engine for logging and monitoring
+# Analytics Engine is not enabled, commenting out for now
+# [[analytics_engine_datasets]]
+# binding = "ANALYTICS"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "ygo-search-db"
+database_id = "1d6b90bc-b61a-4f61-8d3d-63822422db52"
+
+# Workers AI
+[ai]
+binding = "AI"
+remote = true
+
+# Vectorize Index
+[[vectorize]]
+binding = "VECTORIZER"
+# Set production index_name: wrangler vectorize create ygo-search-vectors --dimension=1536
+index_name = "ygo-search-vectors"
+remote = true
+
+# R2 Bucket for data updates
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "ygo-search-data"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "development"
+AZURE_MODEL = "text-embedding-3-small"
+
+# Secrets (set with: wrangler secret put SECRET_NAME)
+# AZURE_API_KEY
+# AZURE_ENDPOINT
+# API_SECRET
+
+# Routing rules for monitoring
+[triggers]
+crons = []

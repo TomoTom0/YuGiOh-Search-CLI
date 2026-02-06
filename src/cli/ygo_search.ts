@@ -469,17 +469,23 @@ async function handleExtractCommand(args: string[]) {
   if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
     console.log(`Usage: ygo_search extract <text> [options]
 
-カード名をテキストから抽出して検索します。
+カード名パターンをテキストから抽出して検索します。
 
 Arguments:
-  text                テキスト（カード名を含む）
+  text                テキスト（カード名パターンを含む）
 
 Options:
   cols=col1,col2      返却するカラム（カンマ区切り）
 
+Pattern Types:
+  {card-name}         柔軟な検索（ワイルドカード * 対応）
+  《card-name》        完全一致検索
+  {{name|cardId}}     カードID で検索
+
 Examples:
-  ygo_search extract "青眼の白龍とブラック・マジシャンを召喚"
-  ygo_search extract "青眼の白龍で攻撃" cols=name,cardId,atk
+  ygo_search extract "{青眼の白龍}と{ブラック・マジシャン}を召喚"
+  ygo_search extract "{青眼の白龍}で攻撃" cols=name,cardId,atk
+  ygo_search extract "{ブルーアイズ*}を召喚"
 `);
     process.exit(0);
   }
