@@ -6,6 +6,9 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { parseFilterParams } from '../lib/worker/filters.js'
+import { validateSearchParams } from '../lib/worker/validation.js'
+import { normalizeForSearch } from '../lib/shared/normalizer.js'
 
 describe('API Endpoint Request Validation', () => {
   describe('parseFilterParams', () => {
@@ -123,82 +126,7 @@ describe('Format Conversion Functions', () => {
   })
 })
 
-// Helper functions copied from worker.ts for testing
-interface NormalizedFilter {
-  op: 'and' | 'or'
-  cond: any[]
-}
-
-function parseFilterParams(searchParams: URLSearchParams): Record<string, NormalizedFilter> {
-  const filter: Record<string, NormalizedFilter> = {}
-  const processed = new Set<string>()
-
-  for (const [key, value] of searchParams.entries()) {
-    const simpleMatch = key.match(/^filter\[([^\]]+)\]$/)
-    const complexMatch = key.match(/^filter\[([^\]]+)\]\[([^\]]+)\](?:\[\])?$/)
-
-    if (simpleMatch) {
-      const field = simpleMatch[1]
-      if (!processed.has(field)) {
-        filter[field] = { op: 'and', cond: [value] }
-        processed.add(field)
-      }
-    } else if (complexMatch) {
-      const field = complexMatch[1]
-      const opOrKey = complexMatch[2]
-
-      if (opOrKey === 'or' || opOrKey === 'and') {
-        const op = opOrKey
-        if (!filter[field]) {
-          filter[field] = { op, cond: [] }
-          processed.add(field)
-        }
-        filter[field].cond.push(value)
-      } else if (opOrKey === 'cond') {
-        if (!filter[field]) {
-          filter[field] = { op: 'and', cond: [] }
-          processed.add(field)
-        }
-        filter[field].cond.push(value)
-      }
-    }
-  }
-
-  return filter
-}
-
-function validateSearchParams(limit: number, offset: number, mode: string): string[] {
-  const errors: string[] = []
-  const MAX_LIMIT = 100
-  const MAX_OFFSET = 1000
-
-  if (limit > MAX_LIMIT || limit < 1) {
-    errors.push(`limit must be between 1 and ${MAX_LIMIT}`)
-  }
-
-  if (offset > MAX_OFFSET || offset < 0) {
-    errors.push(`offset must be between 0 and ${MAX_OFFSET}`)
-  }
-
-  if (mode !== 'exact' && mode !== 'partial') {
-    errors.push('mode must be "exact" or "partial"')
-  }
-
-  return errors
-}
-
-function normalizeForSearch(str: string): string {
-  if (!str) return ''
-  return str
-    .replace(/[\s\u3000]+/g, '')
-    .replace(/[・★☆※‼！？。、,.，．:：;；「」『』【】〔〕（）()［］\[\]｛｝{}〈〉《》〜～~\-－_＿\/／\\＼|｜&＆@＠#＃$＄%％^＾*＊+＋=＝<＜>＞'"\"'""''`´｀]/g, '')
-    .replace(/竜/g, '龍')
-    .replace(/剣/g, '劍')
-    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-    .toLowerCase()
-    .replace(/[\u3041-\u3096]/g, (s) => String.fromCharCode(s.charCodeAt(0) + 0x60))
-}
-
+// parseTSV is a local helper function for testing (not exported from main code)
 function parseTSV(content: string): Array<Record<string, string>> {
   const lines = content.split('\n').filter(line => line.trim())
   if (lines.length === 0) return []
