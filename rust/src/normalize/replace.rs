@@ -68,9 +68,6 @@ impl PatternReplacer {
         let mut pairs: Vec<_> = patterns.into_iter().zip(search_results.into_iter()).collect();
         pairs.sort_by_key(|(p, _)| std::cmp::Reverse(p.start_index.unwrap_or(0)));
 
-        // Track processed patterns to avoid duplicates (same as ts-cli)
-        let mut processed_pattern_keys = std::collections::HashSet::new();
-
         for (pattern, results) in &pairs {
             let start = pattern.start_index.unwrap_or(0);
             let end = start + pattern.pattern.len();
@@ -92,32 +89,19 @@ impl PatternReplacer {
 
                             processed_text.replace_range(start..end, &replacement);
 
-                            // 重複チェック（ts-cliと同じ）
-                            let key = format!("{}::{}", pattern.pattern, replacement);
-                            if processed_pattern_keys.insert(key) {
-                                processed_patterns.push(ProcessedPattern {
-                                    original: pattern.pattern.clone(),
-                                    replaced: replacement,
-                                    status: ReplacementStatus::Corrected,
-                                });
-                            }
+                            processed_patterns.push(ProcessedPattern {
+                                original: pattern.pattern.clone(),
+                                replaced: replacement,
+                                status: ReplacementStatus::Corrected,
+                            });
                         } else {
                             // 名前が一致 → already_processed
-                            let key = format!("{}::{}", pattern.pattern, pattern.pattern);
-                            if processed_pattern_keys.insert(key) {
-                                processed_patterns.push(ProcessedPattern {
-                                    original: pattern.pattern.clone(),
-                                    replaced: pattern.pattern.clone(),
-                                    status: ReplacementStatus::AlreadyProcessed,
-                                });
-                            }
+                            processed_patterns.push(ProcessedPattern {
+                                original: pattern.pattern.clone(),
+                                replaced: pattern.pattern.clone(),
+                                status: ReplacementStatus::AlreadyProcessed,
+                            });
                         }
-                    } else if results.is_empty() {
-                        // 結果が0件 → 警告のみ（TypeScript版に合わせる）
-                        // processed_patternsには追加しない
-                    } else {
-                        // 結果が複数件 → 警告のみ（TypeScript版に合わせる）
-                        // processed_patternsには追加しない
                     }
                 }
                 _ => {
@@ -133,15 +117,11 @@ impl PatternReplacer {
 
                         processed_text.replace_range(start..end, &replacement);
 
-                        // 重複チェック（ts-cliと同じ）
-                        let key = format!("{}::{}", pattern.pattern, replacement);
-                        if processed_pattern_keys.insert(key) {
-                            processed_patterns.push(ProcessedPattern {
-                                original: pattern.pattern.clone(),
-                                replaced: replacement,
-                                status: ReplacementStatus::Resolved,
-                            });
-                        }
+                        processed_patterns.push(ProcessedPattern {
+                            original: pattern.pattern.clone(),
+                            replaced: replacement,
+                            status: ReplacementStatus::Resolved,
+                        });
                     } else if results.len() > 1 {
                         // Multiple
                         let candidates: Vec<String> = results
@@ -153,15 +133,11 @@ impl PatternReplacer {
 
                         processed_text.replace_range(start..end, &replacement);
 
-                        // 重複チェック（ts-cliと同じ）
-                        let key = format!("{}::{}", pattern.pattern, replacement);
-                        if processed_pattern_keys.insert(key) {
-                            processed_patterns.push(ProcessedPattern {
-                                original: pattern.pattern.clone(),
-                                replaced: replacement,
-                                status: ReplacementStatus::Multiple,
-                            });
-                        }
+                        processed_patterns.push(ProcessedPattern {
+                            original: pattern.pattern.clone(),
+                            replaced: replacement,
+                            status: ReplacementStatus::Multiple,
+                        });
 
                         has_unprocessed = true;
                     } else {
@@ -170,15 +146,11 @@ impl PatternReplacer {
 
                         processed_text.replace_range(start..end, &replacement);
 
-                        // 重複チェック（ts-cliと同じ）
-                        let key = format!("{}::{}", pattern.pattern, replacement);
-                        if processed_pattern_keys.insert(key) {
-                            processed_patterns.push(ProcessedPattern {
-                                original: pattern.pattern.clone(),
-                                replaced: replacement,
-                                status: ReplacementStatus::NotFound,
-                            });
-                        }
+                        processed_patterns.push(ProcessedPattern {
+                            original: pattern.pattern.clone(),
+                            replaced: replacement,
+                            status: ReplacementStatus::NotFound,
+                        });
 
                         has_unprocessed = true;
                     }
@@ -188,17 +160,6 @@ impl PatternReplacer {
 
         // 警告生成
         let mut warnings = Vec::new();
-
-        // CardIdパターンのエラー警告（TypeScript版に合わせる）
-        for (pattern, results) in &pairs {
-            if let PatternType::CardId = &pattern.pattern_type {
-                if results.is_empty() {
-                    warnings.push(format!("cardId \"{}\" not found", pattern.query));
-                } else if results.len() > 1 {
-                    warnings.push(format!("cardId \"{}\" found multiple cards. Please check data.", pattern.query));
-                }
-            }
-        }
 
         // Corrected警告
         for pp in &processed_patterns {
@@ -212,7 +173,7 @@ impl PatternReplacer {
                             .and_then(|(_, results)| results.first())
                     ) {
                         warnings.push(format!(
-                            "Card name corrected: \"{}\" → \"{}\" (cardId: {})",
+                            "⚠️ カード名を修正: \"{}\" → \"{}\" (cardId: {})",
                             provided_name, card.name, card.card_id
                         ));
                     }
@@ -326,7 +287,7 @@ mod tests {
 
         assert_eq!(result.processed_text, "Use {{青眼の白龍|4007}} card");
         assert_eq!(result.processed_patterns[0].status, ReplacementStatus::Corrected);
-        assert!(result.warnings.iter().any(|w| w.contains("Card name corrected")));
+        assert!(result.warnings.iter().any(|w| w.contains("カード名を修正")));
         assert!(result.warnings.iter().any(|w| w.contains("間違った名前") && w.contains("青眼の白龍")));
     }
 

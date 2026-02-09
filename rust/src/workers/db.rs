@@ -11,7 +11,7 @@ use worker::*;
 pub async fn search_cards_by_name(db: &D1Database, query: &str, limit: usize) -> Result<Vec<CardInfo>> {
     let normalized_query = normalize_for_search(query);
 
-    // ワイルドカード検索の処理（ts-cliと同じロジック）
+    // ワイルドカード検索の処理
     let (sql, is_wildcard) = if normalized_query.contains('*') {
         let pattern = normalized_query.replace('*', "%");
         (
@@ -22,11 +22,12 @@ pub async fn search_cards_by_name(db: &D1Database, query: &str, limit: usize) ->
             true
         )
     } else {
-        // 完全一致のみ（ts-cliと同じ）
+        // 完全一致 + 部分一致
         (
             "SELECT card_id, name, normalized_name, card_type, attribute, level, atk, def, description
              FROM cards
-             WHERE normalized_name = ?
+             WHERE normalized_name = ? OR normalized_name LIKE ?
+             ORDER BY CASE WHEN normalized_name = ? THEN 0 ELSE 1 END
              LIMIT ?",
             false
         )
@@ -36,8 +37,14 @@ pub async fn search_cards_by_name(db: &D1Database, query: &str, limit: usize) ->
         db.prepare(sql)
             .bind(&[normalized_query.into(), (limit as i32).into()])?
     } else {
+        let like_pattern = format!("%{}%", normalized_query);
         db.prepare(sql)
-            .bind(&[normalized_query.into(), (limit as i32).into()])?
+            .bind(&[
+                normalized_query.clone().into(),
+                like_pattern.into(),
+                normalized_query.into(),
+                (limit as i32).into(),
+            ])?
     };
 
     let results = stmt.all().await?;
