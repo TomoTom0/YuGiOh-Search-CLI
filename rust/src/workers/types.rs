@@ -42,15 +42,19 @@ pub struct PatternInfo {
 pub struct ReplacePatternsRequest {
     pub text: String,
     #[serde(default)]
+    #[serde(rename = "mountPar")]
     pub mount_par: bool,
 }
 
 /// パターン置換レスポンス
 #[derive(Debug, Serialize)]
 pub struct ReplacePatternsResponse {
+    #[serde(rename = "processedText")]
     pub processed_text: String,
+    #[serde(rename = "hasUnprocessed")]
     pub has_unprocessed: bool,
     pub warnings: Vec<String>,
+    #[serde(rename = "processedPatterns")]
     pub processed_patterns: Vec<ProcessedPatternInfo>,
 }
 
