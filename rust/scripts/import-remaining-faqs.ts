@@ -104,14 +104,16 @@ function parseFaqsFile(filepath: string, faqIdsToInclude: Set<string>): FAQ[] {
 }
 
 function generateSQL(faqs: FAQ[]): string {
+  const escape = (str: string) => `'${str.replace(/'/g, "''")}'`;
+
   const faqInserts = faqs.map(faq => {
     const values = [
       faq.faqId,
-      `'${faq.cardId.replace(/'/g, "''")}'`,
-      `'${faq.question.replace(/'/g, "''")}'`,
-      `'${faq.answer.replace(/'/g, "''")}'`,
-      `'${faq.normalizedQuestion.replace(/'/g, "''")}'`,
-      `'${faq.normalizedAnswer.replace(/'/g, "''")}'`,
+      escape(faq.cardId),
+      escape(faq.question),
+      escape(faq.answer),
+      escape(faq.normalizedQuestion),
+      escape(faq.normalizedAnswer),
     ];
 
     return `INSERT INTO faqs (faq_id, card_id, question, answer, normalized_question, normalized_answer) VALUES (${values.join(', ')});`;
@@ -122,8 +124,8 @@ function generateSQL(faqs: FAQ[]): string {
     for (const ref of faq.cardReferences) {
       const values = [
         faq.faqId,
-        `'${ref.cardId.replace(/'/g, "''")}'`,
-        `'${ref.name.replace(/'/g, "''")}'`,
+        escape(ref.cardId),
+        escape(ref.name),
       ];
       refInserts.push(`INSERT INTO faq_card_references (faq_id, card_id, card_name) VALUES (${values.join(', ')});`);
     }

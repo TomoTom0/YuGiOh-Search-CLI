@@ -36,6 +36,24 @@ pub struct MockCard {
 pub struct PatternReplacer;
 
 impl PatternReplacer {
+    /// 処理済みパターンを追加（重複チェック付き）
+    fn add_processed_pattern(
+        processed_pattern_keys: &mut std::collections::HashSet<String>,
+        processed_patterns: &mut Vec<ProcessedPattern>,
+        pattern: &super::pattern::ExtractedPattern,
+        replacement: String,
+        status: ReplacementStatus,
+    ) {
+        let key = format!("{}::{}", pattern.pattern, replacement);
+        if processed_pattern_keys.insert(key) {
+            processed_patterns.push(ProcessedPattern {
+                original: pattern.pattern.clone(),
+                replaced: replacement,
+                status,
+            });
+        }
+    }
+
     /// パターンを置換する
     ///
     /// # Arguments
@@ -92,25 +110,22 @@ impl PatternReplacer {
 
                             processed_text.replace_range(start..end, &replacement);
 
-                            // 重複チェック（ts-cliと同じ）
-                            let key = format!("{}::{}", pattern.pattern, replacement);
-                            if processed_pattern_keys.insert(key) {
-                                processed_patterns.push(ProcessedPattern {
-                                    original: pattern.pattern.clone(),
-                                    replaced: replacement,
-                                    status: ReplacementStatus::Corrected,
-                                });
-                            }
+                            Self::add_processed_pattern(
+                                &mut processed_pattern_keys,
+                                &mut processed_patterns,
+                                pattern,
+                                replacement,
+                                ReplacementStatus::Corrected,
+                            );
                         } else {
                             // 名前が一致 → already_processed
-                            let key = format!("{}::{}", pattern.pattern, pattern.pattern);
-                            if processed_pattern_keys.insert(key) {
-                                processed_patterns.push(ProcessedPattern {
-                                    original: pattern.pattern.clone(),
-                                    replaced: pattern.pattern.clone(),
-                                    status: ReplacementStatus::AlreadyProcessed,
-                                });
-                            }
+                            Self::add_processed_pattern(
+                                &mut processed_pattern_keys,
+                                &mut processed_patterns,
+                                pattern,
+                                pattern.pattern.clone(),
+                                ReplacementStatus::AlreadyProcessed,
+                            );
                         }
                     } else if results.is_empty() {
                         // 結果が0件 → 警告のみ（TypeScript版に合わせる）
@@ -133,15 +148,13 @@ impl PatternReplacer {
 
                         processed_text.replace_range(start..end, &replacement);
 
-                        // 重複チェック（ts-cliと同じ）
-                        let key = format!("{}::{}", pattern.pattern, replacement);
-                        if processed_pattern_keys.insert(key) {
-                            processed_patterns.push(ProcessedPattern {
-                                original: pattern.pattern.clone(),
-                                replaced: replacement,
-                                status: ReplacementStatus::Resolved,
-                            });
-                        }
+                        Self::add_processed_pattern(
+                            &mut processed_pattern_keys,
+                            &mut processed_patterns,
+                            pattern,
+                            replacement,
+                            ReplacementStatus::Resolved,
+                        );
                     } else if results.len() > 1 {
                         // Multiple
                         let candidates: Vec<String> = results
@@ -153,15 +166,13 @@ impl PatternReplacer {
 
                         processed_text.replace_range(start..end, &replacement);
 
-                        // 重複チェック（ts-cliと同じ）
-                        let key = format!("{}::{}", pattern.pattern, replacement);
-                        if processed_pattern_keys.insert(key) {
-                            processed_patterns.push(ProcessedPattern {
-                                original: pattern.pattern.clone(),
-                                replaced: replacement,
-                                status: ReplacementStatus::Multiple,
-                            });
-                        }
+                        Self::add_processed_pattern(
+                            &mut processed_pattern_keys,
+                            &mut processed_patterns,
+                            pattern,
+                            replacement,
+                            ReplacementStatus::Multiple,
+                        );
 
                         has_unprocessed = true;
                     } else {
@@ -170,15 +181,13 @@ impl PatternReplacer {
 
                         processed_text.replace_range(start..end, &replacement);
 
-                        // 重複チェック（ts-cliと同じ）
-                        let key = format!("{}::{}", pattern.pattern, replacement);
-                        if processed_pattern_keys.insert(key) {
-                            processed_patterns.push(ProcessedPattern {
-                                original: pattern.pattern.clone(),
-                                replaced: replacement,
-                                status: ReplacementStatus::NotFound,
-                            });
-                        }
+                        Self::add_processed_pattern(
+                            &mut processed_pattern_keys,
+                            &mut processed_patterns,
+                            pattern,
+                            replacement,
+                            ReplacementStatus::NotFound,
+                        );
 
                         has_unprocessed = true;
                     }
