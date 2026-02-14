@@ -25,7 +25,7 @@ export function mapCardDbToApi(dbRow: any): Card {
 
     attribute: dbRow.attribute,
     levelType: dbRow.level_type as 'level' | 'rank' | 'link' | undefined,
-    levelValue: (dbRow.level_type === 'link' ? dbRow.link_value : dbRow.level)?.toString(),
+    levelValue: dbRow.level?.toString(),
     race: dbRow.race,
     monsterTypes: dbRow.monster_types,
     atk: dbRow.atk?.toString(),
