@@ -6,6 +6,7 @@ import type { Env } from '../../../worker.js'
 import { errorResponse, jsonResponse } from '../response.js'
 import { MAX_LIMIT } from '../validation.js'
 import { embedTextWithAzure } from '../embeddings.js'
+import { mapCardDbToApi } from '../database.js'
 
 /**
  * Handle semantic card search API endpoint
@@ -52,7 +53,7 @@ export async function handleSemanticCardSearch(request: Request, url: URL, env: 
     ).bind(...cardIds).all() as { results: any[] }
 
     return jsonResponse({
-      data: cards.results,
+      data: cards.results.map(mapCardDbToApi),
       query,
       limit,
       total: cards.results.length,

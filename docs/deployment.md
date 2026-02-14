@@ -138,15 +138,15 @@ curl -X POST https://ygo-search.api.scioj.com/api/vectorize/faqs
 
 ### 自動テストスクリプトの実行
 
-**推奨**: `.env`ファイルにAPI_SECRETを設定しておくと、環境変数の指定が不要になります。
+**推奨**: `.env.local`ファイルにAPI_SECRETを設定しておくと、環境変数の指定が不要になります。
 
 ```bash
-# .envファイルを作成（.env.exampleを参考に）
-cp .env.example .env
-# .envファイルを編集してAPI_SECRETを設定
+# .env.localファイルを作成（.env.exampleを参考に）
+cp .env.example .env.local
+# .env.localファイルを編集してAPI_SECRETを設定
 # API_SECRET=your-api-secret-here
 
-# 動作確認スクリプトを実行（.envから自動読み込み）
+# 動作確認スクリプトを実行（.env.localから自動読み込み）
 chmod +x scripts/verify-deployment.sh
 ./scripts/verify-deployment.sh
 ```
@@ -245,6 +245,35 @@ curl -H "X-API-Secret: $API_SECRET" \
 | `/api/update` | POST | 必要 | R2からデータ更新（Cron対応） |
 
 **合計**: 18エンドポイント
+
+### レスポンスフォーマット
+
+全てのAPIレスポンスは**キャメルケース**で返されます。
+
+#### カード情報（`/api/cards/by-id`、`/api/cards/search`等）
+
+```json
+{
+  "cardId": "22593",
+  "name": "ミラクル・エクスクルーダー",
+  "ruby": "",
+  "nameModified": "ミラクルエクスクルーダー",
+  "cardType": "monster",
+  "text": "カードテキスト...",
+  "attribute": "earth",
+  "levelType": "level",
+  "levelValue": "3",
+  "race": "spellcaster",
+  "monsterTypes": "[\"effect\"]",
+  "atk": "400",
+  "def": "400",
+  "linkMarkers": null,
+  "spellEffectType": null,
+  "trapEffectType": null
+}
+```
+
+**重要**: データベースはスネークケース（`card_id`, `description`）ですが、APIレスポンスはキャメルケース（`cardId`, `text`）に自動変換されます。
 
 ## データ更新方法
 

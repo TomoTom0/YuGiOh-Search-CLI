@@ -24,6 +24,10 @@
 
 - `src/worker.ts`の`searchCardsExtended`関数で同じ条件が3回重複していたバグを修正
 - `rust/scripts/import-cards.ts`でlevelValueとsupplementInfoの読み込み修正
+- **Worker API レスポンスフォーマット修正**
+  - データベースのスネークケース（`card_id`, `description`等）からキャメルケース（`cardId`, `text`等）への変換を実装
+  - 全APIエンドポイントで`mapCardDbToApi`関数を使用してレスポンスを正規化
+  - TypeScript型定義との整合性を確保
 
 ## Changes
 

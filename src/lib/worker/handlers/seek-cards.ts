@@ -5,6 +5,7 @@
 import type { Env } from '../../../worker.js'
 import { errorResponse, jsonResponse } from '../response.js'
 import { MAX_LIMIT } from '../validation.js'
+import { mapCardDbToApi } from '../database.js'
 
 /**
  * Handle seek cards API endpoint
@@ -70,7 +71,7 @@ export async function handleSeekCards(request: Request, url: URL, env: Env): Pro
     const result = await env.DB.prepare(sqlQuery).bind(...bindParams).all()
 
     return jsonResponse({
-      data: result.results || [],
+      data: (result.results || []).map(mapCardDbToApi),
       total: result.results?.length || 0
     })
   } catch (e) {

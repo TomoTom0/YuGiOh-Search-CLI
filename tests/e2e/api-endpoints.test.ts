@@ -16,6 +16,21 @@ import { describe, it, expect, beforeAll } from 'vitest'
 const PROD_URL = process.env.PROD_URL || 'http://localhost:40040'
 const SKIP_E2E = !process.env.RUN_E2E_TESTS
 
+// Helper function to fetch with auth header
+async function fetchWithAuth(url: string, options?: RequestInit): Promise<Response> {
+  const apiSecret = process.env.API_SECRET
+  if (!apiSecret) {
+    throw new Error('API_SECRET environment variable is required')
+  }
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options?.headers,
+      'X-API-Secret': apiSecret
+    }
+  })
+}
+
 describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
   beforeAll(() => {
     console.log(`Testing against: ${PROD_URL}`)
@@ -32,7 +47,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
     })
 
     it('should return stats', async () => {
-      const res = await fetch(`${PROD_URL}/api/stats`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/stats`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -57,7 +72,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
   describe('Card Search', () => {
     it('should search cards by name', async () => {
       const params = new URLSearchParams({ 'filter[name]': '青眼の白龍' })
-      const res = await fetch(`${PROD_URL}/api/cards/search?${params}`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/search?${params}`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -68,7 +83,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
     })
 
     it('should get card by ID', async () => {
-      const res = await fetch(`${PROD_URL}/api/cards/by-id?id=4007`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/by-id?id=4007`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -77,7 +92,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
     })
 
     it('should seek random cards', async () => {
-      const res = await fetch(`${PROD_URL}/api/cards/seek?max=5&random=true`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/seek?max=5&random=true`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -94,7 +109,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
         ]
       }
 
-      const res = await fetch(`${PROD_URL}/api/cards/bulk`, {
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/bulk`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -112,7 +127,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
     it('should extract card patterns', async () => {
       const body = { text: 'Use {青眼} and 《ブラック・マジシャン》 cards' }
 
-      const res = await fetch(`${PROD_URL}/api/cards/extract`, {
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/extract`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -128,7 +143,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
     it('should replace card patterns', async () => {
       const body = { text: 'Use {青眼の白龍} card' }
 
-      const res = await fetch(`${PROD_URL}/api/cards/replace`, {
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/replace`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -145,7 +160,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
   describe('Semantic Search', () => {
     it('should perform semantic card search', async () => {
       const params = new URLSearchParams({ q: 'dragon', limit: '3' })
-      const res = await fetch(`${PROD_URL}/api/cards/semantic-search?${params}`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/cards/semantic-search?${params}`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -157,7 +172,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
 
     it('should perform semantic FAQ search', async () => {
       const params = new URLSearchParams({ q: '召喚', limit: '3' })
-      const res = await fetch(`${PROD_URL}/api/faqs/semantic-search?${params}`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/faqs/semantic-search?${params}`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -170,7 +185,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
   describe('FAQ Search', () => {
     it('should search FAQs', async () => {
       const params = new URLSearchParams({ q: '召喚', limit: '5' })
-      const res = await fetch(`${PROD_URL}/api/faqs/search?${params}`)
+      const res = await fetchWithAuth(`${PROD_URL}/api/faqs/search?${params}`)
       const data = await res.json()
 
       expect(res.status).toBe(200)
@@ -188,7 +203,7 @@ describe.skipIf(SKIP_E2E)('Production API Endpoints', () => {
         outputFormat: 'jsonl'
       }
 
-      const res = await fetch(`${PROD_URL}/api/convert`, {
+      const res = await fetchWithAuth(`${PROD_URL}/api/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
