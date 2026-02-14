@@ -18,6 +18,8 @@ export function mapCardDbToApi(dbRow: any): Card {
     name: dbRow.name,
     ruby: dbRow.ruby || '',
     nameModified: dbRow.normalized_name || dbRow.name,
+    ciid: dbRow.ciid,
+    imgs: dbRow.imgs,
     cardType: dbRow.card_type,
     text: dbRow.description || '',
 
@@ -29,6 +31,9 @@ export function mapCardDbToApi(dbRow: any): Card {
     atk: dbRow.atk?.toString(),
     def: dbRow.def?.toString(),
     linkMarkers: dbRow.link_markers,
+    pendulumScale: dbRow.pendulum_scale,
+    pendulumText: dbRow.pendulum_text,
+    isExtraDeck: dbRow.is_extra_deck,
 
     spellEffectType: dbRow.spell_effect_type,
     trapEffectType: dbRow.trap_effect_type

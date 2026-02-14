@@ -13,8 +13,12 @@ interface Card {
   cardId: string;
   name: string;
   normalizedName: string;
+  ruby?: string;
+  ciid?: string;
+  imgs?: string;
   cardType?: string;
   attribute?: string;
+  levelType?: string;
   level?: number;
   atk?: number;
   def?: number;
@@ -24,6 +28,10 @@ interface Card {
   spellEffectType?: string;
   trapEffectType?: string;
   linkMarkers?: string;
+  linkValue?: number;
+  pendulumScale?: string;
+  pendulumText?: string;
+  isExtraDeck?: string;
 }
 
 // Rustの正規化関数と同じロジック（簡易版）
@@ -80,8 +88,12 @@ function parseCardsFile(filepath: string): Map<string, Partial<Card>> {
     cards.set(cardId, {
       cardId,
       name: row.name || '',
+      ruby: row.ruby,
+      ciid: row.ciid,
+      imgs: row.imgs,
       cardType: row.cardType || row.card_type,
       attribute: row.attribute,
+      levelType: row.levelType,
       level: row.levelValue ? parseInt(row.levelValue) : undefined,
       atk: row.atk ? parseInt(row.atk) : undefined,
       def: row.def ? parseInt(row.def) : undefined,
@@ -90,6 +102,10 @@ function parseCardsFile(filepath: string): Map<string, Partial<Card>> {
       spellEffectType: row.spellEffectType || row.spell_effect_type,
       trapEffectType: row.trapEffectType || row.trap_effect_type,
       linkMarkers: row.linkMarkers || row.link_markers,
+      linkValue: row.linkValue ? parseInt(row.linkValue) : undefined,
+      pendulumScale: row.pendulumScale,
+      pendulumText: row.pendulumText,
+      isExtraDeck: row.isExtraDeck,
     });
   }
 
@@ -127,24 +143,34 @@ function generateSQL(cards: Card[]): string {
   for (let i = 0; i < cards.length; i += batchSize) {
     const batch = cards.slice(i, i + batchSize);
     const inserts = batch.map(card => {
+      const escapeString = (str: string) => str.replace(/'/g, "''").replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+
       const values = [
-        `'${card.cardId.replace(/'/g, "''")}'`,
-        `'${card.name.replace(/'/g, "''")}'`,
-        `'${card.normalizedName.replace(/'/g, "''")}'`,
-        card.cardType ? `'${card.cardType.replace(/'/g, "''")}'` : 'NULL',
-        card.attribute ? `'${card.attribute.replace(/'/g, "''")}'` : 'NULL',
-        card.level !== undefined && !isNaN(card.level) ? card.level : 'NULL',
-        card.atk !== undefined && !isNaN(card.atk) ? card.atk : 'NULL',
-        card.def !== undefined && !isNaN(card.def) ? card.def : 'NULL',
-        card.description ? `'${card.description.replace(/'/g, "''")}'` : 'NULL',
-        card.race ? `'${card.race.replace(/'/g, "''")}'` : 'NULL',
-        card.monsterTypes ? `'${card.monsterTypes.replace(/'/g, "''")}'` : 'NULL',
-        card.spellEffectType ? `'${card.spellEffectType.replace(/'/g, "''")}'` : 'NULL',
-        card.trapEffectType ? `'${card.trapEffectType.replace(/'/g, "''")}'` : 'NULL',
-        card.linkMarkers ? `'${card.linkMarkers.replace(/'/g, "''")}'` : 'NULL',
+        `'${escapeString(card.cardId)}'`,
+        `'${escapeString(card.name)}'`,
+        `'${escapeString(card.normalizedName)}'`,
+        card.ruby ? `'${escapeString(card.ruby)}'` : 'NULL',
+        card.ciid ? `'${escapeString(card.ciid)}'` : 'NULL',
+        card.imgs ? `'${escapeString(card.imgs)}'` : 'NULL',
+        card.cardType ? `'${escapeString(card.cardType)}'` : 'NULL',
+        card.attribute ? `'${escapeString(card.attribute)}'` : 'NULL',
+        card.levelType ? `'${escapeString(card.levelType)}'` : 'NULL',
+        card.level !== undefined && card.level !== null && !isNaN(card.level) ? card.level : 'NULL',
+        card.atk !== undefined && card.atk !== null && !isNaN(card.atk) ? card.atk : 'NULL',
+        card.def !== undefined && card.def !== null && !isNaN(card.def) ? card.def : 'NULL',
+        card.description ? `'${escapeString(card.description)}'` : 'NULL',
+        card.race ? `'${escapeString(card.race)}'` : 'NULL',
+        card.monsterTypes ? `'${escapeString(card.monsterTypes)}'` : 'NULL',
+        card.spellEffectType ? `'${escapeString(card.spellEffectType)}'` : 'NULL',
+        card.trapEffectType ? `'${escapeString(card.trapEffectType)}'` : 'NULL',
+        card.linkMarkers ? `'${escapeString(card.linkMarkers)}'` : 'NULL',
+        card.linkValue !== undefined && card.linkValue !== null && !isNaN(card.linkValue) ? card.linkValue : 'NULL',
+        card.pendulumScale ? `'${escapeString(card.pendulumScale)}'` : 'NULL',
+        card.pendulumText ? `'${escapeString(card.pendulumText)}'` : 'NULL',
+        card.isExtraDeck ? `'${escapeString(card.isExtraDeck)}'` : 'NULL',
       ];
 
-      return `INSERT INTO cards (card_id, name, normalized_name, card_type, attribute, level, atk, def, description, race, monster_types, spell_effect_type, trap_effect_type, link_markers) VALUES (${values.join(', ')});`;
+      return `INSERT INTO cards (card_id, name, normalized_name, ruby, ciid, imgs, card_type, attribute, level_type, level, atk, def, description, race, monster_types, spell_effect_type, trap_effect_type, link_markers, link_value, pendulum_scale, pendulum_text, is_extra_deck) VALUES (${values.join(', ')});`;
     });
 
     batches.push(`-- Batch ${Math.floor(i / batchSize) + 1} (cards ${i + 1}-${Math.min(i + batchSize, cards.length)})`);
@@ -183,8 +209,12 @@ async function main() {
       cardId,
       name: cardData.name || '',
       normalizedName,
+      ruby: cardData.ruby || null,
+      ciid: cardData.ciid || null,
+      imgs: cardData.imgs || null,
       cardType: cardData.cardType,
       attribute: cardData.attribute,
+      levelType: cardData.levelType || null,
       level: cardData.level,
       atk: cardData.atk,
       def: cardData.def,
@@ -194,6 +224,10 @@ async function main() {
       spellEffectType: cardData.spellEffectType || null,
       trapEffectType: cardData.trapEffectType || null,
       linkMarkers: cardData.linkMarkers || null,
+      linkValue: cardData.linkValue || null,
+      pendulumScale: cardData.pendulumScale || null,
+      pendulumText: cardData.pendulumText || null,
+      isExtraDeck: cardData.isExtraDeck || null,
     });
   }
 

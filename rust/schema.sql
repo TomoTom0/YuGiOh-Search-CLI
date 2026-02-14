@@ -2,13 +2,14 @@
 CREATE TABLE IF NOT EXISTS cards (
     card_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    ruby TEXT,
     normalized_name TEXT NOT NULL,
-    normalized_ruby TEXT,
+    ruby TEXT,
+    ciid TEXT,
+    imgs TEXT,
     card_type TEXT,
     attribute TEXT,
-    level INTEGER,
     level_type TEXT,
+    level INTEGER,
     atk INTEGER,
     def INTEGER,
     description TEXT,
@@ -18,6 +19,10 @@ CREATE TABLE IF NOT EXISTS cards (
     trap_effect_type TEXT,
     link_markers TEXT,
     link_value INTEGER,
+    pendulum_scale TEXT,
+    pendulum_text TEXT,
+    is_extra_deck TEXT,
+    normalized_ruby TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
