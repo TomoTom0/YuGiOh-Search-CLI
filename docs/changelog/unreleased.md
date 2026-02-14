@@ -28,6 +28,12 @@
   - データベースのスネークケース（`card_id`, `description`等）からキャメルケース（`cardId`, `text`等）への変換を実装
   - 全APIエンドポイントで`mapCardDbToApi`関数を使用してレスポンスを正規化
   - TypeScript型定義との整合性を確保
+- **bulk-search.tsのD1_BINDING_ERROR修正**
+  - `bindParams`から不要な`limit`/`offset`を削除（SQLクエリ文字列に直接埋め込まれているため）
+  - 実行時の"Wrong number of bindings"エラーを解消
+- **リンクモンスターのlevelValue修正**
+  - リンクモンスターの`levelValue`が`undefined`になる問題を修正
+  - `level`列から直接取得するように実装を簡素化（`link_value`列は常にNULLのため使用しない）
 
 ## Changes
 
@@ -39,7 +45,12 @@
 
 ## Refactoring
 
-（変更内容をここに記載）
+- **データベーススキーマとインポートスクリプトの完全修正**
+  - データベースに不足していた5つのカラムを追加（ciid, imgs, pendulum_scale, pendulum_text, is_extra_deck）
+  - `import-cards.ts`を修正して全フィールドを正しくインポート
+  - SQL文字列エスケープ処理を追加（改行、シングルクォート）
+  - null値のハンドリングを修正（空文字列がNULLになる問題を解消）
+  - 全13,809件のカードデータを再インポート
 
 ## Repository Management
 
