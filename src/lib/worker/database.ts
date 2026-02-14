@@ -13,6 +13,24 @@ import type { Card } from '../../types/card.js'
 export function mapCardDbToApi(dbRow: any): Card {
   if (!dbRow) return null as any
 
+  // Determine levelType based on monster_types and available data
+  let levelType: 'level' | 'rank' | 'link' | undefined
+  let levelValue: string | undefined
+
+  if (dbRow.card_type === 'monster') {
+    const monsterTypes = dbRow.monster_types || ''
+    if (monsterTypes.includes('link') && dbRow.link_value) {
+      levelType = 'link'
+      levelValue = dbRow.link_value.toString()
+    } else if (monsterTypes.includes('xyz') && dbRow.level) {
+      levelType = 'rank'
+      levelValue = dbRow.level.toString()
+    } else if (dbRow.level) {
+      levelType = 'level'
+      levelValue = dbRow.level.toString()
+    }
+  }
+
   return {
     cardId: dbRow.card_id,
     name: dbRow.name,
@@ -22,8 +40,8 @@ export function mapCardDbToApi(dbRow: any): Card {
     text: dbRow.description || '',
 
     attribute: dbRow.attribute,
-    levelType: dbRow.level ? 'level' : undefined,
-    levelValue: dbRow.level?.toString(),
+    levelType,
+    levelValue,
     race: dbRow.race,
     monsterTypes: dbRow.monster_types,
     atk: dbRow.atk?.toString(),
