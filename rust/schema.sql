@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS cards (
     card_type TEXT,
     attribute TEXT,
     level INTEGER,
+    level_type TEXT,
     atk INTEGER,
     def INTEGER,
     description TEXT,
