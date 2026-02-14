@@ -4,6 +4,7 @@
 
 import type { Env } from '../../worker.js'
 import { normalizeForSearch } from '../shared/normalizer.js'
+import { mapCardDbToApi } from './database.js'
 
 export interface ExtractedPattern {
   pattern: string
@@ -187,7 +188,7 @@ export async function searchCardPattern(pattern: ExtractedPattern, env: Env): Pr
     }
 
     const result = await env.DB.prepare(sqlQuery).bind(...bindParams).all()
-    return result.results || []
+    return (result.results || []).map(mapCardDbToApi)
   } catch (e) {
     console.error('Search card pattern error:', e)
     return []

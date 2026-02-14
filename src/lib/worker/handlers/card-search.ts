@@ -9,6 +9,7 @@ import { MAX_LIMIT, validateSearchParams, validateSortParam } from '../validatio
 import { parseFilterParams, buildWhereClause } from '../filters.js'
 import { normalizeForSearch } from '../../shared/normalizer.js'
 import { matchParsedQuery } from '../../shared/search-parser.js'
+import { mapCardDbToApi } from '../database.js'
 
 /**
  * Handle card search API endpoint
@@ -93,7 +94,7 @@ export async function handleCardSearch(request: Request, url: URL, env: Env): Pr
     }
 
     return jsonResponse({
-      data: results,
+      data: results.map(mapCardDbToApi),
       filter,
       limit,
       offset,

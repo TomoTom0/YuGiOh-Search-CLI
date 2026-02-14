@@ -7,6 +7,7 @@ import { errorResponse } from '../response.js'
 import { MAX_LIMIT, MAX_OFFSET, MAX_BULK_QUERIES } from '../validation.js'
 import type { NormalizedFilter } from '../filters.js'
 import { buildWhereClause } from '../filters.js'
+import { mapCardDbToApi } from '../database.js'
 
 /**
  * Handle bulk search API endpoint
@@ -77,14 +78,13 @@ export async function handleBulkSearch(request: Request, env: Env): Promise<Resp
 
         // Select commonly used columns only (avoid SELECT *)
         const selectCols = 'card_id, name, ruby, normalized_name, card_type, attribute, level, atk, def, description, race, monster_types, spell_effect_type, trap_effect_type, link_markers, link_value'
-        const sqlQuery = `SELECT ${selectCols} FROM cards WHERE ${whereClause} LIMIT ? OFFSET ?`
-        bindParams.push(limit, offset)
+        const sqlQuery = `SELECT ${selectCols} FROM cards WHERE ${whereClause} LIMIT ${limit} OFFSET ${offset}`
 
         const result = await env.DB.prepare(sqlQuery).bind(...bindParams).all()
 
         return {
           query: index,
-          data: result.results || [],
+          data: (result.results || []).map(mapCardDbToApi),
           total: result.results?.length || 0
         }
       } catch (e) {

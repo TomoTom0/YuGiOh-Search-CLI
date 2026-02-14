@@ -1,7 +1,7 @@
 #!/bin/bash
 # 本番環境の動作確認スクリプト
 
-# .envファイルから環境変数を読み込む
+# .envファイルから環境変数を読み込む（本番環境）
 if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
