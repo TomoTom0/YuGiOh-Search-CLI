@@ -79,7 +79,6 @@ export async function handleBulkSearch(request: Request, env: Env): Promise<Resp
         // Select commonly used columns only (avoid SELECT *)
         const selectCols = 'card_id, name, ruby, normalized_name, card_type, attribute, level, atk, def, description, race, monster_types, spell_effect_type, trap_effect_type, link_markers, link_value'
         const sqlQuery = `SELECT ${selectCols} FROM cards WHERE ${whereClause} LIMIT ${limit} OFFSET ${offset}`
-        bindParams.push(limit, offset)
 
         const result = await env.DB.prepare(sqlQuery).bind(...bindParams).all()
 
