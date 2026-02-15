@@ -105,6 +105,29 @@ bun link
 ygo_search update
 ```
 
+### Development Setup (For Contributors)
+
+**IMPORTANT**: Local development uses local D1 database to prevent accidentally modifying production data.
+
+```bash
+# Initialize local D1 database
+npx wrangler d1 execute ygo-search-db --local --file=migrations/0001_api_keys_and_logs.sql
+
+# Create cards, faqs, and other tables from schema file
+npx wrangler d1 execute ygo-search-db --local --file=rust/schema.sql
+
+# Start development server (uses local D1 by default)
+# IMPORTANT: Use --local flag to avoid remote resource connection issues
+npx wrangler dev --local --port 40040
+
+# Deploy to production (uses remote D1)
+npx wrangler deploy
+```
+
+**Note**:
+- `wrangler.toml` is configured with `preview_database_id = "local"` to ensure local development never touches production data.
+- Use `--local` flag to run in fully local mode (Vectorize and AI resources will be unavailable but not required for basic API testing).
+
 ### As a Library
 
 ```bash

@@ -8,10 +8,14 @@ compatibility_date = "2024-01-01"
 # binding = "ANALYTICS"
 
 # D1 Database
+# Contains: cards, faqs, api_keys, api_logs tables
+# Development: Uses local D1 (persisted SQLite file)
+# Production: Uses remote D1 (override with database_id in production deployment)
 [[d1_databases]]
 binding = "DB"
 database_name = "ygo-search-db"
 database_id = "1d6b90bc-b61a-4f61-8d3d-63822422db52"
+preview_database_id = "local"
 
 # Workers AI
 [ai]
