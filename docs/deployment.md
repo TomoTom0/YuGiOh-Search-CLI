@@ -1,5 +1,14 @@
 # 本番デプロイ手順
 
+## ⚠️ 重要: ローカル開発と本番環境の分離
+
+**ローカル開発では必ずローカルD1を使用してください。本番D1に直接アクセスしないでください。**
+
+- **ローカル開発**: `wrangler dev` → ローカルD1を使用（`preview_database_id = "local"`により自動）
+- **本番デプロイ**: `wrangler deploy` → 本番D1を使用
+
+詳細は[README.md - Development Setup](../README.md#development-setup-for-contributors)を参照してください。
+
 ## 前提条件
 
 - Cloudflareアカウント
