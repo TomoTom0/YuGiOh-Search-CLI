@@ -113,9 +113,8 @@ ygo_search update
 # Initialize local D1 database
 npx wrangler d1 execute ygo-search-db --local --file=migrations/0001_api_keys_and_logs.sql
 
-# Create cards and faqs tables (get schema from remote)
-npx wrangler d1 execute ygo-search-db --remote --command "SELECT sql FROM sqlite_master WHERE type='table' AND name IN ('cards', 'faqs')"
-# Copy the output SQL and execute it locally
+# Create cards, faqs, and other tables from schema file
+npx wrangler d1 execute ygo-search-db --local --file=rust/schema.sql
 
 # Start development server (uses local D1 by default)
 # IMPORTANT: Use --local flag to avoid remote resource connection issues
