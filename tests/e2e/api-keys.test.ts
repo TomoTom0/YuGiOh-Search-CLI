@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeAll } from 'bun:test'
+import { describe, it, expect, beforeAll } from 'vitest'
 import { unstable_dev } from 'wrangler'
 import type { UnstableDevWorker } from 'wrangler'
 
-describe('API Keys Management E2E', () => {
+const SKIP_E2E = !process.env.RUN_E2E_TESTS
+
+describe.skipIf(SKIP_E2E)('API Keys Management E2E', () => {
   let worker: UnstableDevWorker
   let masterKey: string
   let testUserId: string

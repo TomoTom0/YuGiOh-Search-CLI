@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { checkAuth, type ApiKeyInfo } from '../../src/lib/worker/auth.js'
 import type { Env } from '../../src/worker.js'
 
