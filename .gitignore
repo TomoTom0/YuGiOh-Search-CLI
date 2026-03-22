@@ -30,7 +30,7 @@ tmp/
 # Environment variables
 .env
 .env.local
-.wrangler/
+.dev.vars
 
 # Build output
 dist/
@@ -39,3 +39,4 @@ web/dist/
 # Test coverage
 coverage/
 .nyc_output/
+.wrangler/

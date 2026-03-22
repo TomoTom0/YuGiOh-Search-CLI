@@ -15,8 +15,7 @@ export async function generateEmbeddings(texts: string[], env: Env): Promise<num
     throw new Error('Azure OpenAI API credentials not configured')
   }
 
-  const model = env.AZURE_MODEL || 'text-embedding-ada-002'
-  const response = await fetch(`${env.AZURE_ENDPOINT}/openai/deployments/${model}/embeddings?api-version=2024-02-15-preview`, {
+  const response = await fetch(`${env.AZURE_ENDPOINT}/openai/deployments/${env.AZURE_MODEL || 'text-embedding-ada-002'}/embeddings?api-version=2023-05-15`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -28,8 +27,7 @@ export async function generateEmbeddings(texts: string[], env: Env): Promise<num
   })
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Azure OpenAI API error: ${response.status} - ${error}`)
+    throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText}`)
   }
 
   const data = await response.json() as { data: Array<{ embedding: number[] }> }
@@ -43,12 +41,11 @@ export async function generateEmbeddings(texts: string[], env: Env): Promise<num
  * @returns Embedding vector
  */
 export async function embedTextWithAzure(text: string, env: Env): Promise<number[]> {
-  if (!env.AZURE_API_KEY || !env.AZURE_ENDPOINT) {
+  if (!env.AZURE_API_KEY || !env.AZURE_ENDPOINT || !env.AZURE_MODEL) {
     throw new Error('Azure OpenAI credentials not configured')
   }
 
-  const model = env.AZURE_MODEL || 'text-embedding-ada-002'
-  const url = `${env.AZURE_ENDPOINT}/openai/deployments/${model}/embeddings?api-version=2024-02-15-preview`
+  const url = `${env.AZURE_ENDPOINT}/openai/deployments/${env.AZURE_MODEL}/embeddings?api-version=2024-02-15-preview`
 
   const response = await fetch(url, {
     method: 'POST',

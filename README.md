@@ -8,16 +8,20 @@ Command-line tools and Web API for searching Yu-Gi-Oh! card database with full J
 
 **Production URL**: https://ygo-search.api.scioj.com
 
-18個のAPIエンドポイントを提供：
+22個のAPIエンドポイントを提供：
 - カード検索（フィルタ検索、ID検索、セマンティック検索）
 - FAQ検索（キーワード検索、セマンティック検索）
 - カードパターン抽出・置換
 - 一括検索、ランダム取得
 - フォーマット変換
+- **APIキー管理**（発行、一覧、無効化、使用ログ）
 
 **認証**: ほとんどのエンドポイントは`X-API-Secret`ヘッダーによる認証が必要です。
 - 認証不要: `/health` (ヘルスチェック), `/api/docs` (APIドキュメント)
 - 認証方法: `X-API-Secret: your-token` または `Authorization: Bearer your-token`
+- **マスターキー**: 管理操作専用（環境変数`API_SECRET`）- APIキー発行・削除時のみ使用
+- **ユーザーAPIキー**: 日常的な運用用 - ユーザーごとに発行、スコープとレート制限を設定可能
+- **推奨**: 管理者も含め、日常的にはユーザーAPIキーを使用すること
 
 詳細は[docs/deployment.md](docs/deployment.md)を参照してください。
 
@@ -113,8 +117,9 @@ ygo_search update
 # Initialize local D1 database
 npx wrangler d1 execute ygo-search-db --local --file=migrations/0001_api_keys_and_logs.sql
 
-# Create cards, faqs, and other tables from schema file
-npx wrangler d1 execute ygo-search-db --local --file=rust/schema.sql
+# Create cards and faqs tables (get schema from remote)
+npx wrangler d1 execute ygo-search-db --remote --command "SELECT sql FROM sqlite_master WHERE type='table' AND name IN ('cards', 'faqs')"
+# Copy the output SQL and execute it locally
 
 # Start development server (uses local D1 by default)
 # IMPORTANT: Use --local flag to avoid remote resource connection issues

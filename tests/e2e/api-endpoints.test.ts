@@ -18,15 +18,20 @@ const SKIP_E2E = !process.env.RUN_E2E_TESTS
 
 // Helper function to fetch with auth header
 async function fetchWithAuth(url: string, options?: RequestInit): Promise<Response> {
-  const apiSecret = process.env.API_SECRET
-  if (!apiSecret) {
-    throw new Error('API_SECRET environment variable is required')
+  // Use ADMIN_API_KEY for daily operations (required for security best practices)
+  const apiKey = process.env.ADMIN_API_KEY
+  if (!apiKey) {
+    throw new Error(
+      'ADMIN_API_KEY environment variable is required. ' +
+      'Generate one with: POST /api/keys using master key (API_SECRET). ' +
+      'See docs/deployment.md for details.'
+    )
   }
   return fetch(url, {
     ...options,
     headers: {
       ...options?.headers,
-      'X-API-Secret': apiSecret
+      'X-API-Secret': apiKey
     }
   })
 }

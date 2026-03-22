@@ -2,6 +2,23 @@
 
 ## New Features
 
+- **APIキー管理システムの実装**
+  - ユーザーごとのAPIキー発行・管理機能
+  - APIキー管理エンドポイント（4個）
+    - `POST /api/keys` - APIキー発行（管理者のみ）
+    - `GET /api/keys` - APIキー一覧取得
+    - `DELETE /api/keys/:id` - APIキー無効化
+    - `GET /api/keys/logs` - API使用ログ取得
+  - D1データベーステーブル追加
+    - `api_keys` - APIキー情報（ユーザーID、スコープ、レート制限、有効期限）
+    - `api_logs` - 監査ログ（エンドポイント、メソッド、ステータス、IPアドレス等）
+  - 認証ミドルウェア拡張
+    - マスターキー OR ユーザーAPIキーの両対応
+    - 有効期限チェック
+    - スコープ情報取得
+  - 監査ログ機能
+    - 全APIリクエストを自動記録
+    - ユーザーAPIキー使用時のみログ記録
 - Cloudflare Workers API実装
   - カード検索エンドポイント (`/api/cards/search`)
   - FAQ検索エンドポイント (`/api/faqs/search`)
@@ -28,16 +45,16 @@
   - データベースのスネークケース（`card_id`, `description`等）からキャメルケース（`cardId`, `text`等）への変換を実装
   - 全APIエンドポイントで`mapCardDbToApi`関数を使用してレスポンスを正規化
   - TypeScript型定義との整合性を確保
-- **bulk-search.tsのD1_BINDING_ERROR修正**
-  - `bindParams`から不要な`limit`/`offset`を削除（SQLクエリ文字列に直接埋め込まれているため）
-  - 実行時の"Wrong number of bindings"エラーを解消
-- **リンクモンスターのlevelValue修正**
-  - リンクモンスターの`levelValue`が`undefined`になる問題を修正
-  - `level`列から直接取得するように実装を簡素化（`link_value`列は常にNULLのため使用しない）
 
 ## Changes
 
-（変更内容をここに記載）
+- **セキュリティ改善**
+  - 単一マスターキーからユーザーごとのAPIキー管理へ移行
+  - APIエンドポイント数: 18個 → 22個（APIキー管理4個追加）
+  - 認証方式の強化
+    - マスターキー: 全ての権限（管理者用）
+    - ユーザーAPIキー: スコープとレート制限でアクセス制御
+  - 監査ログによる全APIリクエストの追跡
 
 ## Performance
 
@@ -45,12 +62,7 @@
 
 ## Refactoring
 
-- **データベーススキーマとインポートスクリプトの完全修正**
-  - データベースに不足していた5つのカラムを追加（ciid, imgs, pendulum_scale, pendulum_text, is_extra_deck）
-  - `import-cards.ts`を修正して全フィールドを正しくインポート
-  - SQL文字列エスケープ処理を追加（改行、シングルクォート）
-  - null値のハンドリングを修正（空文字列がNULLになる問題を解消）
-  - 全13,809件のカードデータを再インポート
+（変更内容をここに記載）
 
 ## Repository Management
 
@@ -58,6 +70,9 @@
 
 ## Internal Improvements
 
+- **テスト追加**
+  - 認証機能のユニットテスト（`tests/unit/auth.test.ts`）- 7件
+  - APIキー管理のE2Eテスト（`tests/e2e/api-keys.test.ts`）- 9件
 - D1データベースへのバッチインポート機能実装
   - TSVファイルからSQLへの変換処理
   - 1000件ずつの分割バッチ処理
@@ -70,6 +85,7 @@
   - `rebuild-faq-card-references.ts`: FAQとカードの参照再構築
 - スキーマ更新
   - カードテーブルに追加カラム（race、monsterTypes、spellEffectType、trapEffectType、linkMarkers、linkValue）
+  - APIキーテーブル追加（api_keys、api_logs）
 
 ## Known Issues
 

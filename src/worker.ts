@@ -19,6 +19,8 @@ export interface Env {
 // Import all worker utilities and handlers
 import {
   checkAuth,
+  checkScope,
+  SCOPES,
   errorResponse,
   jsonResponse,
   logRequest,
@@ -40,6 +42,13 @@ import {
   handleCardById,
   handleStats
 } from './lib/worker/index.js'
+import {
+  handleCreateApiKey,
+  handleListApiKeys,
+  handleDeleteApiKey,
+  handleGetApiLogs
+} from './lib/worker/handlers/api-keys.js'
+import { logApiRequest } from './lib/worker/audit-log.js'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -65,7 +74,7 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, X-API-Secret, Authorization',
           'Access-Control-Max-Age': '86400'
         }
@@ -73,8 +82,9 @@ export default {
     }
 
     // Authentication check (skip only for /api/docs)
+    let authResult: Awaited<ReturnType<typeof checkAuth>> | null = null
     if (path !== '/api/docs') {
-      const authResult = checkAuth(request, env)
+      authResult = await checkAuth(request, env)
       if (!authResult.authorized) {
         const duration = Date.now() - startTime
         logRequest(env, request, 401, duration, 'unauthorized')
@@ -85,43 +95,67 @@ export default {
     let response: Response
 
     if (path === '/api/cards/search') {
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleCardSearch(request, url, env)
     } else if (path === '/api/faqs/search') {
+      const scopeError = checkScope(authResult!, SCOPES.FAQS_READ)
+      if (scopeError) return scopeError
       response = await handleFAQSearch(request, url, env)
     } else if (path === '/api/cards/by-id') {
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleCardById(request, url, env)
     } else if (path === '/api/stats') {
+      const scopeError = checkScope(authResult!, SCOPES.STATS_READ)
+      if (scopeError) return scopeError
       response = await handleStats(env)
     } else if (path === '/api/cards/semantic-search') {
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleSemanticCardSearch(request, url, env)
     } else if (path === '/api/faqs/semantic-search') {
+      const scopeError = checkScope(authResult!, SCOPES.FAQS_READ)
+      if (scopeError) return scopeError
       response = await handleSemanticFAQSearch(request, url, env)
     } else if (path === '/api/vectorize/cards') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.VECTORIZE)
+      if (scopeError) return scopeError
       response = await handleVectorizeCards(env)
     } else if (path === '/api/vectorize/faqs') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.VECTORIZE)
+      if (scopeError) return scopeError
       response = await handleVectorizeFAQs(env)
     } else if (path === '/api/cards/extract') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleExtractCards(request, env)
     } else if (path === '/api/cards/replace') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleReplaceCards(request, env)
     } else if (path === '/api/cards/seek') {
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleSeekCards(request, url, env)
     } else if (path === '/api/cards/bulk') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.CARDS_READ)
+      if (scopeError) return scopeError
       response = await handleBulkSearch(request, env)
     } else if (path === '/api/docs') {
       response = await handleDocs(request, url, env)
@@ -129,22 +163,61 @@ export default {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.CONVERT)
+      if (scopeError) return scopeError
       response = await handleConvert(request, env)
     } else if (path === '/api/vector/setup') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.VECTORIZE)
+      if (scopeError) return scopeError
       response = await handleVectorSetup(request, env)
     } else if (path === '/api/vector/setup-generic') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.VECTORIZE)
+      if (scopeError) return scopeError
       response = await handleVectorSetupGeneric(request, env)
     } else if (path === '/api/update') {
       if (request.method !== 'POST') {
         return errorResponse('Method not allowed', 405)
       }
+      const scopeError = checkScope(authResult!, SCOPES.ADMIN)
+      if (scopeError) return scopeError
       response = await handleUpdate(request, env)
+    } else if (path === '/api/keys') {
+      if (!authResult) {
+        return errorResponse('Unauthorized', 401)
+      }
+      if (request.method === 'POST') {
+        response = await handleCreateApiKey(request, env, authResult)
+      } else if (request.method === 'GET') {
+        response = await handleListApiKeys(request, env, authResult)
+      } else {
+        return errorResponse('Method not allowed', 405)
+      }
+    } else if (path === '/api/keys/logs') {
+      if (!authResult) {
+        return errorResponse('Unauthorized', 401)
+      }
+      if (request.method === 'GET') {
+        response = await handleGetApiLogs(request, env, authResult)
+      } else {
+        return errorResponse('Method not allowed', 405)
+      }
+    } else if (path.startsWith('/api/keys/') && path.split('/').length === 4) {
+      // DELETE /api/keys/:id
+      if (!authResult) {
+        return errorResponse('Unauthorized', 401)
+      }
+      const keyId = path.split('/')[3]
+      if (request.method === 'DELETE') {
+        response = await handleDeleteApiKey(request, env, authResult, keyId)
+      } else {
+        return errorResponse('Method not allowed', 405)
+      }
     } else {
       response = errorResponse('Endpoint not found', 404, 'NOT_FOUND', [
         'API documentation: GET /api/docs?list',
@@ -154,6 +227,9 @@ export default {
 
     const duration = Date.now() - startTime
     logRequest(env, request, response.status, duration, path.substring(1))
+
+    // Log to audit table (fire and forget)
+    logApiRequest(env, request, authResult, response.status)
 
     return response
   }

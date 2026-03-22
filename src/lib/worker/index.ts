@@ -6,7 +6,7 @@
 export type { Env } from '../../worker.js'
 
 // Authentication
-export { checkAuth } from './auth.js'
+export { checkAuth, checkScope, SCOPES } from './auth.js'
 
 // Response utilities
 export { errorResponse, jsonResponse } from './response.js'

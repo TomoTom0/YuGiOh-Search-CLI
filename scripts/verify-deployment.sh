@@ -6,27 +6,50 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-PROD_URL="${PROD_URL:-https://ygo-search.api.scioj.com}"
-API_SECRET="${API_SECRET}"
+# .env.localファイルも読み込む（ADMIN_API_KEY用）
+if [ -f .env.local ]; then
+  export $(grep -v '^#' .env.local | xargs)
+fi
 
-if [ -z "$API_SECRET" ]; then
-  echo "エラー: API_SECRET環境変数が設定されていません"
-  echo "使用方法: API_SECRET=your-token ./scripts/verify-deployment.sh"
-  echo "または、プロジェクトルートの.envファイルにAPI_SECRETを設定してください"
+PROD_URL="${PROD_URL:-https://ygo-search.api.scioj.com}"
+
+# ADMIN_API_KEYを必須にする（セキュリティベストプラクティス）
+if [ -z "$ADMIN_API_KEY" ]; then
+  echo "=============================================="
+  echo "エラー: ADMIN_API_KEY環境変数が設定されていません"
+  echo "=============================================="
+  echo ""
+  echo "セキュリティ上の理由により、このスクリプトはADMIN_API_KEYが必須です。"
+  echo "マスターキー（API_SECRET）の使用は最小限に抑えるべきです。"
+  echo ""
+  echo "【初回セットアップ】"
+  echo "1. マスターキーで管理者用APIキーを発行："
+  echo "   curl -X POST \"$PROD_URL/api/keys\" \\"
+  echo "     -H \"X-API-Secret: \$API_SECRET\" \\"
+  echo "     -H \"Content-Type: application/json\" \\"
+  echo "     -d '{\"userId\": \"admin\", \"name\": \"Admin Daily Use Key\", \"scopes\": [\"cards:read\", \"faqs:read\"], \"rateLimit\": 10000}'"
+  echo ""
+  echo "2. 発行されたAPIキーを.env.localに保存："
+  echo "   echo 'ADMIN_API_KEY=\"<発行されたAPIキー>\"' >> .env.local"
+  echo ""
+  echo "詳細: docs/deployment.md を参照"
   exit 1
 fi
+
+API_KEY="$ADMIN_API_KEY"
+KEY_TYPE="管理者用APIキー (ADMIN_API_KEY)"
 
 echo "======================================"
 echo "本番環境動作確認"
 echo "URL: $PROD_URL"
-echo "認証: あり"
+echo "認証: $KEY_TYPE"
 echo "======================================"
 echo ""
 
 # 認証付きcurl関数（共通）
 # 元のcurlコマンドをオーバーライドして、自動的に認証ヘッダーを追加
 curl() {
-  /usr/bin/curl -H "X-API-Secret: $API_SECRET" "$@"
+  /usr/bin/curl -H "X-API-Secret: $API_KEY" "$@"
 }
 
 # テスト結果カウンタ
@@ -64,7 +87,7 @@ test_endpoint "カード検索（名前）" \
 
 # 4. カード検索（ID）
 test_endpoint "カードID検索" \
-  "curl -s '$PROD_URL/api/cards/by-id?id=4007' | jq -e '.card_id == \"4007\"' > /dev/null && curl -s '$PROD_URL/api/cards/by-id?id=4007' | jq -c '{card_id, name, card_type}'"
+  "curl -s '$PROD_URL/api/cards/by-id?id=4007' | jq -e '.cardId == \"4007\"' > /dev/null && curl -s '$PROD_URL/api/cards/by-id?id=4007' | jq -c '{cardId, name, cardType}'"
 
 # 5. セマンティック検索
 test_endpoint "セマンティック検索" \

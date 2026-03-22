@@ -74,12 +74,12 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
         for (let i = 0; i < cardsData.length; i += batchSize) {
           const batch = cardsData.slice(i, i + batchSize)
 
-          const statements = batch.map(card => {
+          for (const card of batch) {
             // Normalize fields for D1 insertion
             const normalized_name = normalizeForSearch(card.name || '')
             const normalized_ruby = normalizeForSearch(card.ruby || '')
 
-            return env.DB.prepare(
+            await env.DB.prepare(
               'INSERT INTO cards (card_id, name, ruby, normalized_name, normalized_ruby, card_type, attribute, level, atk, def, description, race, monster_types, spell_effect_type, trap_effect_type, link_markers, link_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             ).bind(
               card.card_id || '',
@@ -99,10 +99,8 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
               card.trap_effect_type || '',
               card.link_markers || '',
               card.link_value || ''
-            )
-          })
-
-          await env.DB.batch(statements)
+            ).run()
+          }
         }
 
         cardsCount = cardsData.length
@@ -126,11 +124,11 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
         for (let i = 0; i < faqsData.length; i += batchSize) {
           const batch = faqsData.slice(i, i + batchSize)
 
-          const statements = batch.map(faq => {
+          for (const faq of batch) {
             const normalized_question = normalizeForSearch(faq.question || '')
             const normalized_answer = normalizeForSearch(faq.answer || '')
 
-            return env.DB.prepare(
+            await env.DB.prepare(
               'INSERT INTO faqs (faq_id, question, answer, normalized_question, normalized_answer) VALUES (?, ?, ?, ?, ?)'
             ).bind(
               faq.faq_id || '',
@@ -138,10 +136,8 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
               faq.answer || '',
               normalized_question,
               normalized_answer
-            )
-          })
-
-          await env.DB.batch(statements)
+            ).run()
+          }
         }
 
         faqsCount = faqsData.length
