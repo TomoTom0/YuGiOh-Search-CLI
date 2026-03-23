@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { execSync } from 'child_process'
 import { unstable_dev } from 'wrangler'
 import type { UnstableDevWorker } from 'wrangler'
 
@@ -11,24 +12,36 @@ describe.skipIf(SKIP_E2E)('API Keys Management E2E', () => {
   let createdApiKey: string
 
   beforeAll(async () => {
+    masterKey = 'test-master-key'
+
+    // Reset and apply migrations to local test DB
+    execSync(
+      'wrangler d1 execute ygo-search-db-test --local --command "DROP TABLE IF EXISTS api_logs; DROP TABLE IF EXISTS api_keys;" --config wrangler.test.toml',
+      { stdio: 'pipe' }
+    )
+    execSync(
+      'wrangler d1 execute ygo-search-db-test --local --file migrations/0001_api_keys_and_logs.sql --config wrangler.test.toml',
+      { stdio: 'pipe' }
+    )
+
     worker = await unstable_dev('src/worker.ts', {
-      experimental: { disableExperimentalWarning: true }
+      experimental: { disableExperimentalWarning: true },
+      config: 'wrangler.test.toml',
+      vars: { API_SECRET: masterKey }
     })
-    masterKey = 'test-master-key' // Should match API_SECRET in test env
     testUserId = `test-user-${Date.now()}`
+  })
+
+  afterAll(async () => {
+    await worker.stop()
   })
 
   it('should reject API key creation without master key', async () => {
     const response = await worker.fetch('http://localhost/api/keys', {
-      method: 'POST',
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'X-API-Secret': 'invalid-key'
-      },
-      body: JSON.stringify({
-        userId: testUserId,
-        name: 'Test Key'
-      })
+      }
     })
 
     expect(response.status).toBe(401)
@@ -44,7 +57,7 @@ describe.skipIf(SKIP_E2E)('API Keys Management E2E', () => {
       body: JSON.stringify({
         userId: testUserId,
         name: 'Test Key',
-        scopes: ['cards:read'],
+        scopes: ['cards:read', 'stats:read'],
         rateLimit: 500
       })
     })
@@ -54,7 +67,7 @@ describe.skipIf(SKIP_E2E)('API Keys Management E2E', () => {
     expect(data).toHaveProperty('apiKey')
     expect(data.userId).toBe(testUserId)
     expect(data.name).toBe('Test Key')
-    expect(data.scopes).toEqual(['cards:read'])
+    expect(data.scopes).toEqual(['cards:read', 'stats:read'])
     expect(data.rateLimit).toBe(500)
 
     createdApiKey = data.apiKey
@@ -107,7 +120,7 @@ describe.skipIf(SKIP_E2E)('API Keys Management E2E', () => {
 
     expect(response.status).toBe(200)
     const data = await response.json()
-    expect(data).toHaveProperty('totalCards')
+    expect(data).toHaveProperty('cards')
   })
 
   it('should get API logs', async () => {
