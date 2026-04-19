@@ -220,9 +220,18 @@ curl -H "X-API-Secret: $ADMIN_API_KEY" \
   -G --data-urlencode 'q=ドラゴン' --data-urlencode 'limit=5' \
   "$PROD_URL/api/cards/semantic-search"
 
-# FAQ検索（認証必要）
+# FAQ検索（認証必要）- キーワード検索
 curl -H "X-API-Secret: $ADMIN_API_KEY" \
   -G --data-urlencode 'q=召喚' --data-urlencode 'limit=5' "$PROD_URL/api/faqs/search"
+
+# FAQ検索 - カード名で検索
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
+  -G --data-urlencode 'cardName=増援' "$PROD_URL/api/faqs/search"
+
+# FAQ検索 - カードフィルタで検索（POST）
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"cardFilter":{"race":"warrior"},"limit":5}' "$PROD_URL/api/faqs/search"
 
 # カードパターン抽出（認証必要）
 curl -H "X-API-Secret: $ADMIN_API_KEY" \
@@ -381,7 +390,7 @@ curl -X POST "$PROD_URL/api/keys" \
 
 | エンドポイント | メソッド | 認証 | 説明 |
 |------------|---------|------|------|
-| `/api/faqs/search` | GET | 必要 | キーワード検索 |
+| `/api/faqs/search` | GET, POST | 必要 | FAQ検索（faqId/cardId/cardName/cardFilter/question/answer/allowWild対応） |
 | `/api/faqs/semantic-search` | GET | 必要 | セマンティック検索 |
 
 ### ベクトル関連（4エンドポイント）
