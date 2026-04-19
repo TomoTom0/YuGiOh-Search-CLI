@@ -85,7 +85,7 @@ function generateSQL(references: FAQCardReference[]): string {
 }
 
 async function main() {
-  const faqsFile = '/home/tomo/work/app/ygo/ygo-search/data/faq-all.tsv';
+  const faqsFile = 'data/faq-all.tsv';
 
   console.log('Parsing FAQs file...');
   const references = parseFaqsFile(faqsFile);
@@ -93,7 +93,7 @@ async function main() {
   console.log(`Found ${references.length} card references`);
   const sql = generateSQL(references);
 
-  const outputFile = '/home/tomo/work/app/ygo/ygo-search/rust/rebuild-faq-card-references.sql';
+  const outputFile = 'rust/rebuild-faq-card-references.sql';
   fs.writeFileSync(outputFile, sql, 'utf-8');
 
   console.log(`SQL written to ${outputFile}`);

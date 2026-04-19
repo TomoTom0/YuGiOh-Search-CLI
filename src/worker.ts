@@ -2,7 +2,7 @@
  * Cloudflare Worker for YGO Search API
  */
 
-import type { D1Database, AnalyticsEngineDataset, VectorizeIndex, R2Bucket, Ai } from '@cloudflare/workers-types'
+import type { D1Database, AnalyticsEngineDataset, VectorizeIndex, R2Bucket, Ai, ExecutionContext } from '@cloudflare/workers-types'
 
 export interface Env {
   DB: D1Database
@@ -51,7 +51,7 @@ import {
 import { logApiRequest } from './lib/worker/audit-log.js'
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const startTime = Date.now()
     const url = new URL(request.url)
     // Normalize path: remove trailing slash except for root
@@ -228,8 +228,7 @@ export default {
     const duration = Date.now() - startTime
     logRequest(env, request, response.status, duration, path.substring(1))
 
-    // Log to audit table (fire and forget)
-    logApiRequest(env, request, authResult, response.status)
+    ctx.waitUntil(logApiRequest(env, request, authResult, response.status))
 
     return response
   }
