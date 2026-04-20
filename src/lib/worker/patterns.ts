@@ -166,24 +166,20 @@ export async function searchCardPattern(pattern: ExtractedPattern, env: Env): Pr
       bindParams = [pattern.query]
     } else {
       // Search by name
-      const normalizedQuery = normalizeForSearch(pattern.query)
       const hasWildcard = pattern.query.includes('*')
 
       if (pattern.type === 'flexible') {
-        // Flexible search: allow wildcards, but exact match without wildcard (matching ts-cli behavior)
         if (hasWildcard) {
-          const sqlPattern = normalizedQuery.split('*').join('%')
+          const sqlPattern = pattern.query.split('*').map(p => normalizeForSearch(p)).join('%')
           sqlQuery = `SELECT ${selectCols} FROM cards WHERE normalized_name LIKE ? LIMIT 10`
           bindParams = [sqlPattern]
         } else {
-          // Without wildcard, use exact match (same as ts-cli)
           sqlQuery = `SELECT ${selectCols} FROM cards WHERE normalized_name = ? LIMIT 10`
-          bindParams = [normalizedQuery]
+          bindParams = [normalizeForSearch(pattern.query)]
         }
       } else {
-        // Exact search
         sqlQuery = `SELECT ${selectCols} FROM cards WHERE normalized_name = ? LIMIT 10`
-        bindParams = [normalizedQuery]
+        bindParams = [normalizeForSearch(pattern.query)]
       }
     }
 

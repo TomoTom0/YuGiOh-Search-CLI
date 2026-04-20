@@ -40,9 +40,9 @@ ENVIRONMENT = "development"
 AZURE_MODEL = "text-embedding-3-small"
 
 # Secrets (set with: wrangler secret put SECRET_NAME)
-# AZURE_API_KEY
-# AZURE_ENDPOINT
-# API_SECRET
+# AZURE_API_KEY - Azure OpenAI API key for embeddings
+# AZURE_ENDPOINT - Azure OpenAI endpoint URL
+# API_SECRET - Master API key (admin access, can create/delete user API keys)
 
 # Routing rules for monitoring
 [triggers]

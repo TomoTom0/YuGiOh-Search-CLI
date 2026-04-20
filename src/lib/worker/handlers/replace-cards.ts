@@ -103,7 +103,7 @@ export async function handleReplaceCards(request: Request, env: Env): Promise<Re
 
           if (actualName !== providedName) {
             // Correct card name
-            const replacement = mountPar ? `《${actualName}》` : `{{${actualName}|${card.card_id}}}`
+            const replacement = mountPar ? `《${actualName}》` : `{{${actualName}|${card.cardId}}}`
             processedText = processedText.substring(0, pattern.startIndex) +
                           replacement +
                           processedText.substring(pattern.startIndex + pattern.pattern.length)
@@ -118,7 +118,7 @@ export async function handleReplaceCards(request: Request, env: Env): Promise<Re
               })
             }
 
-            warnings.push(`Card name corrected: "${providedName}" → "${actualName}" (cardId: ${card.card_id})`)
+            warnings.push(`Card name corrected: "${providedName}" → "${actualName}" (cardId: ${card.cardId})`)
           } else {
             // Already correct
             const key = `${pattern.pattern}::${pattern.pattern}`
@@ -139,7 +139,7 @@ export async function handleReplaceCards(request: Request, env: Env): Promise<Re
       } else if (resultCount === 1) {
         // Exactly one result - replace
         const card = results[0]
-        const replacement = mountPar ? `《${card.name}》` : `{{${card.name}|${card.card_id}}}`
+        const replacement = mountPar ? `《${card.name}》` : `{{${card.name}|${card.cardId}}}`
         processedText = processedText.substring(0, pattern.startIndex) +
                       replacement +
                       processedText.substring(pattern.startIndex + pattern.pattern.length)
@@ -156,7 +156,7 @@ export async function handleReplaceCards(request: Request, env: Env): Promise<Re
       } else if (resultCount > 1) {
         // Multiple results
         const candidatesStr = results
-          .map((card: any) => `\`${card.name}|${card.card_id}\``)
+          .map((card: any) => `\`${card.name}|${card.cardId}\``)
           .join('_')
         const replacement = `{{\`${pattern.query}\`_${candidatesStr}}}`
         processedText = processedText.substring(0, pattern.startIndex) +

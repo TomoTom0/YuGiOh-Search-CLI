@@ -67,7 +67,7 @@ npx wrangler d1 execute ygo-search-db --remote --command "ALTER TABLE cards ADD 
 ```bash
 # カードデータのインポート
 for i in tmp/sql-batches/batch-*.sql; do
-  wrangler d1 execute ygo-search-db --remote --file "$i"
+  wrangler d1 execute DB --remote --file "$i"
 done
 ```
 
@@ -76,7 +76,7 @@ FAQデータのインポート:
 ```bash
 # FAQデータのインポート
 for i in tmp/sql-batches-faq/batch-*.sql; do
-  wrangler d1 execute ygo-search-db --remote --file "$i"
+  wrangler d1 execute DB --remote --file "$i"
 done
 ```
 
@@ -108,7 +108,19 @@ wrangler secret put ENVIRONMENT --production
 # プロンプトで "production" を入力
 ```
 
-**重要**: API_SECRETは全エンドポイント（/api/docs以外）の認証に使用されます。強力なランダム文字列を設定してください。
+**重要**: API_SECRETはマスターキーとして機能し、全ての権限を持ちます。強力なランダム文字列を設定してください。
+
+### APIキー管理システムの初期設定
+
+データベースマイグレーションを適用してAPIキー管理機能を有効化します：
+
+```bash
+# マイグレーション適用（本番環境）
+wrangler d1 migrations apply ygo-search-db --remote
+
+# テーブルが作成されたことを確認
+wrangler d1 execute ygo-search-db --remote --command "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('api_keys', 'api_logs');"
+```
 
 ## 7. Workersのデプロイ
 
@@ -135,44 +147,60 @@ Cloudflareダッシュボードで以下の設定を行います：
 
 ## 9. ベクトル化の実行
 
+管理者用APIキー（`vectorize`スコープ付き）で実行できます：
+
 ```bash
+source .env.local  # ADMIN_API_KEYを読み込み
+
 # カードデータのベクトル化（Azure OpenAI APIを使用）
-curl -X POST https://ygo-search.api.scioj.com/api/vectorize/cards
+curl -X POST https://ygo-search.api.scioj.com/api/vectorize/cards \
+  -H "X-API-Secret: $ADMIN_API_KEY"
 
 # FAQデータのベクトル化（Azure OpenAI APIを使用）
-curl -X POST https://ygo-search.api.scioj.com/api/vectorize/faqs
+curl -X POST https://ygo-search.api.scioj.com/api/vectorize/faqs \
+  -H "X-API-Secret: $ADMIN_API_KEY"
 ```
+
+**注意**: ベクトル化には`vectorize`スコープが必要です。一般ユーザー用APIキーにこのスコープを付与しないでください。
 
 ## 10. 動作確認
 
 ### 自動テストスクリプトの実行
 
-**推奨**: `.env.local`ファイルにAPI_SECRETを設定しておくと、環境変数の指定が不要になります。
+**重要**: セキュリティ上の理由により、動作確認には管理者用APIキー（`ADMIN_API_KEY`）が必須です。
+
+#### 前提条件
+
+管理者用APIキーが発行済みで、`.env.local`に保存されていること（セクション6の「初回セットアップ：管理者用APIキーの発行」を参照）。
+
+#### スクリプト実行
 
 ```bash
-# .env.localファイルを作成（.env.exampleを参考に）
-cp .env.example .env.local
-# .env.localファイルを編集してAPI_SECRETを設定
-# API_SECRET=your-api-secret-here
-
 # 動作確認スクリプトを実行（.env.localから自動読み込み）
 chmod +x scripts/verify-deployment.sh
 ./scripts/verify-deployment.sh
 ```
 
-または、環境変数で直接指定：
+`.env.local`に`ADMIN_API_KEY`が設定されていない場合、エラーメッセージが表示され、初回セットアップ手順が案内されます。
+
+#### 直接指定（非推奨）
 
 ```bash
-API_SECRET="your-api-secret-here" ./scripts/verify-deployment.sh
+# 環境変数で直接指定する場合
+ADMIN_API_KEY="your-admin-api-key" ./scripts/verify-deployment.sh
 ```
+
+**注意**: マスターキー（`API_SECRET`）でのテスト実行は非推奨です。セキュリティベストプラクティスに従い、管理者用APIキーを使用してください。
 
 ### 手動確認
 
 **認証について**: ほとんどのエンドポイントは認証が必要です。認証不要: `/health`, `/api/docs`
 
+**推奨**: 日常的なAPI利用には管理者用APIキー（`ADMIN_API_KEY`）を使用してください。
+
 ```bash
 PROD_URL="https://ygo-search.api.scioj.com"
-API_SECRET="your-api-secret-here"  # 設定したAPI_SECRETに置き換える
+ADMIN_API_KEY="your-admin-api-key"  # .env.localから取得
 
 # ヘルスチェック（認証不要 - 監視用）
 curl "$PROD_URL/health"
@@ -181,23 +209,32 @@ curl "$PROD_URL/health"
 curl "$PROD_URL/api/docs?list"
 
 # 統計情報（認証必要）
-curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/api/stats"
+curl -H "X-API-Secret: $ADMIN_API_KEY" "$PROD_URL/api/stats"
 
 # カード検索（名前検索、認証必要）
-curl -H "X-API-Secret: $API_SECRET" \
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
   -G --data-urlencode 'filter[name]=青眼の白龍' "$PROD_URL/api/cards/search"
 
 # カード検索（セマンティック検索、認証必要）
-curl -H "X-API-Secret: $API_SECRET" \
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
   -G --data-urlencode 'q=ドラゴン' --data-urlencode 'limit=5' \
   "$PROD_URL/api/cards/semantic-search"
 
-# FAQ検索（認証必要）
-curl -H "X-API-Secret: $API_SECRET" \
+# FAQ検索（認証必要）- キーワード検索
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
   -G --data-urlencode 'q=召喚' --data-urlencode 'limit=5' "$PROD_URL/api/faqs/search"
 
+# FAQ検索 - カード名で検索
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
+  -G --data-urlencode 'cardName=増援' "$PROD_URL/api/faqs/search"
+
+# FAQ検索 - カードフィルタで検索（POST）
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
+  -X POST -H "Content-Type: application/json" \
+  -d '{"cardFilter":{"race":"warrior"},"limit":5}' "$PROD_URL/api/faqs/search"
+
 # カードパターン抽出（認証必要）
-curl -H "X-API-Secret: $API_SECRET" \
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
   -X POST -H "Content-Type: application/json" \
   -d '{"text":"Use {青眼} card"}' "$PROD_URL/api/cards/extract"
 ```
@@ -205,6 +242,125 @@ curl -H "X-API-Secret: $API_SECRET" \
 **認証ヘッダーの形式**:
 - `X-API-Secret: your-token` （推奨）
 - `Authorization: Bearer your-token` （代替）
+
+### APIキー管理の使い方
+
+**重要**: マスターキー（`API_SECRET`）は管理操作専用です。**管理者も含め、日常的な運用ではユーザーAPIキーを使用してください**。
+
+#### 初回セットアップ：管理者用APIキーの発行
+
+デプロイ後、まず管理者用のAPIキーを発行します：
+
+```bash
+PROD_URL="https://ygo-search.api.scioj.com"
+API_SECRET="<マスターキー>"  # wrangler secret put で設定した値
+
+# 管理者用APIキーの発行（初回のみマスターキーを使用）
+curl -X POST "$PROD_URL/api/keys" \
+  -H "X-API-Secret: $API_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "admin",
+    "name": "Admin Daily Use Key",
+    "scopes": ["cards:read", "faqs:read", "stats:read", "convert", "vectorize"],
+    "rateLimit": 10000
+  }'
+
+# レスポンス例：
+# {
+#   "apiKey": "abc123...",
+#   "userId": "admin",
+#   "name": "Admin Daily Use Key",
+#   ...
+# }
+
+# 発行されたAPIキーを.env.localに保存
+echo 'ADMIN_API_KEY="<発行されたAPIキー>"' >> .env.local
+```
+
+**以降は`ADMIN_API_KEY`を使用し、マスターキーは緊急時・管理操作時のみ使用します。**
+
+#### 一般ユーザー用APIキーの発行
+
+```bash
+# 管理者用APIキーでユーザーにAPIキーを発行
+curl -X POST "$PROD_URL/api/keys" \
+  -H "X-API-Secret: $ADMIN_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user-123",
+    "name": "Production Key",
+    "scopes": ["cards:read", "faqs:read"],
+    "rateLimit": 1000
+  }'
+
+# 発行されたAPIキーを保存
+USER_API_KEY="<発行されたAPIキー>"
+
+# ユーザーAPIキーで認証
+curl -H "X-API-Secret: $USER_API_KEY" "$PROD_URL/api/stats"
+```
+
+#### 日常的なAPI利用（管理者用APIキーを使用）
+
+```bash
+# カード検索など、日常的なAPI利用は管理者用APIキーを使用
+curl -H "X-API-Secret: $ADMIN_API_KEY" "$PROD_URL/api/stats"
+curl -H "X-API-Secret: $ADMIN_API_KEY" \
+  -G --data-urlencode 'filter[name]=青眼の白龍' "$PROD_URL/api/cards/search"
+
+# 自分のAPIキー一覧を確認
+curl -H "X-API-Secret: $ADMIN_API_KEY" "$PROD_URL/api/keys"
+```
+
+#### 管理操作（マスターキーを使用）
+
+**以下の操作はマスターキーが必要です**：
+- 全ユーザーのAPIキー一覧取得
+- 他ユーザーのAPIキー削除
+- 新しいユーザーへのAPIキー発行
+
+```bash
+# 全APIキー一覧の取得（マスターキーのみ）
+curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/api/keys"
+
+# 全API使用ログの取得（マスターキーのみ）
+curl -H "X-API-Secret: $API_SECRET" "$PROD_URL/api/keys/logs?limit=100"
+
+# 任意のAPIキーの無効化（マスターキーのみ）
+curl -X DELETE "$PROD_URL/api/keys/$USER_API_KEY" \
+  -H "X-API-Secret: $API_SECRET"
+
+# 新しいユーザーへのAPIキー発行（マスターキーのみ）
+curl -X POST "$PROD_URL/api/keys" \
+  -H "X-API-Secret: $API_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"userId": "user-456", "name": "User Key", "scopes": ["cards:read"], "rateLimit": 1000}'
+```
+
+**スコープの種類**:
+
+| スコープ | 説明 | エンドポイント例 |
+|---------|------|----------------|
+| `cards:read` | カード検索・参照 | `/api/cards/search`, `/api/cards/by-id` |
+| `faqs:read` | FAQ検索・参照 | `/api/faqs/search` |
+| `stats:read` | 統計情報取得 | `/api/stats` |
+| `convert` | フォーマット変換 | `/api/convert` |
+| `vectorize` | ベクトル化 | `/api/vectorize/cards` |
+| `admin` | データ更新 | `/api/update` |
+
+**セキュリティ上の利点**:
+- **管理者も日常的にはユーザーAPIキーを使用** - マスターキー漏洩リスクを最小化
+- ユーザーごとにAPIキーを管理できる
+- 特定ユーザーのみアクセスを取り消せる
+- 全APIリクエストが監査ログに記録される（ユーザーAPIキー使用時）
+- レート制限をユーザーごとに設定可能
+- **スコープによるアクセス制御** - 必要最小限の権限のみ付与
+
+**マスターキーの使用は最小限に**：
+- APIキー発行時のみ
+- 他ユーザーのAPIキー削除時のみ
+- 緊急時のアクセス時のみ
 
 ## APIエンドポイント一覧
 
@@ -234,7 +390,7 @@ curl -H "X-API-Secret: $API_SECRET" \
 
 | エンドポイント | メソッド | 認証 | 説明 |
 |------------|---------|------|------|
-| `/api/faqs/search` | GET | 必要 | キーワード検索 |
+| `/api/faqs/search` | GET, POST | 必要 | FAQ検索（faqId/cardId/cardName/cardFilter/question/answer/allowWild対応） |
 | `/api/faqs/semantic-search` | GET | 必要 | セマンティック検索 |
 
 ### ベクトル関連（4エンドポイント）
@@ -253,7 +409,16 @@ curl -H "X-API-Secret: $API_SECRET" \
 | `/api/convert` | POST | 必要 | フォーマット変換（JSON/JSONL/YAML） |
 | `/api/update` | POST | 必要 | R2からデータ更新（Cron対応） |
 
-**合計**: 18エンドポイント
+### APIキー管理（4エンドポイント）
+
+| エンドポイント | メソッド | 認証 | 説明 |
+|------------|---------|------|------|
+| `/api/keys` | POST | マスターキーのみ | APIキー発行（ユーザーID、スコープ、レート制限を指定） |
+| `/api/keys` | GET | 必要 | APIキー一覧（マスターキー:全件、ユーザーキー:自分のみ） |
+| `/api/keys/:id` | DELETE | 必要 | APIキー無効化（マスターキー:全件、ユーザーキー:自分のみ） |
+| `/api/keys/logs` | GET | 必要 | API使用ログ取得（マスターキー:全件、ユーザーキー:自分のみ） |
+
+**合計**: 22エンドポイント
 
 ### レスポンスフォーマット
 
@@ -295,12 +460,12 @@ curl -H "X-API-Secret: $API_SECRET" \
 
 ```bash
 # データのクリア
-wrangler d1 execute ygo-search-db --remote --command "DELETE FROM cards;"
-wrangler d1 execute ygo-search-db --remote --command "DELETE FROM faqs;"
+wrangler d1 execute DB --remote --command "DELETE FROM cards;"
+wrangler d1 execute DB --remote --command "DELETE FROM faqs;"
 
 # インポート再実行
 for i in tmp/sql-batches/batch-*.sql; do
-  wrangler d1 execute ygo-search-db --remote --file "$i"
+  wrangler d1 execute DB --remote --file "$i"
 done
 
 # ベクトル化再実行
