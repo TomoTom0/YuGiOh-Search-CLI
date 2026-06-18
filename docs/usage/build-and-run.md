@@ -13,16 +13,16 @@
 
 ```bash
 # 1. 依存関係をインストール
-bun install
+pnpm install
 
 # 2. ビルド（必須！）
-bun run build
+pnpm run build
 
 # 3. データファイルをダウンロード
 bash scripts/setup/setup-data.sh
 
 # 4. CLIコマンドを実行
-bun link  # グローバルインストール、または node dist/cli/ygo_search.js を直接実行
+pnpm link --global  # グローバルインストール、または node dist/cli/ygo_search.js を直接実行
 ygo_search '{"name":"青眼"}'
 ```
 
@@ -31,7 +31,7 @@ ygo_search '{"name":"青眼"}'
 ### 基本ビルド
 
 ```bash
-bun run build
+pnpm run build
 ```
 
 以下を実行します：
@@ -52,7 +52,7 @@ ls -la dist/cli/
 
 ```bash
 # グローバルインストール
-bun link
+pnpm link --global
 
 # 任意の場所でコマンド使用可能
 ygo_search card --name "青眼" --cols name,cardId
@@ -83,7 +83,7 @@ node dist/cli/ygo_search.js docs list
 
 ```bash
 # 1つのターミナル: TypeScriptファイルの変更を監視してコンパイル
-bun run build --watch
+pnpm run build --watch
 ```
 
 TypeScriptファイルの変更は自動的にJavaScriptにコンパイルされます。
@@ -94,7 +94,7 @@ TypeScriptファイルの変更は自動的にJavaScriptにコンパイルされ
 
 ```bash
 # tsx をインストール（未インストールの場合）
-bun add -D tsx
+pnpm add -D tsx
 
 # TypeScriptを直接実行
 npx tsx src/cli/ygo_search.ts '{"name":"青眼"}'
@@ -114,7 +114,7 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../pattern-extractor'
 
 **解決策**:
 ```bash
-bun run build
+pnpm run build
 ```
 
 ### Permission denied
@@ -128,10 +128,10 @@ bash: /usr/local/bin/ygo_search: Permission denied
 **解決策**:
 ```bash
 chmod +x dist/cli/*.js
-bun link  # 再リンク
+pnpm link --global  # 再リンク
 ```
 
-### `bun link`後にコマンドが見つからない
+### `pnpm link --global`後にコマンドが見つからない
 
 ```bash
 command not found: ygo_search
@@ -141,14 +141,15 @@ command not found: ygo_search
 
 **解決策**:
 ```bash
-# bunのグローバルbinパスを確認
-bun env | grep BUN_INSTALL
+# pnpmのグローバルbinパスを設定・確認
+pnpm setup
+pnpm bin --global
 
 # 必要に応じてPATHに追加
-export PATH="$PATH:~/.bun/bin"
+export PATH="$PATH:$(pnpm bin --global)"
 
 # 再リンク
-bun link
+pnpm link --global
 ```
 
 ### 完全なリビルド
@@ -160,11 +161,11 @@ bun link
 rm -rf dist/
 
 # リビルド
-bun run build
+pnpm run build
 
 # CLIコマンドを再リンク
-bun unlink ygo-search 2>/dev/null || true
-bun link
+pnpm unlink --global ygo-search 2>/dev/null || true
+pnpm link --global
 ```
 
 ## プロジェクト構造
@@ -199,22 +200,22 @@ data/                       # カードデータベースファイル（ダウ�
 
 ```bash
 # 全テスト実行
-bun test
+pnpm test
 
 # 特定ディレクトリのテスト実行
-bun test tests/unit
+pnpm test:unit
 
 # カバレッジ付き実行
-bun test --coverage
+pnpm test:coverage
 ```
 
 ## まとめ
 
 | タスク | コマンド |
 |--------|---------|
-| 依存関係のインストール | `bun install` |
-| ビルド | `bun run build` |
-| ウォッチモード | `bun run build --watch` |
-| CLIをグローバルインストール | `bun link` |
+| 依存関係のインストール | `pnpm install` |
+| ビルド | `pnpm run build` |
+| ウォッチモード | `pnpm run build --watch` |
+| CLIをグローバルインストール | `pnpm link --global` |
 | CLIコマンド実行 | `ygo_search '{"name":"青眼"}'` |
-| テスト実行 | `bun test` |
+| テスト実行 | `pnpm test` |

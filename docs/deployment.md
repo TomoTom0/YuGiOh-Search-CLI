@@ -17,7 +17,7 @@
 - Cloudflare R2（無料プラン: 10GB/月）
 - Cloudflare Vectorize（無料プラン: 3000万次元/月）
 - Azure OpenAI API Key（埋め込み生成用）
-- wrangler CLI (`npm install -g wrangler`)
+- wrangler CLI (`pnpm add --global wrangler`)
 
 ## 現在のデプロイ環境
 
@@ -126,7 +126,7 @@ wrangler d1 execute ygo-search-db --remote --command "SELECT name FROM sqlite_ma
 
 ```bash
 # ワーカーのビルド
-bun run build
+pnpm run build
 
 # デプロイ
 wrangler deploy

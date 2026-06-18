@@ -6,16 +6,16 @@
 cd /path/to/YuGiOh-Search-CLI
 
 # 1. Install dependencies
-bun install
+pnpm install
 
 # 2. Build project (required!)
-bun run build
+pnpm run build
 
 # 3. Download data files
 bash scripts/setup/setup-data.sh
 
 # 4. Install global commands (optional)
-bun link
+pnpm link --global
 ```
 
 This creates global commands:
@@ -31,15 +31,15 @@ This creates global commands:
 
 ## PATH Setup
 
-If commands are not found after `bun link`, ensure your bun global bin directory is in PATH:
+If commands are not found after `pnpm link --global`, ensure your pnpm global bin directory is in PATH:
 
 ```bash
-# Check bun global bin path
-bun env | grep BUN_INSTALL
-# Usually: ~/.bun
+# Set up and check pnpm global bin path
+pnpm setup
+pnpm bin --global
 
 # Add to ~/.bashrc or ~/.zshrc
-export PATH="$PATH:~/.bun/bin"
+export PATH="$PATH:$(pnpm bin --global)"
 ```
 
 Then reload:
@@ -201,5 +201,5 @@ ygo_search vector --help
 ## Uninstall
 
 ```bash
-bun unlink ygo-search-card-mcp
+pnpm unlink --global ygo-search
 ```

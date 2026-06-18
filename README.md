@@ -97,13 +97,13 @@ git clone https://github.com/TomoTom0/ygo-search.git
 cd ygo-search
 
 # Install dependencies
-bun install
+pnpm install
 
 # Build project (required!)
-bun run build
+pnpm run build
 
 # Optional: Install CLI commands globally
-bun link
+pnpm link --global
 
 # Download card data (37.6MB total) - required for first use
 ygo_search update
@@ -140,15 +140,13 @@ npx wrangler deploy
 npm install ygo-search
 # or
 pnpm add ygo-search
-# or
-bun add ygo-search
 ```
 
 ## Usage
 
 ### Global CLI Commands
 
-After `bun link`, you can use these commands globally:
+After `pnpm link --global`, you can use these commands globally:
 
 ```bash
 # Search cards by name
@@ -321,7 +319,7 @@ Or browse directly:
 
 Generate the latest documentation:
 ```bash
-bun run docs              # Generate Markdown documentation
+pnpm run docs             # Generate Markdown documentation
 ```
 
 The generated documentation includes:
