@@ -8,21 +8,21 @@ git clone https://github.com/TomoTom0/YuGiOh-Search-CLI.git
 cd YuGiOh-Search-CLI
 
 # Install dependencies
-bun install
+pnpm install
 
 # Build project (required!)
-bun run build
+pnpm run build
 
 # Download data files
 bash scripts/setup/setup-data.sh
 
 # Install CLI commands globally (optional)
-bun link
+pnpm link --global
 ```
 
 ## CLI Commands
 
-All commands can be used globally after `bun link`, or directly with `node dist/cli/`.
+All commands can be used globally after `pnpm link --global`, or directly with `node dist/cli/`.
 
 ### ygo-search - Search Cards
 
@@ -55,26 +55,26 @@ ygo-search '{"name":"青眼"}' cols=name,cardId,atk,def,text
 # Available columns: name, cardId, cardType, race, level, atk, def, text, detail, effect, etc.
 ```
 
-### ygo_bulk_search - Bulk Search (Multiple Cards)
+### ygo-search bulk - Bulk Search (Multiple Cards)
 
 ```bash
 # Search multiple cards at once
-ygo_bulk_search '[{"filter":{"name":"青眼"}},{"filter":{"name":"ブラック・マジシャン"}}]'
+ygo-search bulk '[{"filter":{"name":"青眼"}},{"filter":{"name":"ブラック・マジシャン"}}]'
 
 # With columns
-ygo_bulk_search '[{"filter":{"race":"ドラゴン族"}},{"filter":{"race":"魔法使い族"}}]' cols=name,race,atk
+ygo-search bulk '[{"filter":{"race":"ドラゴン族"}},{"filter":{"race":"魔法使い族"}}]' cols=name,race,atk
 
 # Up to 50 queries
-ygo_bulk_search '[{"filter":{"name":"青眼"}},{"filter":{"name":"ホワイト・ホルス"}}, ...]'
+ygo-search bulk '[{"filter":{"name":"青眼"}},{"filter":{"name":"ホワイト・ホルス"}}, ...]'
 ```
 
-### ygo_extract - Extract Card Patterns from Text
+### ygo-search extract - Extract Card Patterns from Text
 
 Extract card name patterns for later processing.
 
 ```bash
 # Extract patterns from text
-ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
+ygo-search extract "{青眼の白龍}とブラック・マジシャンを召喚"
 
 # Supported patterns:
 # - {flexible}       - Flexible search with wildcards and normalization
@@ -82,49 +82,49 @@ ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
 # - {{name|id}}      - Search by card ID
 
 # Multiple pattern types
-ygo_extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
+ygo-search extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
 ```
 
-### ygo_replace - Replace Card Patterns with IDs or Names
+### ygo-search replace - Replace Card Patterns with IDs or Names
 
 ```bash
 # Replace patterns with card IDs: {{name|cardId}}
-ygo_replace "{青眼の白龍}を召喚" --raw
+ygo-search replace "{青眼の白龍}を召喚" --raw
 
 # Replace patterns with card names: 《cardName》
-ygo_replace "{青眼の白龍}を召喚" --mount-par --raw
+ygo-search replace "{青眼の白龍}を召喚" --mount-par --raw
 
 # Replace multiple patterns in one text
-ygo_replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
+ygo-search replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
 
 # Options:
 # --raw          - Output raw replacement without JSON wrapping
 # --mount-par    - Use 《name》 format instead of {{name|cardId}}
 ```
 
-### ygo_seek - Get Random or Range-Specific Cards
+### ygo-search seek - Get Random or Range-Specific Cards
 
 ```bash
 # Get random cards
-ygo_seek --max 5
+ygo-search seek --max 5
 
 # Get random cards with specific columns
-ygo_seek --max 10 --col cardId,name,atk,def
+ygo-search seek --max 10 --col cardId,name,atk,def
 
 # Range selection (CardId range)
-ygo_seek --range 4000-5000 --max 20
+ygo-search seek --range 4000-5000 --max 20
 
 # All cards in range
-ygo_seek --range 4000-4100 --all
+ygo-search seek --range 4000-4100 --all
 
 # Different output formats
-ygo_seek --max 10 --format json    # Default
-ygo_seek --max 10 --format jsonl   # One per line
-ygo_seek --max 10 --format csv
-ygo_seek --max 10 --format tsv
+ygo-search seek --max 10 --format json    # Default
+ygo-search seek --max 10 --format jsonl   # One per line
+ygo-search seek --max 10 --format csv
+ygo-search seek --max 10 --format tsv
 
 # Get all columns
-ygo_seek --max 10 --col-all
+ygo-search seek --max 10 --col-all
 
 # Options:
 # --max N           - Get N random cards
@@ -135,35 +135,35 @@ ygo_seek --max 10 --col-all
 # --col-all         - Include all available columns
 ```
 
-### ygo_faq_search - Search Official FAQ Database
+### ygo-search faq - Search Official FAQ Database
 
 ```bash
 # Search by FAQ ID
-ygo_faq_search faqId=100
+ygo-search faq faqId=100
 
 # Search by card ID
-ygo_faq_search cardId=6808 limit=5
+ygo-search faq cardId=6808 limit=5
 
 # Search by card name (with wildcard)
-ygo_faq_search cardName="青眼*" limit=10
+ygo-search faq cardName="青眼*" limit=10
 
 # Search by card specifications
-ygo_faq_search cardFilter.race=dragon cardFilter.levelValue=8
+ygo-search faq cardFilter.race=dragon cardFilter.levelValue=8
 
 # Search by question text (with wildcard)
-ygo_faq_search question="*シンクロ召喚*"
+ygo-search faq question="*シンクロ召喚*"
 
 # Search by answer text
-ygo_faq_search answer="*無効*" limit=20
+ygo-search faq answer="*無効*" limit=20
 
 # Output options
-ygo_faq_search cardId=6808 --fcol faqId,question  # FAQ columns only
-ygo_faq_search cardId=6808 --col name,atk,def    # Card columns only
-ygo_faq_search cardName="青眼*" --format csv
+ygo-search faq cardId=6808 --fcol faqId,question  # FAQ columns only
+ygo-search faq cardId=6808 --col name,atk,def    # Card columns only
+ygo-search faq cardName="青眼*" --format csv
 
 # Key=value style (CLI-friendly)
-ygo_faq_search cardId=6808 limit=5
-ygo_faq_search question="*効果*" answer="*無効*" limit=10
+ygo-search faq cardId=6808 limit=5
+ygo-search faq question="*効果*" answer="*無効*" limit=10
 
 # Options:
 # limit N          - Limit number of results (default: all)
@@ -318,7 +318,7 @@ ygo-searchはライブラリとしてプログラムから利用することも�
 ```bash
 npm install ygo-search
 # または
-bun add ygo-search
+pnpm add ygo-search
 ```
 
 ### 基本的な使用例
@@ -625,9 +625,9 @@ ygo-search '{"name":"青眼"}'
 
 ```bash
 ygo-search --help
-ygo_bulk_search --help
-ygo_extract --help
-ygo_replace --help
+ygo-search bulk --help
+ygo-search extract --help
+ygo-search replace --help
 ygo-search seek --help
 ygo-search faq --help
 ygo-search convert --help

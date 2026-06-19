@@ -74,7 +74,7 @@ export async function showDoc(docPath: string): Promise<void> {
  */
 export async function listDocs(entries: DocEntry[]): Promise<void> {
   if (entries.length === 0) {
-    console.log('No documentation found. Please run: bun run docs');
+    console.log('No documentation found. Please run: pnpm run docs');
     return;
   }
 

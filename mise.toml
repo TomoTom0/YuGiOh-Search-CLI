@@ -6,6 +6,7 @@ description = "ygo-search CLI を ~/.local/bin にローカルインストール
 run = """
 set -e
 pnpm run build
+mkdir -p "$HOME/.local/bin"
 ln -sf "$PWD/dist/cli/ygo_search.js" "$HOME/.local/bin/ygo-search"
 echo "✓ Installed: ~/.local/bin/ygo-search -> $PWD/dist/cli/ygo_search.js"
 echo "  Verify with: ygo-search --help"

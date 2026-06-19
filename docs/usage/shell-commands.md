@@ -18,14 +18,8 @@ bash scripts/setup/setup-data.sh
 pnpm link --global
 ```
 
-This creates global commands:
-- `ygo-search` - Search cards
-- `ygo_bulk_search` - Bulk search
-- `ygo_extract` - Extract and search card patterns from text
-- `ygo_replace` - Replace card patterns with card IDs or names
-- `ygo_seek` - Get random or range-specific cards
-- `ygo_faq_search` - Search FAQ database
-- `ygo-search convert` - Convert between JSON/JSONL/CSV/TSV formats
+This creates the global command:
+- `ygo-search` - Search cards (subcommands: `card`, `faq`, `extract`, `replace`, `seek`, `bulk`, `convert`, `vector`, `docs`, `update`)
 
 **Note**: After build, scripts work with `node` (no tsx required)!
 
@@ -68,82 +62,82 @@ ygo-search '{"name":"青眼"}' outputPath=results.jsonl
 ygo-search '{"cardType":"罠","trapEffectType":"カウンター罠"}' cols=name,text
 ```
 
-### ygo_bulk_search - Bulk search
+### ygo-search bulk - Bulk search
 
 ```bash
 # Multiple filters
-ygo_bulk_search '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
+ygo-search bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
 
 # With columns and output
-ygo_bulk_search '{"race":"ドラゴン族"}' '{"race":"魔法使い族"}' \
+ygo-search bulk '{"race":"ドラゴン族"}' '{"race":"魔法使い族"}' \
   cols=name,race,atk \
   outputPath=races.jsonl
 ```
 
-### ygo_extract - Extract card names from text
+### ygo-search extract - Extract card names from text
 
 ```bash
 # Extract patterns: {flexible}, 《exact》, {{name|id}}
-ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
+ygo-search extract "{青眼の白龍}とブラック・マジシャンを召喚"
 
 # With multiple pattern types
-ygo_extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
+ygo-search extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
 ```
 
-### ygo_replace - Replace card patterns with card IDs or names
+### ygo-search replace - Replace card patterns with card IDs or names
 
 ```bash
 # Replace with card ID: {{name|id}}
-ygo_replace "{青眼の白龍}を召喚" --raw
+ygo-search replace "{青眼の白龍}を召喚" --raw
 
 # Replace with card name: 《name》
-ygo_replace "{青眼の白龍}を召喚" --mount-par --raw
+ygo-search replace "{青眼の白龍}を召喚" --mount-par --raw
 
 # Replace multiple patterns
-ygo_replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
+ygo-search replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
 ```
 
-### ygo_seek - Get random or range-specific cards
+### ygo-search seek - Get random or range-specific cards
 
 ```bash
 # Random cards
-ygo_seek --max 5
+ygo-search seek --max 5
 
 # Range selection
-ygo_seek --range 4000-5000 --max 20
+ygo-search seek --range 4000-5000 --max 20
 
 # All cards in range
-ygo_seek --range 4000-4100 --all
+ygo-search seek --range 4000-4100 --all
 
 # Different output formats
-ygo_seek --max 10 --format csv
-ygo_seek --max 10 --format jsonl --col cardId,name,atk,def
-ygo_seek --max 10 --col-all  # All columns
+ygo-search seek --max 10 --format csv
+ygo-search seek --max 10 --format jsonl --col cardId,name,atk,def
+ygo-search seek --max 10 --col-all  # All columns
 ```
 
-### ygo_faq_search - Search FAQ database
+### ygo-search faq - Search FAQ database
 
 ```bash
 # Search by FAQ ID
-ygo_faq_search faqId=100
+ygo-search faq faqId=100
 
 # Search by card ID
-ygo_faq_search cardId=6808 limit=5
+ygo-search faq cardId=6808 limit=5
 
 # Search by card name
-ygo_faq_search cardName="青眼*" limit=10
+ygo-search faq cardName="青眼*" limit=10
 
 # Search by card specifications
-ygo_faq_search cardFilter.race=dragon cardFilter.levelValue=8
+ygo-search faq cardFilter.race=dragon cardFilter.levelValue=8
 
 # Search by question/answer text
-ygo_faq_search question="*シンクロ召喚*"
-ygo_faq_search answer="*無効*" limit=20
+ygo-search faq question="*シンクロ召喚*"
+ygo-search faq answer="*無効*" limit=20
 
 # Output options
-ygo_faq_search cardId=6808 --fcol faqId,question
-ygo_faq_search cardId=6808 --col name,atk,def
-ygo_faq_search cardName="青眼*" --format csv
+ygo-search faq cardId=6808 --fcol faqId,question
+ygo-search faq cardId=6808 --col name,atk,def
+ygo-search faq cardName="青眼*" --format csv
 ```
 
 ### ygo-search convert - Convert file formats

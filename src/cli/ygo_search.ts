@@ -972,7 +972,7 @@ Examples:
   ygo-search docs Card           Show Card interface documentation
   ygo-search docs list           List all available items
 
-Note: If documentation is not found, run 'bun run docs' to generate it.
+Note: If documentation is not found, run 'pnpm run docs' to generate it.
 `);
     process.exit(0);
   }

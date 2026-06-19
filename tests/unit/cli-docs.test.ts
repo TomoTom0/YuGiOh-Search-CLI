@@ -165,7 +165,7 @@ describe('cli-docs', () => {
     it('should show message when no documentation found', async () => {
       await listDocs([]);
 
-      expect(consoleLogSpy).toHaveBeenCalledWith('No documentation found. Please run: bun run docs');
+      expect(consoleLogSpy).toHaveBeenCalledWith('No documentation found. Please run: pnpm run docs');
     });
   });
 
