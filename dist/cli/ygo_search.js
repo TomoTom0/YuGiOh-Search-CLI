@@ -230,8 +230,8 @@ function showColumns() {
 ==================
 
 カラムは --cols または cols= パラメータで指定して出力できます：
-  ygo_search card --name "青眼" --cols name,ruby,atk,def
-  ygo_search card name=ドラゴン cols=name,race,levelValue
+  ygo-search card --name "青眼" --cols name,ruby,atk,def
+  ygo-search card name=ドラゴン cols=name,race,levelValue
 
 ほとんどのカラムはフィルタに対応していますが、フィルタ不可のカラムは下記に表記されています。
 フィルタ不可のカラムは --cols での出力のみに使用できます。
@@ -324,7 +324,7 @@ function showColumns() {
 }
 // サブコマンドのヘルプメッセージ
 function showHelp() {
-    console.log(`Usage: ygo_search <command> [options]
+    console.log(`Usage: ygo-search <command> [options]
 
 Yu-Gi-Oh カードデータベース検索ツール
 
@@ -345,26 +345,26 @@ Options:
   --help, -h            コマンドのヘルプを表示
 
 Examples:
-  ygo_search card --name "青眼の白龍"
-  ygo_search faq cardId=6808
-  ygo_search extract "青眼の白龍とブラック・マジシャンを召喚"
-  ygo_search replace "{青眼の白龍}を召喚して攻撃"
+  ygo-search card --name "青眼の白龍"
+  ygo-search faq cardId=6808
+  ygo-search extract "青眼の白龍とブラック・マジシャンを召喚"
+  ygo-search replace "{青眼の白龍}を召喚して攻撃"
     # => {"processedText":"{{青眼の白龍|4007}}を召喚して攻撃",...}
-  ygo_search seek
-  ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
-  ygo_search convert input.json:output.yaml
-  ygo_search update
+  ygo-search seek
+  ygo-search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
+  ygo-search convert input.json:output.yaml
+  ygo-search update
 
 詳細は各コマンドのヘルプを参照してください:
-  ygo_search card --help
-  ygo_search faq --help
-  ygo_search extract --help
-  ygo_search replace --help
-  ygo_search bulk --help
-  ygo_search convert --help
+  ygo-search card --help
+  ygo-search faq --help
+  ygo-search extract --help
+  ygo-search replace --help
+  ygo-search bulk --help
+  ygo-search convert --help
 `);
 }
-// card サブコマンド（旧 ygo_search）
+// card サブコマンド（旧 ygo-search）
 function handleCardCommand(args) {
     // Handle columns subcommand
     if (args.length > 0 && (args[0] === 'columns' || args[0] === '--columns')) {
@@ -373,7 +373,7 @@ function handleCardCommand(args) {
     }
     // Handle help
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search card [command] [options]
+        console.log(`Usage: ygo-search card [command] [options]
 
 Yu-Gi-Oh カードデータベース検索
 
@@ -420,29 +420,29 @@ Alternative Formats:
   name=青眼 text=*破壊* cols=name,cardId max=50 sort=atk:desc
 
   または JSON 形式:
-  ygo_search card '{"name":"青眼"}' cols=name,cardId
+  ygo-search card '{"name":"青眼"}' cols=name,cardId
 
 Examples:
 
 Subcommands:
-  ygo_search card columns
+  ygo-search card columns
 
 Basic Searches:
-  ygo_search card --name "青眼の白龍"
-  ygo_search card --name "青眼の白龍" --cols name,cardId,text
-  ygo_search card --cardType trap --sort name --cols name,text
+  ygo-search card --name "青眼の白龍"
+  ygo-search card --name "青眼の白龍" --cols name,cardId,text
+  ygo-search card --cardType trap --sort name --cols name,text
 
 Advanced Filtering:
-  ygo_search card --text "*破壊*" --max 50 --sort atk:desc
-  ygo_search card --race dragon --atk 3000 --sort levelValue:asc --cols name,atk,def,race
+  ygo-search card --text "*破壊*" --max 50 --sort atk:desc
+  ygo-search card --race dragon --atk 3000 --sort levelValue:asc --cols name,atk,def,race
 
 Array Parameters:
-  ygo_search card --cardId 19723,21820,21207 --cols name,cardId
-  ygo_search card --monsterTypes '["effect","fusion"]' --cols name
+  ygo-search card --cardId 19723,21820,21207 --cols name,cardId
+  ygo-search card --monsterTypes '["effect","fusion"]' --cols name
 
 Alternative Formats:
-  ygo_search card name=青眼の白龍 cols=name,cardId,text
-  ygo_search card '{"name":"青眼の白龍"}' cols=name,cardId,text
+  ygo-search card name=青眼の白龍 cols=name,cardId,text
+  ygo-search card '{"name":"青眼の白龍"}' cols=name,cardId,text
 `);
         process.exit(0);
     }
@@ -460,7 +460,7 @@ Alternative Formats:
 // bulk サブコマンド（旧 ygo_bulk_search）
 function handleBulkCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search bulk <queries> [options]
+        console.log(`Usage: ygo-search bulk <queries> [options]
 
 複数のカード検索クエリを一括実行します。
 
@@ -468,8 +468,8 @@ Arguments:
   queries               JSON配列形式のクエリリスト
 
 Examples:
-  ygo_search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
-  ygo_search bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
+  ygo-search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
+  ygo-search bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
 `);
         process.exit(0);
     }
@@ -487,7 +487,7 @@ Examples:
 // convert サブコマンド（旧 ygo_convert）
 function handleConvertCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search convert <input:output> [<input:output> ...]
+        console.log(`Usage: ygo-search convert <input:output> [<input:output> ...]
 
 JSON、JSONL、JSONC、YAMLフォーマット間の変換を行います。
 
@@ -502,9 +502,9 @@ Supported formats:
   .yaml, .yml           YAML
 
 Examples:
-  ygo_search convert input.json:output.jsonl
-  ygo_search convert data.yaml:output.json
-  ygo_search convert a.json:a.yaml b.jsonl:b.json
+  ygo-search convert input.json:output.jsonl
+  ygo-search convert data.yaml:output.json
+  ygo-search convert a.json:a.yaml b.jsonl:b.json
 `);
         process.exit(0);
     }
@@ -522,7 +522,7 @@ Examples:
 // faq サブコマンド（旧 ygo_faq_search）
 function handleFaqCommand(args) {
     if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-        console.log(`Usage: ygo_search faq <params> [options]
+        console.log(`Usage: ygo-search faq <params> [options]
 
 FAQ データベースを様々な条件で検索
 
@@ -544,18 +544,18 @@ Output Options:
   --all                 - 全結果を返す（--range と併用）
 
 Examples (key=value style):
-  ygo_search faq faqId=100
-  ygo_search faq cardId=6808 limit=5
-  ygo_search faq cardName="青眼*" --fcol faqId,question
-  ygo_search faq cardFilter.race=dragon cardFilter.levelValue=8
-  ygo_search faq question="*融合*" --format csv
-  ygo_search faq answer="*無効*" --col name,text
+  ygo-search faq faqId=100
+  ygo-search faq cardId=6808 limit=5
+  ygo-search faq cardName="青眼*" --fcol faqId,question
+  ygo-search faq cardFilter.race=dragon cardFilter.levelValue=8
+  ygo-search faq question="*融合*" --format csv
+  ygo-search faq answer="*無効*" --col name,text
 
 Examples (JSON style - still supported):
-  ygo_search faq '{"faqId":10}'
-  ygo_search faq '{"cardId":6808,"limit":5}' --fcol faqId,question
-  ygo_search faq '{"cardName":"青眼*"}' --format csv
-  ygo_search faq '{"cardFilter":{"race":"dragon","levelValue":"8"}}'
+  ygo-search faq '{"faqId":10}'
+  ygo-search faq '{"cardId":6808,"limit":5}' --fcol faqId,question
+  ygo-search faq '{"cardName":"青眼*"}' --format csv
+  ygo-search faq '{"cardFilter":{"race":"dragon","levelValue":"8"}}'
 `);
         process.exit(0);
     }
@@ -573,7 +573,7 @@ Examples (JSON style - still supported):
 // extract サブコマンド（旧 ygo_extract）
 async function handleExtractCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search extract <text> [options]
+        console.log(`Usage: ygo-search extract <text> [options]
 
 カード名パターンをテキストから抽出して検索します。
 
@@ -589,9 +589,9 @@ Pattern Types:
   {{name|cardId}}     カードID で検索
 
 Examples:
-  ygo_search extract "{青眼の白龍}と{ブラック・マジシャン}を召喚"
-  ygo_search extract "{青眼の白龍}で攻撃" cols=name,cardId,atk
-  ygo_search extract "{ブルーアイズ*}を召喚"
+  ygo-search extract "{青眼の白龍}と{ブラック・マジシャン}を召喚"
+  ygo-search extract "{青眼の白龍}で攻撃" cols=name,cardId,atk
+  ygo-search extract "{ブルーアイズ*}を召喚"
 `);
         process.exit(0);
     }
@@ -604,7 +604,7 @@ Examples:
 // replace サブコマンド（旧 ygo_replace）
 async function handleReplaceCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search replace <text> [options]
+        console.log(`Usage: ygo-search replace <text> [options]
 
 カード名パターンをテキストから抽出し、検索して検証済みパターンに置換します。
 
@@ -621,11 +621,11 @@ Pattern Types:
   {{name|cardId}}     カードID で検索
 
 Examples:
-  ygo_search replace "{青眼の白龍}を召喚して攻撃"
+  ygo-search replace "{青眼の白龍}を召喚して攻撃"
     # => {"processedText":"{{青眼の白龍|4007}}を召喚して攻撃",...}
-  ygo_search replace "{青眼*}を召喚"
+  ygo-search replace "{青眼*}を召喚"
     # => 複数候補: {{青眼の白龍|4007}}, {{青眼の亜白龍|12253}}, ...
-  ygo_search replace "《青眼の白龍》を召喚" --mount-par
+  ygo-search replace "《青眼の白龍》を召喚" --mount-par
     # => 《青眼の白龍》を召喚（完全一致、そのまま維持）
 `);
         process.exit(0);
@@ -662,7 +662,7 @@ function handleSeekCommand(args) {
 // vector サブコマンド
 async function handleVectorCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search vector <subcommand> [options]
+        console.log(`Usage: ygo-search vector <subcommand> [options]
 
 Vector DB管理コマンド
 
@@ -682,14 +682,14 @@ Subcommands:
   search <query>        Vector検索を実行
 
 Examples:
-  ygo_search vector setup                全てのインデックスを構築
-  ygo_search vector setup cards          カードのみ
-  ygo_search vector setup faqs           FAQのみ
-  ygo_search vector setup --keep-tmp     一時ファイルを保持
-  ygo_search vector setup-generic rules.yml --table rules --exclude-columns cite
-  ygo_search vector setup-generic aa/*.yml bb/data.yml --table rules
-  ygo_search vector search "墓地から特殊召喚" --limit 5
-  ygo_search vector search "融合召喚" --type cards --threshold 0.8
+  ygo-search vector setup                全てのインデックスを構築
+  ygo-search vector setup cards          カードのみ
+  ygo-search vector setup faqs           FAQのみ
+  ygo-search vector setup --keep-tmp     一時ファイルを保持
+  ygo-search vector setup-generic rules.yml --table rules --exclude-columns cite
+  ygo-search vector setup-generic aa/*.yml bb/data.yml --table rules
+  ygo-search vector search "墓地から特殊召喚" --limit 5
+  ygo-search vector search "融合召喚" --type cards --threshold 0.8
 `);
         process.exit(0);
     }
@@ -789,7 +789,7 @@ async function handleVectorSetupCommand(args) {
 }
 async function handleVectorSearchCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search vector search <query> [options]
+        console.log(`Usage: ygo-search vector search <query> [options]
 
 Vector検索を実行
 
@@ -804,11 +804,11 @@ Options:
   --format FORMAT       出力形式（json/csv/tsv/jsonl, デフォルト: json）
 
 Examples:
-  ygo_search vector search "墓地から特殊召喚"
-  ygo_search vector search "融合召喚" --type cards --limit 5
-  ygo_search vector search "カウンター罠" --threshold 0.7
-  ygo_search vector search "チェーンブロック" --format jsonl
-  ygo_search vector search "特殊召喚" --type test
+  ygo-search vector search "墓地から特殊召喚"
+  ygo-search vector search "融合召喚" --type cards --limit 5
+  ygo-search vector search "カウンター罠" --threshold 0.7
+  ygo-search vector search "チェーンブロック" --format jsonl
+  ygo-search vector search "特殊召喚" --type test
 `);
         process.exit(0);
     }
@@ -900,7 +900,7 @@ Examples:
 }
 async function handleVectorSetupGenericCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search vector setup-generic <files...> --table <tableName> [options]
+        console.log(`Usage: ygo-search vector setup-generic <files...> --table <tableName> [options]
 
 汎用データからVector DBインデックスを構築
 
@@ -917,9 +917,9 @@ Options:
 Required fields: id, title, text
 
 Examples:
-  ygo_search vector setup-generic rules.yml --table rules
-  ygo_search vector setup-generic aa/*.yml bb/data.yml --table rules --exclude-columns cite
-  ygo_search vector setup-generic data.json --table custom --include-columns category,priority
+  ygo-search vector setup-generic rules.yml --table rules
+  ygo-search vector setup-generic aa/*.yml bb/data.yml --table rules --exclude-columns cite
+  ygo-search vector setup-generic data.json --table custom --include-columns category,priority
 `);
         process.exit(0);
     }
@@ -1037,7 +1037,7 @@ function handleUpdateCommand() {
 // docs サブコマンド - APIドキュメント参照
 async function handleDocsCommand(args) {
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: ygo_search docs [name]
+        console.log(`Usage: ygo-search docs [name]
 
 APIドキュメント参照
 
@@ -1046,9 +1046,9 @@ Arguments:
   list                    List all available documentation
 
 Examples:
-  ygo_search docs searchCards    Show searchCards function documentation
-  ygo_search docs Card           Show Card interface documentation
-  ygo_search docs list           List all available items
+  ygo-search docs searchCards    Show searchCards function documentation
+  ygo-search docs Card           Show Card interface documentation
+  ygo-search docs list           List all available items
 
 Note: If documentation is not found, run 'bun run docs' to generate it.
 `);
@@ -1073,7 +1073,7 @@ Note: If documentation is not found, run 'bun run docs' to generate it.
         console.error(`Error: Documentation for '${query}' not found.`);
         console.error('\nAvailable items:');
         console.error(entries.map((e)=>`  - ${e.name}`).join('\n'));
-        console.error('\nRun "ygo_search docs list" to see all available documentation.');
+        console.error('\nRun "ygo-search docs list" to see all available documentation.');
         process.exit(1);
     }
 }

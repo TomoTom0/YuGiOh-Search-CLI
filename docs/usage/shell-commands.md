@@ -19,13 +19,13 @@ pnpm link --global
 ```
 
 This creates global commands:
-- `ygo_search` - Search cards
+- `ygo-search` - Search cards
 - `ygo_bulk_search` - Bulk search
 - `ygo_extract` - Extract and search card patterns from text
 - `ygo_replace` - Replace card patterns with card IDs or names
 - `ygo_seek` - Get random or range-specific cards
 - `ygo_faq_search` - Search FAQ database
-- `ygo_search convert` - Convert between JSON/JSONL/CSV/TSV formats
+- `ygo-search convert` - Convert between JSON/JSONL/CSV/TSV formats
 
 **Note**: After build, scripts work with `node` (no tsx required)!
 
@@ -49,23 +49,23 @@ source ~/.bashrc  # or source ~/.zshrc
 
 ## Commands
 
-### ygo_search - Search cards
+### ygo-search - Search cards
 
 ```bash
 # Basic search
-ygo_search '{"name":"青眼"}'
+ygo-search '{"name":"青眼"}'
 
 # With columns
-ygo_search '{"name":"青眼"}' cols=name,cardId,text
+ygo-search '{"name":"青眼"}' cols=name,cardId,text
 
 # Wildcard search
-ygo_search '{"text":"*破壊*"}' cols=name,text
+ygo-search '{"text":"*破壊*"}' cols=name,text
 
 # Save to file
-ygo_search '{"name":"青眼"}' outputPath=results.jsonl
+ygo-search '{"name":"青眼"}' outputPath=results.jsonl
 
 # Multiple conditions
-ygo_search '{"cardType":"罠","trapEffectType":"カウンター罠"}' cols=name,text
+ygo-search '{"cardType":"罠","trapEffectType":"カウンター罠"}' cols=name,text
 ```
 
 ### ygo_bulk_search - Bulk search
@@ -146,20 +146,20 @@ ygo_faq_search cardId=6808 --col name,atk,def
 ygo_faq_search cardName="青眼*" --format csv
 ```
 
-### ygo_search convert - Convert file formats
+### ygo-search convert - Convert file formats
 
 ```bash
 # JSON to JSONL
-ygo_search convert input.json:output.jsonl
+ygo-search convert input.json:output.jsonl
 
 # JSON to CSV
-ygo_search convert input.json:output.csv
+ygo-search convert input.json:output.csv
 
 # JSONL to TSV
-ygo_search convert input.jsonl:output.tsv
+ygo-search convert input.jsonl:output.tsv
 
 # Multiple conversions
-ygo_search convert a.json:a.csv b.jsonl:b.tsv
+ygo-search convert a.json:a.csv b.jsonl:b.tsv
 
 # Supported formats: .json, .jsonl, .csv, .tsv, .yaml
 ```
@@ -171,7 +171,7 @@ ygo_search convert a.json:a.csv b.jsonl:b.tsv
 export YGO_OUTPUT_DIR=/path/to/output
 
 # Now you can omit outputDir
-ygo_search '{"name":"青眼"}' outputPath=result.jsonl
+ygo-search '{"name":"青眼"}' outputPath=result.jsonl
 # → saves to /path/to/output/result.jsonl
 ```
 
@@ -186,16 +186,16 @@ All search commands support:
 ## Help
 
 ```bash
-ygo_search --help
-ygo_search card --help
-ygo_search faq --help
-ygo_search extract --help
-ygo_search replace --help
-ygo_search seek --help
-ygo_search bulk --help
-ygo_search convert --help
-ygo_search docs --help
-ygo_search vector --help
+ygo-search --help
+ygo-search card --help
+ygo-search faq --help
+ygo-search extract --help
+ygo-search replace --help
+ygo-search seek --help
+ygo-search bulk --help
+ygo-search convert --help
+ygo-search docs --help
+ygo-search vector --help
 ```
 
 ## Uninstall

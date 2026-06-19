@@ -27,16 +27,16 @@ Command-line tools and Web API for searching Yu-Gi-Oh! card database with full J
 
 ### CLI Commands
 
-- **ygo_search card** - Search cards with flexible filters
-- **ygo_search faq** - Search Official FAQ database
-- **ygo_search extract** - Extract card patterns from text
-- **ygo_search replace** - Extract and replace patterns with card IDs or names
-- **ygo_search seek** - Get random or range-specific card information
-- **ygo_search bulk** - Efficient bulk search (up to 50 queries)
-- **ygo_search convert** - Convert file formats (JSON, CSV, TSV, JSONL)
-- **ygo_search vector** - Vector search (semantic search) for cards, FAQs, and rules
-- **ygo_search docs** - View API documentation for library usage
-- **ygo_search update** - Download/update card database (required for first use)
+- **ygo-search card** - Search cards with flexible filters
+- **ygo-search faq** - Search Official FAQ database
+- **ygo-search extract** - Extract card patterns from text
+- **ygo-search replace** - Extract and replace patterns with card IDs or names
+- **ygo-search seek** - Get random or range-specific card information
+- **ygo-search bulk** - Efficient bulk search (up to 50 queries)
+- **ygo-search convert** - Convert file formats (JSON, CSV, TSV, JSONL)
+- **ygo-search vector** - Vector search (semantic search) for cards, FAQs, and rules
+- **ygo-search docs** - View API documentation for library usage
+- **ygo-search update** - Download/update card database (required for first use)
 
 ### Card Search Features
 
@@ -86,7 +86,7 @@ Automatically handles:
 npm install -g ygo-search
 
 # Download card data (required for first use)
-ygo_search update
+ygo-search update
 ```
 
 ### From Source
@@ -106,7 +106,7 @@ pnpm run build
 pnpm link --global
 
 # Download card data (37.6MB total) - required for first use
-ygo_search update
+ygo-search update
 ```
 
 ### Development Setup (For Contributors)
@@ -150,46 +150,46 @@ After `pnpm link --global`, you can use these commands globally:
 
 ```bash
 # Search cards by name
-ygo_search card --name "青眼の白龍" --cols name,cardId
+ygo-search card --name "青眼の白龍" --cols name,cardId
 
 # Wildcard search
-ygo_search card --name "ブルーアイズ*" --cols name,atk
+ygo-search card --name "ブルーアイズ*" --cols name,atk
 
 # Search FAQ database
-ygo_search faq cardId=6808 limit=5
-ygo_search faq cardName="青眼*" limit=10
-ygo_search faq question="*シンクロ召喚*"
+ygo-search faq cardId=6808 limit=5
+ygo-search faq cardName="青眼*" limit=10
+ygo-search faq question="*シンクロ召喚*"
 
 # Extract patterns from text
-ygo_search extract "Use {ブルーアイズ*} and 《青眼の白龍》"
+ygo-search extract "Use {ブルーアイズ*} and 《青眼の白龍》"
 
 # Replace patterns with card IDs
-ygo_search replace "{青眼の白龍}を召喚" --raw
-ygo_search replace "{青眼の白龍}を召喚" --mount-par --raw
+ygo-search replace "{青眼の白龍}を召喚" --raw
+ygo-search replace "{青眼の白龍}を召喚" --mount-par --raw
 
 # Get random cards
-ygo_search seek --max 5
-ygo_search seek --range 4000-5000 --max 20
-ygo_search seek --range 4000-4100 --all --format csv
+ygo-search seek --max 5
+ygo-search seek --range 4000-5000 --max 20
+ygo-search seek --range 4000-4100 --all --format csv
 
 # Bulk search
-ygo_search bulk '[{"filter":{"name":"青眼"}}]'
+ygo-search bulk '[{"filter":{"name":"青眼"}}]'
 
 # Vector search (semantic search)
-ygo_search vector setup all                         # Setup vector DB
-ygo_search vector search "墓地から特殊召喚"          # Search all tables
-ygo_search vector search "チェーン" --type rules --limit 5
+ygo-search vector setup all                         # Setup vector DB
+ygo-search vector search "墓地から特殊召喚"          # Search all tables
+ygo-search vector search "チェーン" --type rules --limit 5
 
 # Update/download card database
-ygo_search update
+ygo-search update
 
 # Convert file formats
-ygo_search convert input.json:output.jsonl
+ygo-search convert input.json:output.jsonl
 
 # View API documentation
-ygo_search docs list                 # List all available documentation
-ygo_search docs searchCards          # Show searchCards function documentation
-ygo_search docs Card                 # Show Card interface documentation
+ygo-search docs list                 # List all available documentation
+ygo-search docs searchCards          # Show searchCards function documentation
+ygo-search docs Card                 # Show Card interface documentation
 ```
 
 ### Direct Node Execution
@@ -309,9 +309,9 @@ const yamlString = formatOutput({ key: 'value' }, 'yaml')
 
 View documentation using the CLI:
 ```bash
-ygo_search docs list              # List all available documentation
-ygo_search docs searchCards       # Show function documentation
-ygo_search docs Card              # Show interface documentation
+ygo-search docs list              # List all available documentation
+ygo-search docs searchCards       # Show function documentation
+ygo-search docs Card              # Show interface documentation
 ```
 
 Or browse directly:

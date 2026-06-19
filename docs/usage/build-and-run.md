@@ -23,7 +23,7 @@ bash scripts/setup/setup-data.sh
 
 # 4. CLIコマンドを実行
 pnpm link --global  # グローバルインストール、または node dist/cli/ygo_search.js を直接実行
-ygo_search '{"name":"青眼"}'
+ygo-search '{"name":"青眼"}'
 ```
 
 ## ビルドコマンド
@@ -55,13 +55,13 @@ ls -la dist/cli/
 pnpm link --global
 
 # 任意の場所でコマンド使用可能
-ygo_search card --name "青眼" --cols name,cardId
-ygo_search extract "{青眼の白龍}"
-ygo_search replace "{青眼の白龍}を召喚"
+ygo-search card --name "青眼" --cols name,cardId
+ygo-search extract "{青眼の白龍}"
+ygo-search replace "{青眼の白龍}を召喚"
 # => {"processedText":"{{青眼の白龍|4007}}を召喚",...}
-ygo_search seek --max 10
-ygo_search faq cardId=6808
-ygo_search docs list
+ygo-search seek --max 10
+ygo-search faq cardId=6808
+ygo-search docs list
 ```
 
 ### オプション2: 直接実行
@@ -120,7 +120,7 @@ pnpm run build
 ### Permission denied
 
 ```bash
-bash: /usr/local/bin/ygo_search: Permission denied
+bash: /usr/local/bin/ygo-search: Permission denied
 ```
 
 **原因**: 実行権限がない
@@ -134,7 +134,7 @@ pnpm link --global  # 再リンク
 ### `pnpm link --global`後にコマンドが見つからない
 
 ```bash
-command not found: ygo_search
+command not found: ygo-search
 ```
 
 **原因**: グローバルbinディレクトリがPATHに含まれていない
@@ -217,5 +217,5 @@ pnpm test:coverage
 | ビルド | `pnpm run build` |
 | ウォッチモード | `pnpm run build --watch` |
 | CLIをグローバルインストール | `pnpm link --global` |
-| CLIコマンド実行 | `ygo_search '{"name":"青眼"}'` |
+| CLIコマンド実行 | `ygo-search '{"name":"青眼"}'` |
 | テスト実行 | `pnpm test` |

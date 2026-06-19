@@ -220,5 +220,5 @@ for file_type in "${!OUTPUT_FILES[@]}"; do
 done
 echo ""
 echo "You can now use the CLI commands:"
-echo "  ygo_search '{\"name\":\"青眼\"}'"
+echo "  ygo-search '{\"name\":\"青眼\"}'"
 echo ""

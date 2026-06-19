@@ -33,17 +33,17 @@
 - 各種出力形式
 
 ### shell-commands.md
-- ygo_search コマンドの詳細リファレンス
-  - ygo_search card - カード検索
-  - ygo_search faq - FAQ 検索
-  - ygo_search extract - パターン抽出
-  - ygo_search replace - パターン置換
-  - ygo_search seek - ランダム/範囲選択
-  - ygo_search bulk - 一括検索
-  - ygo_search convert - フォーマット変換
-  - ygo_search docs - APIドキュメント参照
-  - ygo_search vector - ベクトル検索
-  - ygo_search update - データ更新
+- ygo-search コマンドの詳細リファレンス
+  - ygo-search card - カード検索
+  - ygo-search faq - FAQ 検索
+  - ygo-search extract - パターン抽出
+  - ygo-search replace - パターン置換
+  - ygo-search seek - ランダム/範囲選択
+  - ygo-search bulk - 一括検索
+  - ygo-search convert - フォーマット変換
+  - ygo-search docs - APIドキュメント参照
+  - ygo-search vector - ベクトル検索
+  - ygo-search update - データ更新
 - 各サブコマンドの全オプション説明
 - 使用例
 

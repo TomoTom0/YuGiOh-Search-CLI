@@ -318,8 +318,8 @@ async function main() {
       }
       console.log('')
       console.log('以下のコマンドで検索できます:')
-      console.log('  ygo_search \'{"name":"*青眼*"}\'  # ワイルドカード検索')
-      console.log('  ygo_search \'{"name":"青眼の白龍"}\'  # 完全一致')
+      console.log('  ygo-search \'{"name":"*青眼*"}\'  # ワイルドカード検索')
+      console.log('  ygo-search \'{"name":"青眼の白龍"}\'  # 完全一致')
       console.log('')
 
     } finally {

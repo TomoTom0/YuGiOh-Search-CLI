@@ -98,9 +98,9 @@ export async function listDocs(entries: DocEntry[]): Promise<void> {
   }
 
   console.log('Usage:');
-  console.log('  ygo_search docs <name>   Show documentation for a function, interface, or type');
-  console.log('  ygo_search docs list     List all available documentation');
-  console.log('  ygo_search docs --help   Show this help message');
+  console.log('  ygo-search docs <name>   Show documentation for a function, interface, or type');
+  console.log('  ygo-search docs list     List all available documentation');
+  console.log('  ygo-search docs --help   Show this help message');
 }
 
 /**
