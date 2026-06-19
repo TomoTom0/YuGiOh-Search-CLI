@@ -1,0 +1,20 @@
+# mise tasks — `mise run <task>` で実行
+# https://mise.jdx.dev/tasks/
+
+[tasks.install]
+description = "ygo-search CLI を ~/.local/bin にローカルインストール（build + symlink）"
+run = """
+set -e
+pnpm run build
+mkdir -p "$HOME/.local/bin"
+ln -sf "$PWD/dist/cli/ygo_search.js" "$HOME/.local/bin/ygo-search"
+echo "✓ Installed: ~/.local/bin/ygo-search -> $PWD/dist/cli/ygo_search.js"
+echo "  Verify with: ygo-search --help"
+"""
+
+[tasks.uninstall]
+description = "ygo-search CLI を ~/.local/bin から削除"
+run = """
+rm -f "$HOME/.local/bin/ygo-search"
+echo "✓ Uninstalled: ~/.local/bin/ygo-search"
+"""

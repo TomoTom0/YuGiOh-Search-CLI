@@ -5,6 +5,12 @@
 形式は [Keep a Changelog](https://keepachangelog.com/ja/1.0.0/) に基づいており、
 このプロジェクトは [Semantic Versioning](https://semver.org/lang/ja/) に従っています。
 
+## [Unreleased]
+
+### 変更
+
+- **パッケージマネージャー移行**: bun から pnpm@10.26.2 へ移行
+
 ## [v1.3.0] - 2025-12-18
 
 ### 追加

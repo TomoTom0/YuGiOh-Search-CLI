@@ -8,73 +8,73 @@ git clone https://github.com/TomoTom0/YuGiOh-Search-CLI.git
 cd YuGiOh-Search-CLI
 
 # Install dependencies
-bun install
+pnpm install
 
 # Build project (required!)
-bun run build
+pnpm run build
 
 # Download data files
 bash scripts/setup/setup-data.sh
 
 # Install CLI commands globally (optional)
-bun link
+pnpm link --global
 ```
 
 ## CLI Commands
 
-All commands can be used globally after `bun link`, or directly with `node dist/cli/`.
+All commands can be used globally after `pnpm link --global`, or directly with `node dist/cli/`.
 
-### ygo_search - Search Cards
+### ygo-search - Search Cards
 
 ```bash
 # Basic search by name
-ygo_search '{"name":"青眼の白龍"}' cols=name,cardId
+ygo-search '{"name":"青眼の白龍"}' cols=name,cardId
 
 # Wildcard search (matches any characters)
-ygo_search '{"name":"ブルーアイズ*"}' cols=name,atk
-ygo_search '{"name":"*ドラゴン"}' cols=name,atk
+ygo-search '{"name":"ブルーアイズ*"}' cols=name,atk
+ygo-search '{"name":"*ドラゴン"}' cols=name,atk
 
 # Partial match (substring, no wildcard)
-ygo_search '{"name":"青眼"}' cols=name,cardId mode=partial
+ygo-search '{"name":"青眼"}' cols=name,cardId mode=partial
 
 # Search multiple conditions
-ygo_search '{"cardType":"モンスター","race":"ドラゴン族"}' cols=name,atk,def
+ygo-search '{"cardType":"モンスター","race":"ドラゴン族"}' cols=name,atk,def
 
 # Search by card ID
-ygo_search '{"cardId":"6808"}' cols=name,text
+ygo-search '{"cardId":"6808"}' cols=name,text
 
 # Search text (case-insensitive)
-ygo_search '{"text":"*破壊*"}' cols=name,text
+ygo-search '{"text":"*破壊*"}' cols=name,text
 
 # Negative search (exclude)
-ygo_search '{"text":"*破壊*","name":"-\"フィールド\""}' cols=name,text
+ygo-search '{"text":"*破壊*","name":"-\"フィールド\""}' cols=name,text
 
 # With output columns
-ygo_search '{"name":"青眼"}' cols=name,cardId,atk,def,text
+ygo-search '{"name":"青眼"}' cols=name,cardId,atk,def,text
 
 # Available columns: name, cardId, cardType, race, level, atk, def, text, detail, effect, etc.
 ```
 
-### ygo_bulk_search - Bulk Search (Multiple Cards)
+### ygo-search bulk - Bulk Search (Multiple Cards)
 
 ```bash
 # Search multiple cards at once
-ygo_bulk_search '[{"filter":{"name":"青眼"}},{"filter":{"name":"ブラック・マジシャン"}}]'
+ygo-search bulk '[{"filter":{"name":"青眼"}},{"filter":{"name":"ブラック・マジシャン"}}]'
 
 # With columns
-ygo_bulk_search '[{"filter":{"race":"ドラゴン族"}},{"filter":{"race":"魔法使い族"}}]' cols=name,race,atk
+ygo-search bulk '[{"filter":{"race":"ドラゴン族"}},{"filter":{"race":"魔法使い族"}}]' cols=name,race,atk
 
 # Up to 50 queries
-ygo_bulk_search '[{"filter":{"name":"青眼"}},{"filter":{"name":"ホワイト・ホルス"}}, ...]'
+ygo-search bulk '[{"filter":{"name":"青眼"}},{"filter":{"name":"ホワイト・ホルス"}}, ...]'
 ```
 
-### ygo_extract - Extract Card Patterns from Text
+### ygo-search extract - Extract Card Patterns from Text
 
 Extract card name patterns for later processing.
 
 ```bash
 # Extract patterns from text
-ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
+ygo-search extract "{青眼の白龍}とブラック・マジシャンを召喚"
 
 # Supported patterns:
 # - {flexible}       - Flexible search with wildcards and normalization
@@ -82,49 +82,49 @@ ygo_extract "{青眼の白龍}とブラック・マジシャンを召喚"
 # - {{name|id}}      - Search by card ID
 
 # Multiple pattern types
-ygo_extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
+ygo-search extract "{ブルーアイズ*}と《青眼の白龍》と{{真紅眼の黒竜|6349}}"
 ```
 
-### ygo_replace - Replace Card Patterns with IDs or Names
+### ygo-search replace - Replace Card Patterns with IDs or Names
 
 ```bash
 # Replace patterns with card IDs: {{name|cardId}}
-ygo_replace "{青眼の白龍}を召喚" --raw
+ygo-search replace "{青眼の白龍}を召喚" --raw
 
 # Replace patterns with card names: 《cardName》
-ygo_replace "{青眼の白龍}を召喚" --mount-par --raw
+ygo-search replace "{青眼の白龍}を召喚" --mount-par --raw
 
 # Replace multiple patterns in one text
-ygo_replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
+ygo-search replace "1ターンに{青眼の白龍}と{ブラック・マジシャン}を召喚"
 
 # Options:
 # --raw          - Output raw replacement without JSON wrapping
 # --mount-par    - Use 《name》 format instead of {{name|cardId}}
 ```
 
-### ygo_seek - Get Random or Range-Specific Cards
+### ygo-search seek - Get Random or Range-Specific Cards
 
 ```bash
 # Get random cards
-ygo_seek --max 5
+ygo-search seek --max 5
 
 # Get random cards with specific columns
-ygo_seek --max 10 --col cardId,name,atk,def
+ygo-search seek --max 10 --col cardId,name,atk,def
 
 # Range selection (CardId range)
-ygo_seek --range 4000-5000 --max 20
+ygo-search seek --range 4000-5000 --max 20
 
 # All cards in range
-ygo_seek --range 4000-4100 --all
+ygo-search seek --range 4000-4100 --all
 
 # Different output formats
-ygo_seek --max 10 --format json    # Default
-ygo_seek --max 10 --format jsonl   # One per line
-ygo_seek --max 10 --format csv
-ygo_seek --max 10 --format tsv
+ygo-search seek --max 10 --format json    # Default
+ygo-search seek --max 10 --format jsonl   # One per line
+ygo-search seek --max 10 --format csv
+ygo-search seek --max 10 --format tsv
 
 # Get all columns
-ygo_seek --max 10 --col-all
+ygo-search seek --max 10 --col-all
 
 # Options:
 # --max N           - Get N random cards
@@ -135,35 +135,35 @@ ygo_seek --max 10 --col-all
 # --col-all         - Include all available columns
 ```
 
-### ygo_faq_search - Search Official FAQ Database
+### ygo-search faq - Search Official FAQ Database
 
 ```bash
 # Search by FAQ ID
-ygo_faq_search faqId=100
+ygo-search faq faqId=100
 
 # Search by card ID
-ygo_faq_search cardId=6808 limit=5
+ygo-search faq cardId=6808 limit=5
 
 # Search by card name (with wildcard)
-ygo_faq_search cardName="青眼*" limit=10
+ygo-search faq cardName="青眼*" limit=10
 
 # Search by card specifications
-ygo_faq_search cardFilter.race=dragon cardFilter.levelValue=8
+ygo-search faq cardFilter.race=dragon cardFilter.levelValue=8
 
 # Search by question text (with wildcard)
-ygo_faq_search question="*シンクロ召喚*"
+ygo-search faq question="*シンクロ召喚*"
 
 # Search by answer text
-ygo_faq_search answer="*無効*" limit=20
+ygo-search faq answer="*無効*" limit=20
 
 # Output options
-ygo_faq_search cardId=6808 --fcol faqId,question  # FAQ columns only
-ygo_faq_search cardId=6808 --col name,atk,def    # Card columns only
-ygo_faq_search cardName="青眼*" --format csv
+ygo-search faq cardId=6808 --fcol faqId,question  # FAQ columns only
+ygo-search faq cardId=6808 --col name,atk,def    # Card columns only
+ygo-search faq cardName="青眼*" --format csv
 
 # Key=value style (CLI-friendly)
-ygo_faq_search cardId=6808 limit=5
-ygo_faq_search question="*効果*" answer="*無効*" limit=10
+ygo-search faq cardId=6808 limit=5
+ygo-search faq question="*効果*" answer="*無効*" limit=10
 
 # Options:
 # limit N          - Limit number of results (default: all)
@@ -173,25 +173,25 @@ ygo_faq_search question="*効果*" answer="*無効*" limit=10
 # --random         - Random selection from results
 ```
 
-### ygo_search convert - Convert File Formats
+### ygo-search convert - Convert File Formats
 
 ```bash
 # Convert JSON to JSONL
-ygo_search convert input.json:output.jsonl
+ygo-search convert input.json:output.jsonl
 
 # Convert JSON to CSV
-ygo_search convert input.json:output.csv
+ygo-search convert input.json:output.csv
 
 # Convert JSONL to TSV
-ygo_search convert input.jsonl:output.tsv
+ygo-search convert input.jsonl:output.tsv
 
 # Multiple conversions
-ygo_search convert a.json:a.csv b.jsonl:b.tsv c.csv:c.json
+ygo-search convert a.json:a.csv b.jsonl:b.tsv c.csv:c.json
 
 # Supported formats: .json, .jsonl, .csv, .tsv, .yaml
 ```
 
-### ygo_search vector - Vector Search (Semantic Search)
+### ygo-search vector - Vector Search (Semantic Search)
 
 Vector検索機能は、意味的な類似性に基づいてカード、FAQ、ルールを検索します。
 
@@ -199,47 +199,47 @@ Vector検索機能は、意味的な類似性に基づいてカード、FAQ、�
 
 ```bash
 # カード・FAQのVector DBインデックス構築
-ygo_search vector setup cards    # カードのみ
-ygo_search vector setup faqs     # FAQのみ
-ygo_search vector setup all      # 全て
+ygo-search vector setup cards    # カードのみ
+ygo-search vector setup faqs     # FAQのみ
+ygo-search vector setup all      # 全て
 
 # ルールデータのインポート（YAML形式）
-ygo_search vector setup-generic rules.yml --table rules --include-columns name,notes,examples
+ygo-search vector setup-generic rules.yml --table rules --include-columns name,notes,examples
 
 # 複数ファイルのインポート（glob展開・併記対応）
-ygo_search vector setup-generic aa/*.yml bb/data.yml --table rules
+ygo-search vector setup-generic aa/*.yml bb/data.yml --table rules
 
 # 汎用データのインポート（yaml/json/jsonl/tsv/csv対応）
-ygo_search vector setup-generic data.json --table custom-table
+ygo-search vector setup-generic data.json --table custom-table
 ```
 
 #### 検索
 
 ```bash
 # 全テーブルを検索（cards, faqs, rules全て）
-ygo_search vector search "墓地から特殊召喚"
+ygo-search vector search "墓地から特殊召喚"
 
 # 特定テーブルのみ検索
-ygo_search vector search "チェーンブロック" --type cards
-ygo_search vector search "効果の発動タイミング" --type faqs
-ygo_search vector search "ターンの流れ" --type rules
+ygo-search vector search "チェーンブロック" --type cards
+ygo-search vector search "効果の発動タイミング" --type faqs
+ygo-search vector search "ターンの流れ" --type rules
 
 # 結果数の制限
-ygo_search vector search "融合召喚" --limit 5
+ygo-search vector search "融合召喚" --limit 5
 
 # スコア閾値による絞り込み
-ygo_search vector search "シンクロ召喚" --threshold 0.7
+ygo-search vector search "シンクロ召喚" --threshold 0.7
 
 # 出力フォーマット指定
-ygo_search vector search "ドラゴン" --format json
-ygo_search vector search "ドラゴン" --format jsonl
-ygo_search vector search "ドラゴン" --format csv
-ygo_search vector search "ドラゴン" --format tsv
+ygo-search vector search "ドラゴン" --format json
+ygo-search vector search "ドラゴン" --format jsonl
+ygo-search vector search "ドラゴン" --format csv
+ygo-search vector search "ドラゴン" --format tsv
 
 # 距離メトリック指定
-ygo_search vector search "墓地" --distance cosine  # デフォルト
-ygo_search vector search "墓地" --distance l2
-ygo_search vector search "墓地" --distance dot
+ygo-search vector search "墓地" --distance cosine  # デフォルト
+ygo-search vector search "墓地" --distance l2
+ygo-search vector search "墓地" --distance dot
 ```
 
 #### 汎用データインポートの詳細
@@ -249,16 +249,16 @@ ygo_search vector search "墓地" --distance dot
 # その他のフィールドは自動的に検索テキストに含まれる
 
 # 特定カラムのみ含める
-ygo_search vector setup-generic data.yml --table mytable --include-columns name,notes,examples
+ygo-search vector setup-generic data.yml --table mytable --include-columns name,notes,examples
 
 # 特定カラムを除外
-ygo_search vector setup-generic data.json --table mytable --exclude-columns cite,sourceFile
+ygo-search vector setup-generic data.json --table mytable --exclude-columns cite,sourceFile
 
 # 一時JSONLファイルを保持（デバッグ用）
-ygo_search vector setup-generic data.yml --table mytable --keep-tmp
+ygo-search vector setup-generic data.yml --table mytable --keep-tmp
 
 # 複数ファイル指定（シェルのglob展開を利用）
-ygo_search vector setup-generic rules/*.yml --table rules
+ygo-search vector setup-generic rules/*.yml --table rules
 
 # 対応フォーマット:
 # - YAML (.yml, .yaml) - 階層構造から自動抽出
@@ -318,7 +318,7 @@ ygo-searchはライブラリとしてプログラムから利用することも�
 ```bash
 npm install ygo-search
 # または
-bun add ygo-search
+pnpm add ygo-search
 ```
 
 ### 基本的な使用例
@@ -599,16 +599,16 @@ All searches automatically normalize:
 
 ```bash
 # Pretty JSON output
-ygo_search '{"name":"青眼"}' | jq .
+ygo-search '{"name":"青眼"}' | jq .
 
 # Filter results
-ygo_search '{"cardType":"モンスター"}' cols=name,cardId | jq '.[] | select(.atk > 2500)'
+ygo-search '{"cardType":"モンスター"}' cols=name,cardId | jq '.[] | select(.atk > 2500)'
 
 # Save to file
-ygo_search '{"name":"青眼"}' > results.json
+ygo-search '{"name":"青眼"}' > results.json
 
 # Pipe to other commands
-ygo_search '{"race":"ドラゴン族"}' cols=name,cardId | wc -l
+ygo-search '{"race":"ドラゴン族"}' cols=name,cardId | wc -l
 ```
 
 ## Environment Variables
@@ -618,18 +618,18 @@ ygo_search '{"race":"ドラゴン族"}' cols=name,cardId | wc -l
 export YGO_FORMAT=jsonl
 
 # Now all commands default to JSONL format
-ygo_search '{"name":"青眼"}'
+ygo-search '{"name":"青眼"}'
 ```
 
 ## Help
 
 ```bash
-ygo_search --help
-ygo_bulk_search --help
-ygo_extract --help
-ygo_replace --help
-ygo_search seek --help
-ygo_search faq --help
-ygo_search convert --help
-ygo_search docs --help
+ygo-search --help
+ygo-search bulk --help
+ygo-search extract --help
+ygo-search replace --help
+ygo-search seek --help
+ygo-search faq --help
+ygo-search convert --help
+ygo-search docs --help
 ```

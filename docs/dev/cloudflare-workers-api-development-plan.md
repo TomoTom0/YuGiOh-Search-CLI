@@ -60,7 +60,7 @@ ygo-search CLIの機能をCloudflare Workers APIで提供するための開発�
 - **依存タスク**: TASK-78
 
 #### 参照
-- CLI: ygo_search card の全てのオプション
+- CLI: ygo-search card の全てのオプション
 - ライブラリ: searchCards
 
 ---
