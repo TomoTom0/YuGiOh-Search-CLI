@@ -55,7 +55,7 @@ pub fn parse_format_string(content: &str, format: Format) -> Result<Value, Forma
         }
         Format::Jsonl => {
             let items: Vec<Value> = content
-                .split('\n')
+                .lines()
                 .filter(|line| !line.trim().is_empty())
                 .map(serde_json::from_str::<Value>)
                 .collect::<Result<_, _>>()?;

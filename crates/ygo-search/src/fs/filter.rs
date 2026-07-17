@@ -291,7 +291,7 @@ fn value_matches(
     let mut search_pattern = build_pattern(cond_str, has_wildcard, flag_auto_modify);
 
     // text 否定句（text 系カラムのみ）
-    if is_text_field && cond_str.contains("-\"") {
+    if is_text_field && cond_str.contains('-') {
         let negatives = extract_negatives(cond_str);
         if !negatives.is_empty() {
             for phrase in &negatives {

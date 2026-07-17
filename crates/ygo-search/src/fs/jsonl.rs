@@ -357,7 +357,7 @@ mod generic {
 
     /// tsv/csv をフラットレコード（ヘッダ→値の Object）の列にする。`id/title/text` 列必須。
     fn parse_delimited(content: &str, delim: char) -> Result<Vec<Value>, FsError> {
-        let lines: Vec<&str> = content.trim().split('\n').collect();
+        let lines: Vec<&str> = content.trim().lines().collect();
         if lines.is_empty() {
             return Err(FsError::InvalidOption("file is empty".into()));
         }
@@ -406,7 +406,7 @@ mod generic {
 
         let exclude = options.exclude_columns.as_ref();
         let include = options.include_columns.as_ref();
-        if exclude.map_or(false, |e| !e.is_empty()) && include.is_some() {
+        if exclude.is_some_and(|e| !e.is_empty()) && include.is_some() {
             return Err(FsError::InvalidOption(
                 "Cannot specify both excludeColumns and includeColumns".into(),
             ));
@@ -481,7 +481,7 @@ mod generic {
                 extract_records(&data, &[], &mut records);
             }
             "jsonl" => {
-                for line in content.trim().split('\n') {
+                for line in content.trim().lines() {
                     if line.trim().is_empty() {
                         continue;
                     }
