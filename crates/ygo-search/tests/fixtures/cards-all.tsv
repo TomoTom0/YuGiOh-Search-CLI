@@ -1,0 +1,4 @@
+cardType	name	nameModified	ruby	cardId	ciid	imgs	text	attribute	levelType	levelValue	race	monsterTypes	atk	def	linkMarkers	pendulumScale	pendulumText	isExtraDeck	spellEffectType	trapEffectType
+monster	青眼の白龍	aomenohakuryu	青眼の白龍	10000		["img1.png"]	攻撃力は3000\ndefは2500。	dark	level	8	dragon	["normal"]	3000	2500
+spell	強欲な壺	goyokunatubo	強欲な壺	20000			デッキから"2枚"ドローする。												quick
+monster	覇王黒竜オッドアイズ	oddoaizu	オッドアイズ	30000		["img3.png"]	ペンデュラム効果。	dark	level	7	dragon	["normal","pendulum"]	2500	2000		1-8	ペンデュラム\n効果

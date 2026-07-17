@@ -574,6 +574,8 @@ import type {
 
 ### 環境変数
 
+データはデフォルトで `~/.local/ygo-search/` に保存されます。別の場所を使う場合は環境変数で指定します。
+
 ```typescript
 // データディレクトリをカスタマイズ
 process.env.YGO_SEARCH_WORKDIR = './custom-data'

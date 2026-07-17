@@ -2,6 +2,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import url from 'url';
+import { Command } from 'commander';
 import { searchCards, type CardSearchParams } from '../lib/card-search-core.js';
 import { searchFAQ, type SearchFAQParams } from '../search-faq.js';
 import { extractAndSearchCards } from '../lib/extract-and-search-cards.js';
@@ -213,28 +214,14 @@ function showColumns() {
 `);
 }
 
-// サブコマンドのヘルプメッセージ
-function showHelp() {
-  console.log(`Usage: ygo-search <command> [options]
-
-Yu-Gi-Oh カードデータベース検索ツール
-
-Commands:
-  card [filters]        カード検索（デフォルト）
-  faq [params]          FAQ検索
-  extract <text>        カード名抽出
-  replace <text>        カード名置換
-  seek [options]        ランダムカード取得
-  bulk [queries]        複数クエリを一括検索
-  convert <in:out>      フォーマット変換（JSON/JSONL/YAML）
-  vector setup [type]   Vector DBセットアップ（cards/faqs/all）
-  docs [name]           APIドキュメント参照
-  update                データ更新
-  help                  このヘルプを表示
-
-Options:
-  --help, -h            コマンドのヘルプを表示
-
+// commander: 共通CLIパーサー。--help/-h は登録済みコマンドに対し引数の位置に関わらず
+// 自動的に処理される（旧: 各ハンドラで手書きの args[0] === '--help' チェックが必要で、
+// vector setup 等でチェックの書き忘れが発生していた。docs/dev/feature/ 参照）。
+const program = new Command();
+program
+  .name('ygo-search')
+  .description('Yu-Gi-Oh カードデータベース検索ツール')
+  .addHelpText('after', `
 Examples:
   ygo-search card --name "青眼の白龍"
   ygo-search faq cardId=6808
@@ -254,20 +241,14 @@ Examples:
   ygo-search bulk --help
   ygo-search convert --help
 `);
-}
 
 // card サブコマンド（旧 ygo-search）
-function handleCardCommand(args: string[]) {
-  // Handle columns subcommand
-  if (args.length > 0 && (args[0] === 'columns' || args[0] === '--columns')) {
-    showColumns();
-    process.exit(0);
-  }
-
-  // Handle help
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search card [command] [options]
-
+program
+  .command('card')
+  .description('カード検索（デフォルト）')
+  .argument('[filters...]', 'フィルタ条件（--name, --cardId 等）または key=value / JSON 形式')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 Yu-Gi-Oh カードデータベース検索
 
 Commands:
@@ -336,25 +317,36 @@ Array Parameters:
 Alternative Formats:
   ygo-search card name=青眼の白龍 cols=name,cardId,text
   ygo-search card '{"name":"青眼の白龍"}' cols=name,cardId,text
-`);
-    process.exit(0);
-  }
+`)
+  .action((filters: string[], _opts: unknown, cmd: Command) => {
+    if (filters.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const scriptPath = path.join(__dirname, '..', 'search-cards.js');
-  const proc = spawn('node', [scriptPath, ...args], {
-    stdio: 'inherit'
-  });
+    // Handle columns subcommand
+    if (filters[0] === 'columns' || filters[0] === '--columns') {
+      showColumns();
+      process.exit(0);
+    }
 
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
+    const scriptPath = path.join(__dirname, '..', 'search-cards.js');
+    const proc = spawn('node', [scriptPath, ...filters], {
+      stdio: 'inherit'
+    });
+
+    proc.on('exit', (code) => {
+      process.exit(code || 0);
+    });
   });
-}
 
 // bulk サブコマンド（旧 ygo_bulk_search）
-function handleBulkCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search bulk <queries> [options]
-
+program
+  .command('bulk')
+  .description('複数のカード検索クエリを一括実行')
+  .argument('[queries...]', 'JSON配列形式のクエリリスト')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 複数のカード検索クエリを一括実行します。
 
 Arguments:
@@ -363,25 +355,30 @@ Arguments:
 Examples:
   ygo-search bulk '[{"name":"青眼"},{"name":"ブラック・マジシャン"}]'
   ygo-search bulk '{"name":"青眼"}' '{"name":"ブラック・マジシャン"}'
-`);
-    process.exit(0);
-  }
+`)
+  .action((queries: string[], _opts: unknown, cmd: Command) => {
+    if (queries.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const bulkScriptPath = path.join(__dirname, '..', 'bulk-search-cards.js');
-  const proc = spawn('node', [bulkScriptPath, ...args], {
-    stdio: 'inherit'
-  });
+    const bulkScriptPath = path.join(__dirname, '..', 'bulk-search-cards.js');
+    const proc = spawn('node', [bulkScriptPath, ...queries], {
+      stdio: 'inherit'
+    });
 
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
+    proc.on('exit', (code) => {
+      process.exit(code || 0);
+    });
   });
-}
 
 // convert サブコマンド（旧 ygo_convert）
-function handleConvertCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search convert <input:output> [<input:output> ...]
-
+program
+  .command('convert')
+  .description('フォーマット変換（JSON/JSONL/JSONC/YAML）')
+  .argument('[pairs...]', 'input:output のペア（複数指定可）')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 JSON、JSONL、JSONC、YAMLフォーマット間の変換を行います。
 
 Arguments:
@@ -398,25 +395,30 @@ Examples:
   ygo-search convert input.json:output.jsonl
   ygo-search convert data.yaml:output.json
   ygo-search convert a.json:a.yaml b.jsonl:b.json
-`);
-    process.exit(0);
-  }
+`)
+  .action((pairs: string[], _opts: unknown, cmd: Command) => {
+    if (pairs.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const convertScriptPath = path.join(__dirname, '..', 'format-converter.js');
-  const proc = spawn('node', [convertScriptPath, ...args], {
-    stdio: 'inherit'
-  });
+    const convertScriptPath = path.join(__dirname, '..', 'format-converter.js');
+    const proc = spawn('node', [convertScriptPath, ...pairs], {
+      stdio: 'inherit'
+    });
 
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
+    proc.on('exit', (code) => {
+      process.exit(code || 0);
+    });
   });
-}
 
 // faq サブコマンド（旧 ygo_faq_search）
-function handleFaqCommand(args: string[]) {
-  if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-    console.log(`Usage: ygo-search faq <params> [options]
-
+program
+  .command('faq')
+  .description('FAQ検索')
+  .argument('[params...]', 'key=value 形式または JSON 形式のパラメータ')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 FAQ データベースを様々な条件で検索
 
 Parameters (key=value style):
@@ -449,26 +451,31 @@ Examples (JSON style - still supported):
   ygo-search faq '{"cardId":6808,"limit":5}' --fcol faqId,question
   ygo-search faq '{"cardName":"青眼*"}' --format csv
   ygo-search faq '{"cardFilter":{"race":"dragon","levelValue":"8"}}'
-`);
-    process.exit(0);
-  }
+`)
+  .action((params: string[], _opts: unknown, cmd: Command) => {
+    if (params.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const scriptPath = path.join(__dirname, '..', 'search-faq.js');
+    const scriptPath = path.join(__dirname, '..', 'search-faq.js');
 
-  const proc = spawn('node', [scriptPath, ...args], {
-    stdio: 'inherit'
+    const proc = spawn('node', [scriptPath, ...params], {
+      stdio: 'inherit'
+    });
+
+    proc.on('exit', (code) => {
+      process.exit(code || 0);
+    });
   });
-
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
-  });
-}
 
 // extract サブコマンド（旧 ygo_extract）
-async function handleExtractCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search extract <text> [options]
-
+program
+  .command('extract')
+  .description('カード名抽出')
+  .argument('[text...]', 'カード名パターンを含むテキスト')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 カード名パターンをテキストから抽出して検索します。
 
 Arguments:
@@ -486,20 +493,25 @@ Examples:
   ygo-search extract "{青眼の白龍}と{ブラック・マジシャン}を召喚"
   ygo-search extract "{青眼の白龍}で攻撃" cols=name,cardId,atk
   ygo-search extract "{ブルーアイズ*}を召喚"
-`);
-    process.exit(0);
-  }
+`)
+  .action(async (textArgs: string[], _opts: unknown, cmd: Command) => {
+    if (textArgs.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const text = args[0];
-  const cards = await extractAndSearchCards(text);
-  console.log(JSON.stringify({ cards }, null, 2));
-}
+    const text = textArgs[0];
+    const cards = await extractAndSearchCards(text);
+    console.log(JSON.stringify({ cards }, null, 2));
+  });
 
 // replace サブコマンド（旧 ygo_replace）
-async function handleReplaceCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search replace <text> [options]
-
+program
+  .command('replace')
+  .description('カード名置換')
+  .argument('[args...]', 'カード名パターンを含むテキストとオプション')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 カード名パターンをテキストから抽出し、検索して検証済みパターンに置換します。
 
 Arguments:
@@ -521,48 +533,57 @@ Examples:
     # => 複数候補: {{青眼の白龍|4007}}, {{青眼の亜白龍|12253}}, ...
   ygo-search replace "《青眼の白龍》を召喚" --mount-par
     # => 《青眼の白龍》を召喚（完全一致、そのまま維持）
-`);
-    process.exit(0);
-  }
+`)
+  .action(async (args: string[], _opts: unknown, cmd: Command) => {
+    if (args.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const rawMode = args.includes('--raw');
-  const mountParMode = args.includes('--mount-par');
-  const text = args.filter(arg => !arg.startsWith('--'))[0];
+    const rawMode = args.includes('--raw');
+    const mountParMode = args.includes('--mount-par');
+    const text = args.filter(arg => !arg.startsWith('--'))[0];
 
-  if (!text) {
-    console.error('Error: No text provided');
-    process.exit(2);
-  }
+    if (!text) {
+      console.error('Error: No text provided');
+      process.exit(2);
+    }
 
-  const result = await judgeAndReplace(text, { mountPar: mountParMode });
+    const result = await judgeAndReplace(text, { mountPar: mountParMode });
 
-  if (rawMode) {
-    console.log(result.processedText);
-  } else {
-    console.log(JSON.stringify(result));
-  }
-}
+    if (rawMode) {
+      console.log(result.processedText);
+    } else {
+      console.log(JSON.stringify(result));
+    }
+  });
 
 // seek サブコマンド（旧 ygo_seek）
-function handleSeekCommand(args: string[]) {
-  const scriptPath = path.join(__dirname, '..', 'ygo-seek.js');
+// ygo-seek.js 自体が --help/-h を位置に関わらず処理するため、commander 側の
+// --help 横取りを無効化しそのまま委譲する（ヘルプ文言の二重管理を避ける）。
+program
+  .command('seek')
+  .description('ランダムカード取得')
+  .argument('[args...]')
+  .allowUnknownOption(true)
+  .helpOption(false)
+  .action((args: string[]) => {
+    const scriptPath = path.join(__dirname, '..', 'ygo-seek.js');
 
-  const proc = spawn('node', [scriptPath, ...args], {
-    stdio: 'inherit'
-  });
+    const proc = spawn('node', [scriptPath, ...args], {
+      stdio: 'inherit'
+    });
 
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
+    proc.on('exit', (code) => {
+      process.exit(code || 0);
+    });
   });
-}
 
 // vector サブコマンド
-async function handleVectorCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search vector <subcommand> [options]
-
-Vector DB管理コマンド
-
+const vectorCommand = program
+  .command('vector')
+  .description('Vector DB管理コマンド')
+  .addHelpText('after', `
 Subcommands:
   setup [type]          Vector DBインデックスを構築（cards/faqs）
                         type: cards, faqs, all (デフォルト: all)
@@ -587,121 +608,131 @@ Examples:
   ygo-search vector setup-generic aa/*.yml bb/data.yml --table rules
   ygo-search vector search "墓地から特殊召喚" --limit 5
   ygo-search vector search "融合召喚" --type cards --threshold 0.8
-`);
+`)
+  .action((_opts: unknown, cmd: Command) => {
+    // サブコマンド未指定時（`ygo-search vector` 単体）はヘルプを表示する
+    // （commander 既定のエラー扱い・exit 1 ではなく、旧実装同様 stdout・exit 0 にする）。
+    cmd.outputHelp();
     process.exit(0);
-  }
+  });
 
-  const subcommand = args[0];
-  const subArgs = args.slice(1);
+vectorCommand
+  .command('setup')
+  .description('Vector DBインデックスを構築（cards/faqs）')
+  .argument('[args...]', 'type（cards, faqs, all）および --keep-tmp')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
+Vector DBインデックスを構築（cards/faqs）
 
-  if (subcommand === 'setup') {
-    await handleVectorSetupCommand(subArgs);
-  } else if (subcommand === 'setup-generic') {
-    await handleVectorSetupGenericCommand(subArgs);
-  } else if (subcommand === 'search') {
-    await handleVectorSearchCommand(subArgs);
-  } else {
-    console.error(`Unknown vector subcommand: ${subcommand}`);
-    process.exit(1);
-  }
-}
+Arguments:
+  type                  cards, faqs, all（デフォルト: all）
 
-async function handleVectorSetupCommand(args: string[]) {
-  const { convertCardsToJsonl, convertFaqsToJsonl } = await import('../lib/vector/converter.js');
-  const { indexFromJsonl } = await import('../lib/vector/indexer.js');
-  const fs = await import('fs/promises');
+Options:
+  --keep-tmp            一時JSONLファイルを削除せずに保持
 
-  // オプション解析
-  let type = 'all';
-  let keepTmp = false;
+Examples:
+  ygo-search vector setup                全てのインデックスを構築
+  ygo-search vector setup cards          カードのみ
+  ygo-search vector setup faqs           FAQのみ
+  ygo-search vector setup --keep-tmp     一時ファイルを保持
+`)
+  .action(async (args: string[]) => {
+    const { convertCardsToJsonl, convertFaqsToJsonl } = await import('../lib/vector/converter.js');
+    const { indexFromJsonl } = await import('../lib/vector/indexer.js');
+    const fs = await import('fs/promises');
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--keep-tmp') {
-      keepTmp = true;
-    } else if (!arg.startsWith('--')) {
-      type = arg;
-    }
-  }
+    // オプション解析
+    let type = 'all';
+    let keepTmp = false;
 
-  if (!['cards', 'faqs', 'all'].includes(type)) {
-    console.error(`Invalid type: ${type}. Must be one of: cards, faqs, all`);
-    process.exit(1);
-  }
-
-  // tmpファイルのパスを保持
-  const tmpFiles: string[] = [];
-
-  // SIGINT対応
-  const { interrupted } = setupInterruptHandler();
-
-  try {
-    // 一時ディレクトリ作成
-    const tmpDir = getTmpDir();
-    await fs.mkdir(tmpDir, { recursive: true });
-
-    if (type === 'all' || type === 'cards') {
-      if (interrupted) return;
-      console.error('\n=== Cards のインデックス構築 ===');
-
-      const cardsTsvPath = getTsvPath('cards-all.tsv');
-      const detailTsvPath = getTsvPath('detail-all.tsv');
-      const cardsJsonlPath = getTmpPath('cards_for_vectordb.jsonl');
-      tmpFiles.push(cardsJsonlPath);
-
-      console.error('TSVからJSONLに変換中...');
-      const cardsCount = await convertCardsToJsonl(cardsTsvPath, detailTsvPath, cardsJsonlPath);
-      console.error(`${cardsCount}件のカードを変換しました`);
-
-      console.error('Vector DBインデックスを構築中...');
-      await indexFromJsonl('cards', cardsJsonlPath);
+    for (const arg of args) {
+      if (arg === '--keep-tmp') {
+        keepTmp = true;
+      } else if (!arg.startsWith('--')) {
+        type = arg;
+      }
     }
 
-    if (type === 'all' || type === 'faqs') {
-      if (interrupted) return;
-      console.error('\n=== FAQs のインデックス構築 ===');
-
-      const faqsTsvPath = getTsvPath('faq-all.tsv');
-      const faqsJsonlPath = getTmpPath('faqs_for_vectordb.jsonl');
-      tmpFiles.push(faqsJsonlPath);
-
-      console.error('TSVからJSONLに変換中...');
-      const faqsCount = await convertFaqsToJsonl(faqsTsvPath, faqsJsonlPath);
-      console.error(`${faqsCount}件のFAQを変換しました`);
-
-      console.error('Vector DBインデックスを構築中...');
-      await indexFromJsonl('faqs', faqsJsonlPath);
+    if (!['cards', 'faqs', 'all'].includes(type)) {
+      console.error(`Invalid type: ${type}. Must be one of: cards, faqs, all`);
+      process.exit(1);
     }
 
-    console.error('\n全てのインデックス構築が完了しました');
+    // tmpファイルのパスを保持
+    const tmpFiles: string[] = [];
 
-    // tmpファイルのクリーンアップ
-    if (!keepTmp && tmpFiles.length > 0) {
-      console.error('\n一時ファイルをクリーンアップ中...');
-      for (const tmpFile of tmpFiles) {
-        try {
-          await fs.unlink(tmpFile);
-          console.error(`削除: ${tmpFile}`);
-        } catch (e: any) {
-          if (e.code !== 'ENOENT') {
-            console.error(`警告: ${tmpFile} の削除に失敗しました:`, e.message);
+    // SIGINT対応
+    const { interrupted } = setupInterruptHandler();
+
+    try {
+      // 一時ディレクトリ作成
+      const tmpDir = getTmpDir();
+      await fs.mkdir(tmpDir, { recursive: true });
+
+      if (type === 'all' || type === 'cards') {
+        if (interrupted) return;
+        console.error('\n=== Cards のインデックス構築 ===');
+
+        const cardsTsvPath = getTsvPath('cards-all.tsv');
+        const detailTsvPath = getTsvPath('detail-all.tsv');
+        const cardsJsonlPath = getTmpPath('cards_for_vectordb.jsonl');
+        tmpFiles.push(cardsJsonlPath);
+
+        console.error('TSVからJSONLに変換中...');
+        const cardsCount = await convertCardsToJsonl(cardsTsvPath, detailTsvPath, cardsJsonlPath);
+        console.error(`${cardsCount}件のカードを変換しました`);
+
+        console.error('Vector DBインデックスを構築中...');
+        await indexFromJsonl('cards', cardsJsonlPath);
+      }
+
+      if (type === 'all' || type === 'faqs') {
+        if (interrupted) return;
+        console.error('\n=== FAQs のインデックス構築 ===');
+
+        const faqsTsvPath = getTsvPath('faq-all.tsv');
+        const faqsJsonlPath = getTmpPath('faqs_for_vectordb.jsonl');
+        tmpFiles.push(faqsJsonlPath);
+
+        console.error('TSVからJSONLに変換中...');
+        const faqsCount = await convertFaqsToJsonl(faqsTsvPath, faqsJsonlPath);
+        console.error(`${faqsCount}件のFAQを変換しました`);
+
+        console.error('Vector DBインデックスを構築中...');
+        await indexFromJsonl('faqs', faqsJsonlPath);
+      }
+
+      console.error('\n全てのインデックス構築が完了しました');
+
+      // tmpファイルのクリーンアップ
+      if (!keepTmp && tmpFiles.length > 0) {
+        console.error('\n一時ファイルをクリーンアップ中...');
+        for (const tmpFile of tmpFiles) {
+          try {
+            await fs.unlink(tmpFile);
+            console.error(`削除: ${tmpFile}`);
+          } catch (e: any) {
+            if (e.code !== 'ENOENT') {
+              console.error(`警告: ${tmpFile} の削除に失敗しました:`, e.message);
+            }
           }
         }
+        console.error('クリーンアップ完了');
+      } else if (keepTmp) {
+        console.error('\n--keep-tmpオプションが指定されているため、一時ファイルを保持します');
       }
-      console.error('クリーンアップ完了');
-    } else if (keepTmp) {
-      console.error('\n--keep-tmpオプションが指定されているため、一時ファイルを保持します');
+    } catch (error: any) {
+      console.error('インデックス構築中にエラーが発生しました:', error.message);
+      process.exit(1);
     }
-  } catch (error: any) {
-    console.error('インデックス構築中にエラーが発生しました:', error.message);
-    process.exit(1);
-  }
-}
+  });
 
-async function handleVectorSearchCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search vector search <query> [options]
-
+vectorCommand
+  .command('search')
+  .description('Vector検索を実行')
+  .argument('[args...]', '検索クエリおよびオプション')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 Vector検索を実行
 
 Arguments:
@@ -720,93 +751,94 @@ Examples:
   ygo-search vector search "カウンター罠" --threshold 0.7
   ygo-search vector search "チェーンブロック" --format jsonl
   ygo-search vector search "特殊召喚" --type test
-`);
-    process.exit(0);
-  }
-
-  const query = args[0];
-  if (!query) {
-    console.error('Error: クエリを指定してください');
-    process.exit(1);
-  }
-
-  const { searchCards, searchFaqs, searchAll, searchTable } = await import('../lib/vector/searcher.js');
-  type SearchResult = Awaited<ReturnType<typeof searchTable>>[0];
-
-  // オプション解析
-  let type = 'all';
-  let limit = 10;
-  let threshold: number | undefined = undefined;
-  let distanceType: 'cosine' | 'l2' | 'dot' = 'cosine';
-  let format = 'json';
-
-  for (let i = 1; i < args.length; i++) {
-    if (args[i] === '--type' && i + 1 < args.length) {
-      type = args[++i];
-    } else if (args[i] === '--limit' && i + 1 < args.length) {
-      limit = parseInt(args[++i], 10);
-    } else if (args[i] === '--threshold' && i + 1 < args.length) {
-      threshold = parseFloat(args[++i]);
-    } else if (args[i] === '--distance' && i + 1 < args.length) {
-      distanceType = args[++i] as 'cosine' | 'l2' | 'dot';
-    } else if (args[i] === '--format' && i + 1 < args.length) {
-      format = args[++i];
-    }
-  }
-
-  const options = { limit, threshold, distanceType };
-
-  try {
-    console.error(`検索中: "${query}"\n`);
-
-    let results: any;
-
-    if (type === 'cards') {
-      const cards = await searchCards(query, options);
-      results = { cards };
-    } else if (type === 'faqs') {
-      const faqs = await searchFaqs(query, options);
-      results = { faqs };
-    } else if (type === 'all') {
-      results = await searchAll(query, options);
-    } else {
-      // カスタムテーブルの検索
-      const customResults = await searchTable(type, query, options);
-      results = { [type]: customResults };
+`)
+  .action(async (args: string[], _opts: unknown, cmd: Command) => {
+    if (args.length === 0) {
+      cmd.help();
+      return;
     }
 
-    // フォーマット出力
-    if (format === 'json') {
-      console.log(JSON.stringify(results, null, 2));
-    } else if (format === 'jsonl') {
-      // 全ての結果を配列に集める
-      const allResults = Object.values(results).flat() as SearchResult[];
-      for (const r of allResults) {
-        console.log(JSON.stringify(r));
+    const query = args[0];
+
+    const { searchCards: vectorSearchCards, searchFaqs, searchAll, searchTable } = await import('../lib/vector/searcher.js');
+    type SearchResult = Awaited<ReturnType<typeof searchTable>>[0];
+
+    // オプション解析（args[0] は query のため 1 から走査）
+    let type = 'all';
+    let limit = 10;
+    let threshold: number | undefined = undefined;
+    let distanceType: 'cosine' | 'l2' | 'dot' = 'cosine';
+    let format = 'json';
+
+    for (let i = 1; i < args.length; i++) {
+      if (args[i] === '--type' && i + 1 < args.length) {
+        type = args[++i];
+      } else if (args[i] === '--limit' && i + 1 < args.length) {
+        limit = parseInt(args[++i], 10);
+      } else if (args[i] === '--threshold' && i + 1 < args.length) {
+        threshold = parseFloat(args[++i]);
+      } else if (args[i] === '--distance' && i + 1 < args.length) {
+        distanceType = args[++i] as 'cosine' | 'l2' | 'dot';
+      } else if (args[i] === '--format' && i + 1 < args.length) {
+        format = args[++i];
       }
-    } else if (format === 'csv' || format === 'tsv') {
-      const sep = format === 'csv' ? ',' : '\t';
-      // 全ての結果を配列に集める
-      const allResults = Object.values(results).flat() as SearchResult[];
+    }
 
-      if (allResults.length > 0) {
-        console.log(['id', 'score', 'text_preview'].join(sep));
+    const options = { limit, threshold, distanceType };
+
+    try {
+      console.error(`検索中: "${query}"\n`);
+
+      let results: any;
+
+      if (type === 'cards') {
+        const cards = await vectorSearchCards(query, options);
+        results = { cards };
+      } else if (type === 'faqs') {
+        const faqs = await searchFaqs(query, options);
+        results = { faqs };
+      } else if (type === 'all') {
+        results = await searchAll(query, options);
+      } else {
+        // カスタムテーブルの検索
+        const customResults = await searchTable(type, query, options);
+        results = { [type]: customResults };
+      }
+
+      // フォーマット出力
+      if (format === 'json') {
+        console.log(JSON.stringify(results, null, 2));
+      } else if (format === 'jsonl') {
+        // 全ての結果を配列に集める
+        const allResults = Object.values(results).flat() as SearchResult[];
         for (const r of allResults) {
-          const textPreview = r.text.substring(0, 100).replace(/\n/g, ' ').replace(/"/g, '""');
-          console.log([r.id, r.score.toFixed(4), `"${textPreview}..."`].join(sep));
+          console.log(JSON.stringify(r));
+        }
+      } else if (format === 'csv' || format === 'tsv') {
+        const sep = format === 'csv' ? ',' : '\t';
+        // 全ての結果を配列に集める
+        const allResults = Object.values(results).flat() as SearchResult[];
+
+        if (allResults.length > 0) {
+          console.log(['id', 'score', 'text_preview'].join(sep));
+          for (const r of allResults) {
+            const textPreview = r.text.substring(0, 100).replace(/\n/g, ' ').replace(/"/g, '""');
+            console.log([r.id, r.score.toFixed(4), `"${textPreview}..."`].join(sep));
+          }
         }
       }
+    } catch (error: any) {
+      console.error('検索エラー:', error.message);
+      process.exit(1);
     }
-  } catch (error: any) {
-    console.error('検索エラー:', error.message);
-    process.exit(1);
-  }
-}
+  });
 
-async function handleVectorSetupGenericCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search vector setup-generic <files...> --table <tableName> [options]
-
+vectorCommand
+  .command('setup-generic')
+  .description('汎用データからVector DBインデックスを構築')
+  .argument('[files...]', '入力ファイル（yaml/jsonl/json/tsv/csv）')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 汎用データからVector DBインデックスを構築
 
 Arguments:
@@ -825,142 +857,152 @@ Examples:
   ygo-search vector setup-generic rules.yml --table rules
   ygo-search vector setup-generic aa/*.yml bb/data.yml --table rules --exclude-columns cite
   ygo-search vector setup-generic data.json --table custom --include-columns category,priority
-`);
-    process.exit(0);
-  }
-
-  const { convertGenericToJsonl } = await import('../lib/vector/converter.js');
-  const { indexFromJsonl } = await import('../lib/vector/indexer.js');
-  const fs = await import('fs/promises');
-
-  // オプション解析
-  let tableName: string | undefined = undefined;
-  let excludeColumns: string[] | undefined = undefined;
-  let includeColumns: string[] | undefined = undefined;
-  let keepTmp = false;
-  const inputFiles: string[] = [];
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--table' && i + 1 < args.length) {
-      tableName = args[++i];
-    } else if (args[i] === '--exclude-columns' && i + 1 < args.length) {
-      excludeColumns = args[++i].split(',').map(c => c.trim());
-    } else if (args[i] === '--include-columns' && i + 1 < args.length) {
-      includeColumns = args[++i].split(',').map(c => c.trim());
-    } else if (args[i] === '--keep-tmp') {
-      keepTmp = true;
-    } else if (!args[i].startsWith('--')) {
-      inputFiles.push(args[i]);
+`)
+  .action(async (files: string[], _opts: unknown, cmd: Command) => {
+    if (files.length === 0) {
+      cmd.help();
+      return;
     }
-  }
 
-  // バリデーション
-  if (!tableName) {
-    console.error('Error: --table オプションは必須です');
-    process.exit(1);
-  }
+    const args = cmd.args;
 
-  if (inputFiles.length === 0) {
-    console.error('Error: 入力ファイルを指定してください');
-    process.exit(1);
-  }
+    const { convertGenericToJsonl } = await import('../lib/vector/converter.js');
+    const { indexFromJsonl } = await import('../lib/vector/indexer.js');
+    const fs = await import('fs/promises');
 
-  // Validate exclusivity
-  if (excludeColumns && includeColumns) {
-    console.error('Error: Cannot specify both --exclude-columns and --include-columns');
-    process.exit(1);
-  }
+    // オプション解析
+    let tableName: string | undefined = undefined;
+    let excludeColumns: string[] | undefined = undefined;
+    let includeColumns: string[] | undefined = undefined;
+    let keepTmp = false;
+    const inputFiles: string[] = [];
 
-  const tmpFiles: string[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--table' && i + 1 < args.length) {
+        tableName = args[++i];
+      } else if (args[i] === '--exclude-columns' && i + 1 < args.length) {
+        excludeColumns = args[++i].split(',').map(c => c.trim());
+      } else if (args[i] === '--include-columns' && i + 1 < args.length) {
+        includeColumns = args[++i].split(',').map(c => c.trim());
+      } else if (args[i] === '--keep-tmp') {
+        keepTmp = true;
+      } else if (!args[i].startsWith('--')) {
+        inputFiles.push(args[i]);
+      }
+    }
 
-  // SIGINT対応
-  const { interrupted } = setupInterruptHandler();
+    // バリデーション
+    if (!tableName) {
+      console.error('Error: --table オプションは必須です');
+      process.exit(1);
+    }
 
-  try {
-    // 一時ディレクトリ作成
-    const tmpDir = getTmpDir();
-    await fs.mkdir(tmpDir, { recursive: true });
+    if (inputFiles.length === 0) {
+      console.error('Error: 入力ファイルを指定してください');
+      process.exit(1);
+    }
 
-    console.error(`\n=== ${tableName} のインデックス構築 ===`);
+    // Validate exclusivity
+    if (excludeColumns && includeColumns) {
+      console.error('Error: Cannot specify both --exclude-columns and --include-columns');
+      process.exit(1);
+    }
 
-    const jsonlPath = getTmpPath(`${tableName}_for_vectordb.jsonl`);
-    tmpFiles.push(jsonlPath);
+    const tmpFiles: string[] = [];
 
-    // 既存のJSONLファイルを削除（追記モードのため）
+    // SIGINT対応
+    const { interrupted } = setupInterruptHandler();
+
     try {
-      await fs.unlink(jsonlPath);
-    } catch (e: any) {
-      if (e.code !== 'ENOENT') throw e;
-    }
+      // 一時ディレクトリ作成
+      const tmpDir = getTmpDir();
+      await fs.mkdir(tmpDir, { recursive: true });
 
-    const options = excludeColumns ? { excludeColumns } : includeColumns ? { includeColumns } : undefined;
-    let totalCount = 0;
+      console.error(`\n=== ${tableName} のインデックス構築 ===`);
 
-    for (const inputFile of inputFiles) {
-      console.error(`${inputFile} からJSONLに変換中...`);
-      // 一時ファイルに変換してから追記
-      const tempJsonlPath = getTmpPath(`${tableName}_temp.jsonl`);
-      tmpFiles.push(tempJsonlPath); // クリーンアップリストに追加
+      const jsonlPath = getTmpPath(`${tableName}_for_vectordb.jsonl`);
+      tmpFiles.push(jsonlPath);
 
-      const count = await convertGenericToJsonl(inputFile, tempJsonlPath, options);
-      console.error(`  ${count}件のレコードを変換しました`);
-      totalCount += count;
+      // 既存のJSONLファイルを削除（追記モードのため）
+      try {
+        await fs.unlink(jsonlPath);
+      } catch (e: any) {
+        if (e.code !== 'ENOENT') throw e;
+      }
 
-      // メインのJSONLファイルに追記
-      const tempContent = await fs.readFile(tempJsonlPath, 'utf-8');
-      await fs.appendFile(jsonlPath, tempContent);
+      const options = excludeColumns ? { excludeColumns } : includeColumns ? { includeColumns } : undefined;
+      let totalCount = 0;
 
-      // 一時ファイルは関数の最後でまとめて削除するため、ここではunlinkしない
-    }
+      for (const inputFile of inputFiles) {
+        console.error(`${inputFile} からJSONLに変換中...`);
+        // 一時ファイルに変換してから追記
+        const tempJsonlPath = getTmpPath(`${tableName}_temp.jsonl`);
+        tmpFiles.push(tempJsonlPath); // クリーンアップリストに追加
 
-    console.error(`合計 ${totalCount}件のレコードを変換しました`);
+        const count = await convertGenericToJsonl(inputFile, tempJsonlPath, options);
+        console.error(`  ${count}件のレコードを変換しました`);
+        totalCount += count;
 
-    console.error('Vector DBインデックスを構築中...');
-    await indexFromJsonl(tableName, jsonlPath);
+        // メインのJSONLファイルに追記
+        const tempContent = await fs.readFile(tempJsonlPath, 'utf-8');
+        await fs.appendFile(jsonlPath, tempContent);
 
-    console.error('\nインデックス構築が完了しました');
+        // 一時ファイルは関数の最後でまとめて削除するため、ここではunlinkしない
+      }
 
-    // tmpファイルのクリーンアップ
-    if (!keepTmp && tmpFiles.length > 0) {
-      console.error('\n一時ファイルをクリーンアップ中...');
-      for (const tmpFile of tmpFiles) {
-        try {
-          await fs.unlink(tmpFile);
-          console.error(`削除: ${tmpFile}`);
-        } catch (e: any) {
-          if (e.code !== 'ENOENT') {
-            console.error(`警告: ${tmpFile} の削除に失敗しました:`, e.message);
+      console.error(`合計 ${totalCount}件のレコードを変換しました`);
+
+      console.error('Vector DBインデックスを構築中...');
+      await indexFromJsonl(tableName, jsonlPath);
+
+      console.error('\nインデックス構築が完了しました');
+
+      // tmpファイルのクリーンアップ
+      if (!keepTmp && tmpFiles.length > 0) {
+        console.error('\n一時ファイルをクリーンアップ中...');
+        for (const tmpFile of tmpFiles) {
+          try {
+            await fs.unlink(tmpFile);
+            console.error(`削除: ${tmpFile}`);
+          } catch (e: any) {
+            if (e.code !== 'ENOENT') {
+              console.error(`警告: ${tmpFile} の削除に失敗しました:`, e.message);
+            }
           }
         }
+        console.error('クリーンアップ完了');
+      } else if (keepTmp) {
+        console.error('\n--keep-tmpオプションが指定されているため、一時ファイルを保持します');
       }
-      console.error('クリーンアップ完了');
-    } else if (keepTmp) {
-      console.error('\n--keep-tmpオプションが指定されているため、一時ファイルを保持します');
+    } catch (error: any) {
+      console.error('インデックス構築中にエラーが発生しました:', error.message);
+      process.exit(1);
     }
-  } catch (error: any) {
-    console.error('インデックス構築中にエラーが発生しました:', error.message);
-    process.exit(1);
-  }
-}
+  });
 
 // update サブコマンド（旧 ygo_update_search）
-function handleUpdateCommand() {
-  const scriptPath = path.join(__dirname, 'ygo_update_search.js');
+program
+  .command('update')
+  .description('データ更新')
+  .action(() => {
+    const scriptPath = path.join(__dirname, 'ygo_update_search.js');
 
-  const proc = spawn('node', [scriptPath], {
-    stdio: 'inherit'
-  });
+    const proc = spawn('node', [scriptPath], {
+      stdio: 'inherit'
+    });
 
-  proc.on('exit', (code) => {
-    process.exit(code || 0);
+    proc.on('exit', (code) => {
+      process.exit(code || 0);
+    });
   });
-}
 
 // docs サブコマンド - APIドキュメント参照
-async function handleDocsCommand(args: string[]) {
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log(`Usage: ygo-search docs [name]
-
+program
+  .command('docs')
+  .description('APIドキュメント参照')
+  .argument('[name...]', 'ドキュメント名または list')
+  .allowUnknownOption(true)
+  .addHelpText('after', `
 APIドキュメント参照
 
 Arguments:
@@ -973,87 +1015,64 @@ Examples:
   ygo-search docs list           List all available items
 
 Note: If documentation is not found, run 'pnpm run docs' to generate it.
-`);
-    process.exit(0);
-  }
+`)
+  .action(async (nameArgs: string[], _opts: unknown, cmd: Command) => {
+    if (nameArgs.length === 0) {
+      cmd.help();
+      return;
+    }
 
-  const DOCS_DIR = path.join(__dirname, '..', '..', 'docs', 'api');
-  const entries = await findDocs(DOCS_DIR);
+    const DOCS_DIR = path.join(__dirname, '..', '..', 'docs', 'api');
+    const entries = await findDocs(DOCS_DIR);
 
-  if (args[0] === 'list') {
-    await listDocs(entries);
-    return;
-  }
+    if (nameArgs[0] === 'list') {
+      await listDocs(entries);
+      return;
+    }
 
-  const query = args[0];
-  const found = findDocByName(entries, query);
+    const query = nameArgs[0];
+    const found = findDocByName(entries, query);
 
-  if (found) {
-    try {
-      await showDoc(found.path);
-    } catch (err: any) {
-      console.error(`Error: ${err.message}`);
+    if (found) {
+      try {
+        await showDoc(found.path);
+      } catch (err: any) {
+        console.error(`Error: ${err.message}`);
+        process.exit(1);
+      }
+    } else {
+      console.error(`Error: Documentation for '${query}' not found.`);
+      console.error('\nAvailable items:');
+      console.error(entries.map(e => `  - ${e.name}`).join('\n'));
+      console.error('\nRun "ygo-search docs list" to see all available documentation.');
       process.exit(1);
     }
-  } else {
-    console.error(`Error: Documentation for '${query}' not found.`);
-    console.error('\nAvailable items:');
-    console.error(entries.map(e => `  - ${e.name}`).join('\n'));
-    console.error('\nRun "ygo-search docs list" to see all available documentation.');
-    process.exit(1);
-  }
+  });
+
+// コマンドがサブコマンドでない場合、card コマンドとして扱う（後方互換性）。
+// 例: `ygo-search --name "青眼の白龍"` や `ygo-search '{"name":"青眼"}'` は
+// 明示的な `card` を省略した card 検索として解釈する。
+const KNOWN_TOP_LEVEL_COMMANDS = new Set([
+  'card', 'faq', 'extract', 'replace', 'seek', 'bulk', 'convert', 'vector', 'docs', 'update', 'help'
+]);
+const rawArgs = process.argv.slice(2);
+
+// 引数なし呼び出しはヘルプ表示（旧 showHelp() と同じく stdout・exit 0）。
+// commander の既定動作（コマンド未指定はエラー扱い、stderr・exit 1）とは意図的に異なる。
+if (rawArgs.length === 0) {
+  program.outputHelp();
+  process.exit(0);
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h' || args[0] === 'help') {
-    showHelp();
-    process.exit(0);
-  }
-
-  const command = args[0];
-  const commandArgs = args.slice(1);
-
-  switch (command) {
-    case 'card':
-      handleCardCommand(commandArgs);
-      break;
-    case 'faq':
-      handleFaqCommand(commandArgs);
-      break;
-    case 'extract':
-      await handleExtractCommand(commandArgs);
-      break;
-    case 'replace':
-      await handleReplaceCommand(commandArgs);
-      break;
-    case 'seek':
-      handleSeekCommand(commandArgs);
-      break;
-    case 'bulk':
-      handleBulkCommand(commandArgs);
-      break;
-    case 'convert':
-      handleConvertCommand(commandArgs);
-      break;
-    case 'vector':
-      await handleVectorCommand(commandArgs);
-      break;
-    case 'docs':
-      await handleDocsCommand(commandArgs);
-      break;
-    case 'update':
-      handleUpdateCommand();
-      break;
-    default:
-      // コマンドがサブコマンドでない場合、card コマンドとして扱う（後方互換性）
-      handleCardCommand(args);
-      break;
-  }
+if (
+  rawArgs[0] !== '--help' &&
+  rawArgs[0] !== '-h' &&
+  !KNOWN_TOP_LEVEL_COMMANDS.has(rawArgs[0])
+) {
+  process.argv.splice(2, 0, 'card');
 }
 
-main().catch(err => {
+program.parseAsync(process.argv).catch(err => {
   console.error('Error:', err.message);
   process.exit(1);
 });

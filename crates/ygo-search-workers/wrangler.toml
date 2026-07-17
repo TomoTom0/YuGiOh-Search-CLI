@@ -1,0 +1,33 @@
+name = "ygo-search-workers"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-01-01"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "ygo-search"
+database_id = "placeholder"  # 実際のデプロイ時に置き換え
+
+# Vectorize
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "ygo-search-vectors"
+
+# Workers AI
+[ai]
+binding = "AI"
+
+# Build configuration
+# worker 0.4 系は最新 worker-build(0.2+, worker>=0.8 要求) と非互換のため 0.1 系に固定
+[build]
+command = "cargo install -q worker-build@^0.1 && worker-build --release"
+
+[build.upload]
+format = "modules"
+dir = "build/worker"
+main = "./shim.mjs"
+
+[[build.upload.rules]]
+type = "CompiledWasm"
+globs = ["**/*.wasm"]
+fallthrough = true

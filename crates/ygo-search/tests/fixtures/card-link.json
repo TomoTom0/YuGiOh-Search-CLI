@@ -1,0 +1,15 @@
+{
+  "cardType": "monster",
+  "name": "リンク・スパイダー",
+  "nameModified": "リンクスパイダー",
+  "ruby": "リンク・スパイダー",
+  "cardId": "9893",
+  "attribute": "earth",
+  "levelType": "link",
+  "levelValue": "1",
+  "race": "cyberse",
+  "monsterTypes": "[\"link\"]",
+  "atk": "1000",
+  "linkMarkers": "[\"bottom\"]",
+  "isExtraDeck": "true"
+}

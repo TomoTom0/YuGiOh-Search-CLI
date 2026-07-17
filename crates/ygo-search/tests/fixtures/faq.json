@@ -1,0 +1,44 @@
+{
+  "record": {
+    "faqId": 1001,
+    "question": "青眼の白龍の攻撃力はいくつですか？",
+    "answer": "3000です。",
+    "updatedAt": "2024-03-01"
+  },
+  "withCards": {
+    "faqId": 1002,
+    "question": "《青眼の白龍》を特殊召喚できますか？",
+    "answer": "このカードは特殊召喚できない。",
+    "updatedAt": "2024-03-02",
+    "questionCards": [
+      {
+        "cardType": "monster",
+        "name": "青眼の白龍",
+        "nameModified": "青眼ノ白龍",
+        "ruby": "ブルーアイズ・ホワイト・ドラゴン",
+        "cardId": "4007",
+        "attribute": "light",
+        "levelType": "level",
+        "levelValue": "8",
+        "race": "dragon",
+        "monsterTypes": "[\"normal\"]",
+        "atk": "3000",
+        "def": "2500"
+      }
+    ],
+    "answerCards": [],
+    "allCardIds": [4007]
+  },
+  "searchResult": {
+    "faq": {
+      "faqId": 1002,
+      "question": "《青眼の白龍》を特殊召喚できますか？",
+      "answer": "このカードは特殊召喚できない。",
+      "updatedAt": "2024-03-02",
+      "questionCards": [],
+      "answerCards": [],
+      "allCardIds": [4007]
+    },
+    "score": 0.95
+  }
+}

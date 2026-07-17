@@ -45,6 +45,10 @@
   - データベースのスネークケース（`card_id`, `description`等）からキャメルケース（`cardId`, `text`等）への変換を実装
   - 全APIエンドポイントで`mapCardDbToApi`関数を使用してレスポンスを正規化
   - TypeScript型定義との整合性を確保
+- **データ保存場所の cwd フォールバックを廃止**
+  - `getWorkDir()`が`~/.local/ygo-search/`未存在時にカレントディレクトリへフォールバックしていたが、`initWorkDir()`が未呼び出しで同ディレクトリが自動作成されず、`update`実行のたび実行場所に`data/`が作られるバグだった
+  - フォールバックを削除し、データは常に`~/.local/ygo-search/`に固定（`YGO_SEARCH_WORKDIR`で上書き可）
+  - `update`実行時に`initWorkDir()`を呼び`~/.local/ygo-search/`（`data/tsv`, `data/vector`, `tmp`）を自動作成するよう修正
 
 ## Changes
 

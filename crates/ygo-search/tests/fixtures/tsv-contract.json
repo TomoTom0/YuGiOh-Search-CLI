@@ -1,0 +1,52 @@
+{
+  "version": "1.0.0",
+  "source": "docs/usage/schema.md",
+  "files": {
+    "cards-all.tsv": {
+      "description": "基本的なカード情報を含むメインファイル",
+      "columns": [
+        { "name": "cardType", "type": "enum", "required": true, "values": ["monster", "spell", "trap"] },
+        { "name": "name", "type": "string", "required": true },
+        { "name": "nameModified", "type": "string", "required": true },
+        { "name": "ruby", "type": "string", "required": false },
+        { "name": "cardId", "type": "string", "required": true },
+        { "name": "ciid", "type": "string", "required": false },
+        { "name": "imgs", "type": "string", "required": false, "note": "JSON array as string" },
+        { "name": "text", "type": "string", "required": false },
+        { "name": "attribute", "type": "enum", "required": false, "values": ["dark", "divine", "earth", "fire", "light", "water", "wind"] },
+        { "name": "levelType", "type": "enum", "required": false, "values": ["level", "rank", "link"] },
+        { "name": "levelValue", "type": "string", "required": false },
+        { "name": "race", "type": "enum", "required": false, "values": ["aqua", "beast", "beastwarrior", "creatorgod", "cyberse", "dinosaur", "divine", "dragon", "fairy", "fiend", "fish", "illusion", "insect", "machine", "plant", "psychic", "pyro", "reptile", "rock", "seaserpent", "spellcaster", "thunder", "warrior", "windbeast", "wyrm", "zombie"] },
+        { "name": "monsterTypes", "type": "string", "required": false, "note": "JSON array as string", "values": ["normal", "effect", "fusion", "ritual", "synchro", "xyz", "link", "pendulum", "tuner", "spirit", "union", "gemini", "flip", "toon", "special"] },
+        { "name": "atk", "type": "string", "required": false },
+        { "name": "def", "type": "string", "required": false },
+        { "name": "linkMarkers", "type": "string", "required": false, "note": "JSON array as string", "values": ["top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right"] },
+        { "name": "pendulumScale", "type": "string", "required": false },
+        { "name": "pendulumText", "type": "string", "required": false },
+        { "name": "isExtraDeck", "type": "string", "required": false, "note": "\"true\" or empty" },
+        { "name": "spellEffectType", "type": "enum", "required": false, "values": ["normal", "quick", "continuous", "equip", "field", "ritual"] },
+        { "name": "trapEffectType", "type": "enum", "required": false, "values": ["normal", "continuous", "counter"] }
+      ]
+    },
+    "detail-all.tsv": {
+      "description": "追加の詳細情報（補足情報など）",
+      "columns": [
+        { "name": "cardId", "type": "string", "required": true },
+        { "name": "cardName", "type": "string", "required": true },
+        { "name": "supplementInfo", "type": "string", "required": false },
+        { "name": "supplementDate", "type": "string", "required": false, "note": "ISO date YYYY-MM-DD" },
+        { "name": "pendulumSupplementInfo", "type": "string", "required": false },
+        { "name": "pendulumSupplementDate", "type": "string", "required": false, "note": "ISO date YYYY-MM-DD" }
+      ]
+    },
+    "faq-all.tsv": {
+      "description": "FAQ データ",
+      "columns": [
+        { "name": "faqId", "type": "string", "required": true, "note": "numeric string" },
+        { "name": "question", "type": "string", "required": true },
+        { "name": "answer", "type": "string", "required": true },
+        { "name": "updatedAt", "type": "string", "required": true, "note": "ISO date YYYY-MM-DD" }
+      ]
+    }
+  }
+}

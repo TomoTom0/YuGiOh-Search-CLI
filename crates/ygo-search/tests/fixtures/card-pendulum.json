@@ -1,0 +1,17 @@
+{
+  "cardType": "monster",
+  "name": "竜魔王レクターP",
+  "nameModified": "竜魔王レクターP",
+  "ruby": "ドラゴンマオウレクター",
+  "cardId": "1612",
+  "attribute": "dark",
+  "levelType": "level",
+  "levelValue": "4",
+  "race": "spellcaster",
+  "monsterTypes": "[\"pendulum\",\"effect\"]",
+  "atk": "1950",
+  "def": "0",
+  "pendulumScale": "5",
+  "pendulumText": "①: 1ターンに1度、自分メインフェイズに発動できる。ペンデュラム効果テキスト。",
+  "text": "このカード名のモンスター効果は1ターンに1度しか使用できない。"
+}

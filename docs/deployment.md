@@ -7,6 +7,8 @@
 - **ローカル開発**: `wrangler dev` → ローカルD1を使用（`preview_database_id = "local"`により自動）
 - **本番デプロイ**: `wrangler deploy` → 本番D1を使用
 
+> **作業ディレクトリ（Cargo workspace 移行後）**: `wrangler.toml` は `crates/ygo-search-workers/` に移動しました。`wrangler dev` / `wrangler deploy` / binding(`DB`/`VECTORIZE`/`AI`) を用いるコマンドは同ディレクトリ配下で実行してください（例: `cd crates/ygo-search-workers && wrangler deploy`）。`wrangler d1 execute <db名>` のように DB 名を直接指定するコマンドは任意のディレクトリで実行可能です。
+
 詳細は[README.md - Development Setup](../README.md#development-setup-for-contributors)を参照してください。
 
 ## 前提条件
@@ -47,7 +49,7 @@ database_id = "<表示されたID>"
 
 ```bash
 # スキーマ適用
-npx wrangler d1 execute ygo-search-db --remote --file rust/schema.sql
+npx wrangler d1 execute ygo-search-db --remote --file crates/ygo-search-workers/sql/schema.sql
 
 # スキーマ確認
 npx wrangler d1 execute ygo-search-db --remote --command "PRAGMA table_info(cards)"
