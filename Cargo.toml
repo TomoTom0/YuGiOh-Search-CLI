@@ -1,0 +1,13 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+
+# workers crate (WASM) のリリース最適化
+[profile.release]
+opt-level = "z"        # サイズ最適化
+lto = true             # リンク時最適化
+codegen-units = 1      # 単一コード生成ユニット
+strip = true           # デバッグシンボル削除

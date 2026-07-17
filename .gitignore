@@ -38,3 +38,9 @@ web/dist/
 coverage/
 .nyc_output/
 .wrangler/
+
+# Rust / Cargo workspace
+/target/
+# Workers (worker-build) 生成物
+crates/*/build/
+crates/*/worker/

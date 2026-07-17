@@ -1,0 +1,9 @@
+{
+  "cardType": "spell",
+  "name": "サイクロン",
+  "nameModified": "サイクロン",
+  "ruby": "サイクロン",
+  "cardId": "5318",
+  "spellEffectType": "quick",
+  "text": "①: フィールドの魔法・罠カード1枚を対象として発動できる。そのカードを破壊する。"
+}

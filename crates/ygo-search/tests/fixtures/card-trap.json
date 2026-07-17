@@ -1,0 +1,9 @@
+{
+  "cardType": "trap",
+  "name": "神の宣告",
+  "nameModified": "神ノ宣告",
+  "ruby": "ゴッド・ハンド・チェスト",
+  "cardId": "8682",
+  "trapEffectType": "counter",
+  "text": "①: 自分・相手のメインフェイズに発動できる。魔法・罠カードの発動を無効にし破壊する。"
+}

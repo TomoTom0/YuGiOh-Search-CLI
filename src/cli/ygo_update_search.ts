@@ -5,7 +5,7 @@ import fs from 'fs'
 import path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { getTsvPath, getDataDir } from '../lib/config/paths.js'
+import { getTsvPath, getDataDir, initWorkDir } from '../lib/config/paths.js'
 
 const execAsync = promisify(exec)
 
@@ -234,12 +234,12 @@ async function main() {
     console.log('YuGiOh-Scraping リポジトリからカードデータをダウンロードします...')
     console.log('')
 
+    // ワークディレクトリ（~/.local/ygo-search/ または YGO_SEARCH_WORKDIR）を初期化
+    // data/tsv, data/vector, tmp を作成する
+    initWorkDir()
+
     // TSVファイル保存先ディレクトリ
     const dataDir = path.join(getDataDir(), 'tsv')
-
-    if (!fs.existsSync(dataDir)) {
-      await fs.promises.mkdir(dataDir, { recursive: true })
-    }
 
     // 最新リリースの URL を取得
     const downloadUrl = await getLatestReleaseUrl()

@@ -18,7 +18,8 @@ tests/
 │   ├── extract-and-search-cards.test.ts
 │   ├── judge-and-replace.test.ts
 │   ├── search-cards.test.ts
-│   └── ygo-seek.test.ts
+│   ├── ygo-seek.test.ts
+│   └── ygo-search-help.test.ts  # CLI --help/-h の位置非依存動作（commander移行の回帰防止）
 ├── e2e/                       # E2Eテスト（本番環境テスト）
 │   └── api-endpoints.test.ts  # 本番APIエンドポイント
 ├── fixtures/                  # テスト用フィクスチャ

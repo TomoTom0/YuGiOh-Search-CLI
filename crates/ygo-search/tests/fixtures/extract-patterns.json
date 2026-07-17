@@ -1,0 +1,18 @@
+[
+  {
+    "pattern": "{ブルーアイズ*}",
+    "type": "flexible",
+    "query": "ブルーアイズ*"
+  },
+  {
+    "pattern": "《青眼の白龍》",
+    "type": "exact",
+    "query": "青眼の白龍"
+  },
+  {
+    "pattern": "{{青眼の白龍|4007}}",
+    "type": "cardId",
+    "query": "4007",
+    "originalName": "青眼の白龍"
+  }
+]

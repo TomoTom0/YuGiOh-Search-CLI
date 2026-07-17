@@ -6,7 +6,7 @@ export interface VectorRecord {
   metadata: Record<string, any>;
 }
 
-interface CardRow {
+export interface CardRow {
   cardType: string;
   name: string;
   nameModified: string;
@@ -93,7 +93,7 @@ function formatCardType(cardType: string, monsterTypes: string, spellEffectType:
       'continuous': '永続',
       'equip': '装備',
       'field': 'フィールド',
-      'quickPlay': '速攻',
+      'quick': '速攻',
       'ritual': '儀式'
     };
     return (typeMap[spellEffectType] || '') + '魔法';

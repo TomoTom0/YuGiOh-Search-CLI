@@ -1,0 +1,17 @@
+{
+  "cardType": "monster",
+  "name": "青眼の白龍",
+  "nameModified": "青眼ノ白龍",
+  "ruby": "ブルーアイズ・ホワイト・ドラゴン",
+  "cardId": "4007",
+  "ciid": "12345",
+  "imgs": "[\"https://example.com/4007.jpg\"]",
+  "text": "攻撃力・守備力ともに最強クラスのカード。",
+  "attribute": "light",
+  "levelType": "level",
+  "levelValue": "8",
+  "race": "dragon",
+  "monsterTypes": "[\"normal\"]",
+  "atk": "3000",
+  "def": "2500"
+}

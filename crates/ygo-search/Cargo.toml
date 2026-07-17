@@ -1,0 +1,72 @@
+[package]
+name = "ygo-search"
+version = "0.1.0"
+edition.workspace = true
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+# 正規表現処理（Layer A 純粋ロジック）
+regex = "1"
+# DTO 定義（常時・型契約用）。設計書 §5「serde は常時依存」
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# format feature 配下（フォーマット変換: JSON/JSONL/JSONC/YAML）
+serde_yaml = { version = "0.9", optional = true }
+jsonc-parser = { version = "0.26", features = ["serde"], optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
+# エラー型（軽量・標準的手法）
+thiserror = { version = "1", optional = true }
+# fs feature 配下（TSV読込・ファイルIO: Layer B-fs）。native-only
+csv = { version = "1", optional = true }
+# fs / vector-search 共有（workdir 解決）。native-only
+dirs = { version = "5", optional = true }
+# seek_cards のランダム抽出（fs feature 配下）
+rand = { version = "0.8", optional = true }
+# vector feature 配下（LanceDB 接続 + embedding 推論: Layer C）。native-only
+lancedb = { version = "0.31", optional = true }
+arrow-array = { version = "58", optional = true }
+# テーブルスキーマ定義用（統合テストの fixture 構築、M3-T3 index 構築でも使用予定）
+arrow-schema = { version = "58", optional = true }
+# RecordBatch → JSON 変換（search 結果デコード用）
+arrow-json = { version = "58", optional = true }
+# lancedb の where 式ビルダー（`only_if_expr`）用。lancedb 0.31 が要求する版に追従
+datafusion-expr = { version = "53", optional = true }
+datafusion-functions = { version = "53", optional = true }
+ort = { version = "=2.0.0-rc.12", optional = true }
+tokenizers = { version = "0.21", optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"], optional = true }
+ndarray = { version = "0.17", optional = true }
+futures = { version = "0.3", optional = true }
+
+[dev-dependencies]
+# 統合テスト用の一時 workdir（キャッシュ + env を触るため分離）
+tempfile = "3"
+
+[features]
+default = []
+# フォーマット変換機能（Layer B-fmt）。native-only（wasm32 ではcompile_error）
+format = ["dep:serde_yaml", "dep:jsonc-parser", "dep:chrono", "dep:thiserror"]
+# fs 機能（Layer B-fs）。native-only（wasm32 ではcompile_error）
+fs = ["dep:csv", "dep:dirs", "dep:rand", "dep:thiserror"]
+# vector 検索機能（Layer C）。lancedb 接続 + ort/tokenizers embedding 推論。native-only
+vector-search = [
+  "dep:lancedb",
+  "dep:arrow-array",
+  "dep:arrow-schema",
+  "dep:arrow-json",
+  "dep:datafusion-expr",
+  "dep:datafusion-functions",
+  "dep:ort",
+  "dep:tokenizers",
+  "dep:tokio",
+  "dep:ndarray",
+  "dep:futures",
+  "dep:dirs",
+  "dep:thiserror",
+]
+# 検索 + jsonl 読込 + index 構築（M3-T3 で使用）
+vector-index = ["fs", "vector-search"]
+# vector 系エイリアス（全機能）
+vector = ["vector-index"]

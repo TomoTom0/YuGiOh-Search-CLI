@@ -13,7 +13,6 @@ import * as fs from 'node:fs'
  * 優先順位:
  * 1. YGO_SEARCH_WORKDIR環境変数
  * 2. ~/.local/ygo-search/
- * 3. カレントディレクトリ
  *
  * @returns ワークディレクトリの絶対パス
  */
@@ -29,15 +28,7 @@ export function getWorkDir(): string {
   }
 
   // デフォルト: ~/.local/ygo-search/
-  const defaultWorkDir = path.join(os.homedir(), '.local', 'ygo-search')
-
-  // defaultWorkDirが存在するかチェック
-  if (fs.existsSync(defaultWorkDir)) {
-    return defaultWorkDir
-  }
-
-  // 存在しない場合はカレントディレクトリ
-  return process.cwd()
+  return path.join(os.homedir(), '.local', 'ygo-search')
 }
 
 /**
