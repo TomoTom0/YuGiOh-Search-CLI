@@ -11,7 +11,7 @@ use ndarray::{Array1, Array2};
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 
-use super::{model_dir, VectorError};
+use super::{integrity, model_dir, VectorError};
 
 /// ort の `Error<R>`（非 `Send` な内部型を持ち得るため）を文字列化して統一エラーに変換する。
 fn ort_err<T, R>(r: std::result::Result<T, ort::Error<R>>) -> Result<T, VectorError>
@@ -54,6 +54,14 @@ impl Embedder {
         if !tokenizer_path.is_file() {
             return Err(VectorError::ModelNotFound(tokenizer_path));
         }
+
+        // モデル整合性検証（TASK-28: revision/hash pinning）。ort/tokenizers のロード前に行い
+        // hash 不一致を fail-fast させる（470MB の無駄ロード回避）。OnceLock 初期化時1回のみ。
+        integrity::verify_model_files(
+            &dir,
+            &[&model_path, &tokenizer_path],
+            integrity::embedded_manifest(),
+        )?;
 
         let builder = ort_err(Session::builder())?;
         let mut builder = ort_err(builder.with_optimization_level(GraphOptimizationLevel::Level3))?;

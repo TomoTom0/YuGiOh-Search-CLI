@@ -9,6 +9,7 @@ use lancedb::Connection;
 
 pub mod embeddings;
 pub mod indexer;
+pub mod integrity;
 pub mod searcher;
 
 pub use embeddings::{generate_embedding, generate_embeddings};
@@ -49,6 +50,18 @@ pub enum VectorError {
         "embedding モデルが見つかりません: {0}\n\n配置場所: <workDir>/models/Xenova/multilingual-e5-small/ (onnx/model.onnx, tokenizer.json)\nまたは環境変数 YGO_SEARCH_MODEL_DIR で配置ディレクトリを指定してください。"
     )]
     ModelNotFound(PathBuf),
+    /// モデル整合性検証失敗（SHA256 hash 不一致）。ファイルが pinned revision と異なる内容に
+    /// 差し替えられたか、破損/改ざんされた。設計書 §11 の revision/hash pinning（TASK-28）。
+    #[error("モデル整合性検証失敗: {path}\n  expected: {expected}\n  actual:   {actual}\n\npinned revision と異なる内容です。モデルを再取得するか、マニフェストを更新してください。")]
+    ModelIntegrity {
+        path: PathBuf,
+        expected: String,
+        actual: String,
+    },
+    /// strict モード（`YGO_SEARCH_STRICT_MODEL_VERIFY=1`）で、対象ファイルの hash ピンが
+    /// マニフェストに無い、または model_dir 配下の相対パスとして解決できないため検証を拒否した。
+    #[error("strict モード: {0} の hash ピンがマニフェストに無いため検証を拒否します（YGO_SEARCH_SKIP_MODEL_VERIFY=1 でバイパス可）")]
+    UnverifiableModelPath(PathBuf),
     /// embedding 生成失敗（tokenizer/ort 推論エラー）。
     #[error("embedding 生成に失敗しました: {0}")]
     Embed(String),

@@ -34,6 +34,9 @@ arrow-json = { version = "58", optional = true }
 # lancedb の where 式ビルダー（`only_if_expr`）用。lancedb 0.31 が要求する版に追従
 datafusion-expr = { version = "53", optional = true }
 datafusion-functions = { version = "53", optional = true }
+# モデルファイル整合性検証（revision/hash pinning、TASK-28）。sha2 0.10 は datafusion-functions 経由で
+# 既に transitive 解決済みのため、新規コンパイルコードは増えずバージョン競合も無い。
+sha2 = { version = "0.10", optional = true }
 ort = { version = "=2.0.0-rc.12", optional = true }
 tokenizers = { version = "0.21", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"], optional = true }
@@ -65,6 +68,7 @@ vector-search = [
   "dep:futures",
   "dep:dirs",
   "dep:thiserror",
+  "dep:sha2",
 ]
 # 検索 + jsonl 読込 + index 構築（M3-T3 で使用）
 vector-index = ["fs", "vector-search"]

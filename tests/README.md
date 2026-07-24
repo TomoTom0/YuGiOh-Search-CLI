@@ -33,6 +33,21 @@ src/
 └── lib/shared/__tests__/      # 共有ライブラリのテスト
     ├── normalizer.test.ts     # テキスト正規化
     └── search-parser.test.ts  # 検索クエリパーサー
+
+crates/ygo-search/             # Rust SDK テスト（cargo test、feature gate で対象切替）
+├── src/                       # モジュール内 unit test（#[cfg(test)] mod tests）
+└── tests/                     # 統合テスト
+    ├── contract.rs            # 型契約・シリアライズ（default）
+    ├── search.rs              # カード検索（feature: fs）
+    ├── seek.rs                # ランダム抽出 seek（feature: fs）
+    ├── pipeline.rs            # 検索パイプライン（feature: fs）
+    ├── fs.rs                  # TSV 読込（feature: fs）
+    ├── format.rs              # フォーマット変換（feature: format）
+    ├── jsonl.rs               # JSONL 読込（feature: fs）
+    ├── vector.rs              # LanceDB 接続・検索（feature: vector-search・model 不要）
+    ├── vector_indexer.rs      # index 構築（feature: vector-index・model 不要 + #[ignore] E2E）
+    ├── vector_embeddings.rs   # embedding golden 一致性 + 整合性ドリフト検出（#[ignore]・model 必須）
+    └── vector_model_integrity.rs  # revision/hash pinning 検証（feature: vector-search・model 不要）
 ```
 
 ## テストカテゴリの役割
@@ -78,6 +93,41 @@ src/
 - `src/__tests__/`: Workerのリクエスト検証、検索パーサー
 - `src/lib/shared/__tests__/`: 共有ライブラリ（正規化、検索パーサー）
 
+### Rust SDK テスト（`crates/ygo-search/`）
+
+**対象**: Rust SDK（`crates/ygo-search`）の機能テスト。TS SDK と機能パリティを保つ移植層の検証。
+feature gate（`default` / `fs` / `format` / `vector-search` / `vector-index`）でコンパイル・実行対象が変わる。
+
+**主なテストファイル**（`crates/ygo-search/tests/`）:
+- `contract.rs`・`search.rs`・`seek.rs`・`pipeline.rs`・`fs.rs`・`format.rs`・`jsonl.rs`
+  — 型契約・検索・TSV/JSONL 読込・フォーマット変換（feature: `fs`/`format`/`default`）
+- `vector.rs` — LanceDB 接続・検索（feature: `vector-search`・model 不要）
+- `vector_indexer.rs` — index 構築（feature: `vector-index`・model 不要 `parse_jsonl`/`build_record_batch` + `#[ignore]` E2E）
+- `vector_embeddings.rs` — embedding golden 一致性 + モデル整合性ドリフト検出（`#[ignore]`・model 必須）
+- `vector_model_integrity.rs` — revision/hash pinning のオーケストレーション（feature: `vector-search`・model 不要）
+
+**実行コマンド**:
+```bash
+cargo test -p ygo-search --features vector-search     # vector 系（model 不要は常時実行）
+cargo test -p ygo-search --features vector-index      # fs + vector-search
+cargo test -p ygo-search                              # default feature（純粋ロジックのみ）
+cargo test -p ygo-search --features vector-search --test vector_model_integrity  # 整合性テスト単体
+cargo clippy -p ygo-search --features vector-search --all-targets -- -D warnings  # lint
+```
+
+**model 必須テスト（`#[ignore]`）**:
+`onnx/model_quantized.onnx`（~118MB・未同梱）を要するテストは `#[ignore]`。
+```bash
+ROOT=$(pwd)
+YGO_SEARCH_MODEL_DIR="$ROOT/tmp/dev/poc/vector-poc/models/Xenova/multilingual-e5-small" \
+  cargo test -p ygo-search --features vector-search --test vector_embeddings -- --ignored --nocapture
+# 非量子化 model.onnx ↔ golden-nq.json 検証時は以下を追加:
+#   YGO_SEARCH_MODEL_FILE=onnx/model.onnx VECTOR_GOLDEN_PATH="$ROOT/tmp/dev/poc/vector-poc/golden-nq.json"
+```
+
+> **注意**: `cargo test` は CWD = crate ルート（`crates/ygo-search`）で動作するため、
+> 相対パスの環境変数は絶対パス（`$(pwd)/...`）で指定すること。
+
 ## テスト更新が必要なタイミング
 
 | 変更内容 | 必要なテスト更新 | 優先度 |
@@ -92,6 +142,8 @@ src/
 | パフォーマンス最適化 | ベンチマークまたは負荷テスト追加 | 任意 |
 | バグ修正 | 回帰テスト追加 | **必須** |
 | リファクタリング | 既存テストが全てパスすることを確認 | **必須** |
+| `crates/ygo-search/src/` の関数・モジュール追加・変更 | 対応する `crates/ygo-search/tests/*.rs` またはモジュール内 unit test（該当 feature 指定で実行） | **必須** |
+| モデルファイル（`onnx/*.onnx`・`tokenizer.json`）の差し替え | `models.sha256` 再生成（`scripts/setup/gen-model-manifest.sh`）+ `vector_embeddings.rs` のドリフトテスト実行 | **必須** |
 
 ## テストファイルの命名規則
 
@@ -148,6 +200,14 @@ npm run test:integration # 統合テストのみ
 ### E2Eテストを実行（本番環境確認）
 ```bash
 RUN_E2E_TESTS=1 PROD_URL=https://ygo-search.api.scioj.com npm test
+```
+
+### Rust SDK テスト（cargo）
+Rust SDK のテストは `cargo test` で実行（feature gate・model 必須テストの実行方法は
+上記「Rust SDK テスト」セクション参照）。
+```bash
+cargo test -p ygo-search --features vector-search   # model 不要テストは常時実行
+cargo test --workspace                               # workers crate 含む全体
 ```
 
 ### 特定のテストファイルのみ実行

@@ -38,6 +38,24 @@ M3-T0 PoC 完了直後（2026-07-15）は非量子化 `model.onnx` で `cosine 1
 （ファイルサイズ 449MB→470MB 相当、原因不明・再ダウンロード等）、golden.json との整合性が
 失われていた**（cosine ~0.994-0.998、max_abs_diff ~1e-2、全 8 件不一致）。
 
+> **【TASK-28 での調査結果・再定式化（2026-07-24）】** 上記「上書き・整合性喪失」の記述は
+> 誤診を含んでいた。正しくは以下:
+>
+> 1. **原因（高確度）**: 2026-07-15 09:07:13 に PoC スクリプト `tmp/dev/poc/vector-poc/ts/gen-golden-nq.ts`
+>    を実行し、`@xenova/transformers` が **revision 未固定**で `Xenova/multilingual-e5-small` の
+>    非量子化 ONNX（`{ quantized: false }`）を HF から auto-download（09:08:14 完了）した。意図は
+>    M3-T0 Phase A（量子化版が s5 で厳格基準に届かないため非量子化 golden `golden-nq.json` を別途生成）。
+> 2. **`model.onnx`（470MB）は破損していない**: `golden-nq.json`（`"quantized": false`・09:08 生成）
+>    と同時生成の非量子化ペアで相互整合。TASK-28 で Rust(ort) 実装で再検証したところ 8/8
+>    `cosine 1.0 / max_abs_diff ~6e-8`（完全一致）。
+> 3. **上記「整合性喪失（cosine 0.994-0.998）」はクロスモデル差**: 非量子化 `model.onnx` を
+>    **量子化ベースの `golden.json`（08:48）と比較**した結果であり、量子化誤差として妥当。
+>    "449MB→470MB 上書き" は、08:48 時点では `model_quantized.onnx` のみ存在し `model.onnx` は
+>    未取得だったことの反映と推定（HF リポジトリ自体は 2025-07-22 から不変・commit `761b726d`）。
+>
+> デフォルト量子化採用・cosine 基準への変更は妥当なまま（量子化誤差への現実的対応）。根本対策
+> （revision/hash pinning）は TASK-28 で実装済み（下記 §3・`docs/dev/feature/m3-t4-model-pinning.md`）。
+
 一方、量子化 `model_quantized.onnx`（golden.json と同時刻生成、以後変更なし）は
 8件中7件で `cosine 1.0 / max_abs_diff ~1e-8`（完全一致）、残り1件
 （`"手札を1枚捨てて発動できる。"`）のみ `cosine 0.999269 / max_abs_diff 5.5e-3` という
@@ -53,30 +71,31 @@ M3-T0 PoC 完了直後（2026-07-15）は非量子化 `model.onnx` で `cosine 1
   `max_abs_diff` が拡大しうるが、cosine（vector 検索のランキング・閾値フィルタに実際に使う指標）
   への影響は軽微なため。
 
-### 3. モデルファイルの revision/hash pinning 未実装（設計書 §11 の未解決事項）
+### 3. モデルファイルの revision/hash pinning（TASK-28 で実装済・解決）
 
 上記2で判明した「モデルファイルが検証後に無断で内容変更されうる」問題は、設計書 §11 が
 警告していた「モデル/tokenizer download の revision/hash pinning」の必要性を実例で裏付けた。
-現状 Rust 側はモデルファイルをローカルパスから読み込むのみで、内容検証（チェックサム等）は
-行わない。将来的にモデル配布の仕組み（ダウンロードスクリプト等）を用意する際は、
-配布時に revision/hash を固定しロード時に検証することを推奨する。
+**TASK-28 で解決済み**: 期待ハッシュ表（`crates/ygo-search/src/vector/models.sha256`）を `include_str!`
+で SDK バイナリに埋め込み、`Embedder::new()` のロード前に SHA256 照合（`vector::integrity`）を行う。
+差し替え/破損/改ざんを検知し、`VectorError::ModelIntegrity` で fail-fast する。詳細は
+`docs/dev/feature/m3-t4-model-pinning.md`。マニフェスト生成は `scripts/setup/gen-model-manifest.sh`。
 
 ### 4. embedding golden テストはモデルファイル同梱なしのため `#[ignore]`
 
-`onnx/model_quantized.onnx`（約113MB）を git に同梱していないため、CI では実行されない。
+`onnx/model_quantized.onnx`（約118MB）を git に同梱していないため、CI では実行されない。
 M4-T2（統合テスト整備）でモデル配置（fixture 配信 or ダウンロードステップ）を検討する。
 
 ## 改善案
 
 - **1**: 該当なし（実装済み、TS より安全な設計）。
-- **2**: モデルファイル配布の仕組み（署名・revision pinning 付きダウンロードスクリプト等）を
-  M4 以降で検討し、本ドキュメントの手動上書き運用から卒業する。
-- **3**: 上記2と同様。
+- **2**: **解決済（TASK-28）**。revision/hash pinning + ロード時検証を `vector::integrity` で実装。
+  `m3-t4-model-pinning.md` 参照。
+- **3**: **解決済（TASK-28）**。上記2と同様。
 - **4**: M4-T2 で CI 用モデル配置方法を確立し、`#[ignore]` を解除する。
 
 ## 優先度
 
-medium（2/3 はモデル配布の信頼性に関わるため、vector feature を本番投入する前に対応推奨）
+medium（2/3 は TASK-28 で解決済。4 は M4-T2 で対応）
 
 ## 関連
 

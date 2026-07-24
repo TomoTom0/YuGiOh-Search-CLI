@@ -8,7 +8,7 @@
 //! `5.5e-3` まで拡大することを実測確認済み（量子化誤差として妥当な範囲、docs/dev/feature/ に記録）。
 //! cosine 基準はこの入力でも `0.9993` を維持しており、vector 検索のランキング・閾値フィルタには実質的な影響がない。
 //!
-//! モデルファイル（`onnx/model_quantized.onnx` 約113MB、未同梱）が必要なため既定では無視する。
+//! モデルファイル（`onnx/model_quantized.onnx` 約118MB、未同梱）が必要なため既定では無視する。
 //! 実行例（PoC で生成済みのモデル/golden を使う場合）:
 //! ```sh
 //! YGO_SEARCH_MODEL_DIR=tmp/dev/poc/vector-poc/models/Xenova/multilingual-e5-small \
@@ -45,7 +45,7 @@ fn cosine(a: &[f32], b: &[f32]) -> f32 {
 }
 
 #[test]
-#[ignore = "requires ~450MB ONNX model file, run manually via YGO_SEARCH_MODEL_DIR"]
+#[ignore = "requires ~118MB ONNX model file, run manually via YGO_SEARCH_MODEL_DIR"]
 fn embedding_matches_ts_golden() {
     let golden_path = std::env::var("VECTOR_GOLDEN_PATH").unwrap_or_else(|_| {
         concat!(
@@ -83,4 +83,26 @@ fn embedding_matches_ts_golden() {
         all_pass,
         "embedding golden 一致性テスト失敗（設計書 §10.2）"
     );
+}
+
+/// マニフェスト↔実ファイルのドリフト検出（TASK-28: revision/hash pinning の門番）。
+///
+/// `YGO_SEARCH_MODEL_DIR` 配下のロード対象ファイル（`onnx/model_quantized.onnx`・
+/// `tokenizer.json`）の SHA256 を計算し、SDK に埋め込まれた manifest と一致することを検証する。
+/// これが「manifest が古くなった（モデルが差し替えられたのに manifest 更新漏れ）」を検出する唯一の門。
+#[test]
+#[ignore = "requires ~118MB ONNX model file, run manually via YGO_SEARCH_MODEL_DIR"]
+fn embedded_manifest_matches_actual_model_files() {
+    let dir = std::env::var("YGO_SEARCH_MODEL_DIR")
+        .expect("YGO_SEARCH_MODEL_DIR を設定してください");
+    let manifest = ygo_search::vector::integrity::embedded_manifest();
+    for rel in ["onnx/model_quantized.onnx", "tokenizer.json"] {
+        let path = std::path::Path::new(&dir).join(rel);
+        let actual = ygo_search::vector::integrity::sha256_of_file(&path)
+            .unwrap_or_else(|e| panic!("{rel} の hash 計算失敗: {e}"));
+        let expected = manifest
+            .get(rel)
+            .unwrap_or_else(|| panic!("manifest に {rel} のエントリがありません"));
+        assert_eq!(actual, expected, "{rel} がマニフェストと不一致（ドリフト検出）");
+    }
 }

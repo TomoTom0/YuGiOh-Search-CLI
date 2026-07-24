@@ -1,7 +1,7 @@
 //! indexer（M3-T3）の統合テスト。
 //!
 //! `parse_jsonl` / `build_record_batch`（metadata 推論 Struct）は model 不要で常時実行。
-//! `create_index` / `index_from_jsonl` の embedding 経路は model ファイル（~113MB, 未同梱）を要するため
+//! `create_index` / `index_from_jsonl` の embedding 経路は model ファイル（~118MB, 未同梱）を要するため
 //! `#[ignore]`（`YGO_SEARCH_MODEL_DIR` 指定で手動実行）。
 #![cfg(feature = "vector-search")]
 
