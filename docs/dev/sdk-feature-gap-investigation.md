@@ -54,6 +54,13 @@ ygo-search は TypeScript/JS SDK (`src/index.ts` 公開) と Rust ライブラ�
 
 機能カテゴリごとの TS/Rust 公開状況。`○`=公開、`△`=部分対応、`✗`=未実装。
 
+> **注記**: 本表は Rust SDK 実装前（初期調査時）のスナップショットです。PR#56 で M1〜M3
+> （型・フォーマット変換・fs・vector 検索・embedding・index 構築など）を実装済みですが、
+> 本表の各行はまだ更新されていません。M1〜M5 実装を反映した完了版への包括的更新は
+> TASK-21 `[M4-T3] docs整備` で実施予定です。各機能の最新の実装状況は各モジュールの
+> `crates/ygo-search/src/{types,format,fs,vector,search,faq}/*.rs` および
+> `docs/dev/feature/m*-*.md` を参照してください。
+
 | 機能カテゴリ | TS 公開 API | TS 分類 | Rust 公開 API | Rust 分類 | 差 |
 |---|---|---|---|---|---|
 | テキスト正規化 | （内部関数、非公開） | (a) | `normalize::normalize_for_search` | (a) | Rust のみ公開。TS は内部利用 |
