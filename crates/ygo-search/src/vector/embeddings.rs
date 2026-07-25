@@ -11,7 +11,7 @@ use ndarray::{Array1, Array2};
 use ort::session::builder::GraphOptimizationLevel;
 use ort::session::Session;
 
-use super::{model_dir, VectorError};
+use super::{integrity, model_dir, VectorError};
 
 /// ort の `Error<R>`（非 `Send` な内部型を持ち得るため）を文字列化して統一エラーに変換する。
 fn ort_err<T, R>(r: std::result::Result<T, ort::Error<R>>) -> Result<T, VectorError>
@@ -54,6 +54,14 @@ impl Embedder {
         if !tokenizer_path.is_file() {
             return Err(VectorError::ModelNotFound(tokenizer_path));
         }
+
+        // モデル整合性検証（TASK-28: revision/hash pinning）。ort/tokenizers のロード前に行い
+        // hash 不一致を fail-fast させる（470MB の無駄ロード回避）。OnceLock 初期化時1回のみ。
+        integrity::verify_model_files(
+            &dir,
+            &[&model_path, &tokenizer_path],
+            integrity::embedded_manifest(),
+        )?;
 
         let builder = ort_err(Session::builder())?;
         let mut builder = ort_err(builder.with_optimization_level(GraphOptimizationLevel::Level3))?;
@@ -134,4 +142,31 @@ pub fn generate_embedding(text: &str) -> Result<Vec<f32>, VectorError> {
         *guard = Some(Embedder::new()?);
     }
     guard.as_mut().expect("just initialized").embed(text)
+}
+
+/// バッチ処理の粒度（TS `generateEmbeddings` の `BATCH_SIZE = 32` に一致）。
+const EMBEDDING_BATCH_SIZE: usize = 32;
+
+/// 複数テキストから embedding を一括生成する（TS `generateEmbeddings` 相当）。
+///
+/// BATCH_SIZE(32) 単位でチャンク区切り、進捗を stderr に出力する（TS と同じフォーマット）。
+///
+/// **実装方針（設計判断）**: 内部では golden 検証済みの [`generate_embedding`]（1件推論）を
+/// 順次呼び出す。transformer の mean pooling は系列独立（attention mask で他系列の影響を受けない）
+/// ため、この結果は TS の融合バッチ推論（`model(batch, ...)`）と数学的に完全一致する。
+/// 融合バッチは性能最適化として将来候補だが、バッチ固有の誤差が `cosine >= 0.999` の背後に隠れうる
+/// リスクを避け、index 構築（オフライン・一回限り）では正確性を優先する。
+pub fn generate_embeddings(texts: &[&str]) -> Result<Vec<Vec<f32>>, VectorError> {
+    let total = texts.len();
+    let mut out = Vec::with_capacity(total);
+    let mut i = 0;
+    while i < total {
+        let end = (i + EMBEDDING_BATCH_SIZE).min(total);
+        for text in &texts[i..end] {
+            out.push(generate_embedding(text)?);
+        }
+        eprintln!("Embeddingを生成中: {}/{}", end, total);
+        i = end;
+    }
+    Ok(out)
 }

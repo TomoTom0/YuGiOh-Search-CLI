@@ -8,7 +8,6 @@
 //! `filter`/`exclude` のキーは識別子ホワイトリスト（英数字・アンダースコアのみ）で追加検証する。
 
 use std::collections::BTreeMap;
-use std::sync::OnceLock;
 
 use arrow_json::LineDelimitedWriter;
 use datafusion_expr::Expr;
@@ -16,7 +15,7 @@ use datafusion_functions::core::expr_fn::get_field;
 use futures::TryStreamExt;
 use lancedb::expr::{col, lit};
 use lancedb::query::{ExecutableQuery, QueryBase};
-use lancedb::{Connection, DistanceType as LanceDistanceType};
+use lancedb::DistanceType as LanceDistanceType;
 
 use crate::types::{
     DistanceType, ExcludeOptions, FilterValue, QueryInput, SearchResult, VectorSearchAllResult,
@@ -24,25 +23,7 @@ use crate::types::{
 };
 
 use super::embeddings::generate_embedding;
-use super::{vector_db_dir, VectorError};
-
-fn runtime() -> &'static tokio::runtime::Runtime {
-    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-    RT.get_or_init(|| tokio::runtime::Runtime::new().expect("tokio runtime 初期化に失敗しました"))
-}
-
-async fn connect_db() -> Result<Connection, VectorError> {
-    let dir = vector_db_dir()?;
-    std::fs::create_dir_all(&dir)?;
-    let uri = dir.to_string_lossy().to_string();
-    lancedb::connect(&uri)
-        .execute()
-        .await
-        .map_err(|e| VectorError::Connect {
-            uri,
-            message: e.to_string(),
-        })
-}
+use super::{connect_db, runtime, VectorError};
 
 /// LanceDB に存在するテーブル名一覧（TS `listTables` 相当）。
 pub fn list_tables() -> Result<Vec<String>, VectorError> {
@@ -190,10 +171,11 @@ fn decode_batch(batch: &arrow_array::RecordBatch) -> Result<Vec<SearchResult>, V
             .and_then(|v| v.as_str())
             .unwrap_or_default()
             .to_string();
-        let metadata = obj
-            .get("metadata")
-            .cloned()
-            .unwrap_or(serde_json::Value::Null);
+        // metadata は null/欠損の場合 `{}` に正規化（TS `data.metadata || {}` 契約・SDKコントラクト）。
+        let metadata = match obj.get("metadata") {
+            Some(v) if !v.is_null() => v.clone(),
+            _ => serde_json::Value::Object(serde_json::Map::new()),
+        };
         let score = obj.get("_distance").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
         out.push(SearchResult {
             id,

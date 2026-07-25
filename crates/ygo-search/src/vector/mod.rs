@@ -3,11 +3,17 @@
 //! TS `src/lib/vector/{searcher,embeddings}.ts` の Rust 移植。native-only（wasm32 では `compile_error!`）。
 
 use std::path::PathBuf;
+use std::sync::OnceLock;
+
+use lancedb::Connection;
 
 pub mod embeddings;
+pub mod indexer;
+pub mod integrity;
 pub mod searcher;
 
-pub use embeddings::generate_embedding;
+pub use embeddings::{generate_embedding, generate_embeddings};
+pub use indexer::{create_index, index_from_jsonl};
 pub use searcher::{
     list_tables, search_table, vector_search_all, vector_search_cards, vector_search_faqs,
 };
@@ -44,9 +50,27 @@ pub enum VectorError {
         "embedding モデルが見つかりません: {0}\n\n配置場所: <workDir>/models/Xenova/multilingual-e5-small/ (onnx/model.onnx, tokenizer.json)\nまたは環境変数 YGO_SEARCH_MODEL_DIR で配置ディレクトリを指定してください。"
     )]
     ModelNotFound(PathBuf),
+    /// モデル整合性検証失敗（SHA256 hash 不一致）。ファイルが pinned revision と異なる内容に
+    /// 差し替えられたか、破損/改ざんされた。設計書 §11 の revision/hash pinning（TASK-28）。
+    #[error("モデル整合性検証失敗: {path}\n  expected: {expected}\n  actual:   {actual}\n\npinned revision と異なる内容です。モデルを再取得するか、マニフェストを更新してください。")]
+    ModelIntegrity {
+        path: PathBuf,
+        expected: String,
+        actual: String,
+    },
+    /// strict モード（`YGO_SEARCH_STRICT_MODEL_VERIFY=1`）で、対象ファイルの hash ピンが
+    /// マニフェストに無い、または model_dir 配下の相対パスとして解決できないため検証を拒否した。
+    #[error("strict モード: {0} の hash ピンがマニフェストに無いため検証を拒否します（YGO_SEARCH_SKIP_MODEL_VERIFY=1 でバイパス可）")]
+    UnverifiableModelPath(PathBuf),
     /// embedding 生成失敗（tokenizer/ort 推論エラー）。
     #[error("embedding 生成に失敗しました: {0}")]
     Embed(String),
+    /// index 構築失敗（空入力・ベクトル次元不整合・create_table 失敗等）。
+    #[error("インデックス構築に失敗しました: {message}")]
+    IndexBuild { message: String },
+    /// JSONL 1 行のパース失敗（`{line}` 行目）。
+    #[error("JSONL {line} 行目のパースに失敗しました: {message}")]
+    ParseRecord { line: usize, message: String },
     /// IO エラー。
     #[error("IO エラー: {0}")]
     Io(#[from] std::io::Error),
@@ -83,6 +107,28 @@ fn workdir() -> Result<PathBuf, VectorError> {
 /// Vector DB ディレクトリ `<workDir>/data/vector`（TS `getVectorDbPath` 相当）。
 pub fn vector_db_dir() -> Result<PathBuf, VectorError> {
     Ok(workdir()?.join("data").join("vector"))
+}
+
+/// vector feature 共有の tokio runtime（searcher・indexer で利用）。
+///
+/// LanceDB の非同期 API を同期的に呼ぶためのプロセス単一 runtime。native-only。
+fn runtime() -> &'static tokio::runtime::Runtime {
+    static RT: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+    RT.get_or_init(|| tokio::runtime::Runtime::new().expect("tokio runtime 初期化に失敗しました"))
+}
+
+/// LanceDB へ接続する（DB ディレクトリが無ければ作成）。searcher・indexer 共有。
+async fn connect_db() -> Result<Connection, VectorError> {
+    let dir = vector_db_dir()?;
+    std::fs::create_dir_all(&dir)?;
+    let uri = dir.to_string_lossy().to_string();
+    lancedb::connect(&uri)
+        .execute()
+        .await
+        .map_err(|e| VectorError::Connect {
+            uri,
+            message: e.to_string(),
+        })
 }
 
 /// embedding モデル配置ディレクトリ。
