@@ -171,10 +171,11 @@ fn decode_batch(batch: &arrow_array::RecordBatch) -> Result<Vec<SearchResult>, V
             .and_then(|v| v.as_str())
             .unwrap_or_default()
             .to_string();
-        let metadata = obj
-            .get("metadata")
-            .cloned()
-            .unwrap_or(serde_json::Value::Null);
+        // metadata は null/欠損の場合 `{}` に正規化（TS `data.metadata || {}` 契約・SDKコントラクト）。
+        let metadata = match obj.get("metadata") {
+            Some(v) if !v.is_null() => v.clone(),
+            _ => serde_json::Value::Object(serde_json::Map::new()),
+        };
         let score = obj.get("_distance").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32;
         out.push(SearchResult {
             id,

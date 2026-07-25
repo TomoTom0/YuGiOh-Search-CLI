@@ -12,8 +12,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use arrow_array::{
-    ArrayRef, BooleanArray, FixedSizeListArray, Float32Array, Float64Array, Int64Array,
-    RecordBatch, StringArray, StructArray,
+    builder::StructBuilder, Array, ArrayRef, BooleanArray, FixedSizeListArray, Float32Array,
+    Float64Array, Int64Array, RecordBatch, StringArray, StructArray,
 };
 use arrow_schema::{DataType, Field, Fields, Schema};
 use lancedb::database::CreateTableMode;
@@ -194,7 +194,8 @@ fn render_scalar(v: &Value) -> Result<String, VectorError> {
 /// レコード列 + ベクトル列から [`RecordBatch`] を構築する（純粋・model 不要・テスト対象）。
 ///
 /// スキーマ: `id: Utf8`, `text: Utf8`, `vector: FixedSizeList<f32, dim>`,
-/// および推論された `metadata: Struct`（metadata キーが1つも無い場合は列自体を省略）。
+/// および `metadata: Struct`。metadata キーが1つも無い場合は空フィールド Struct（空オブジェクト表現）
+/// で列を保持し、検索時に `{}` として復元される（TS `data.metadata || {}` 契約）。
 pub fn build_record_batch(
     records: &[VectorRecord],
     vectors: &[Vec<f32>],
@@ -247,21 +248,29 @@ pub fn build_record_batch(
         Arc::new(vector_array),
     ];
 
-    // metadata 列: 推論 Struct（キーが無ければ省略）
+    // metadata 列: 推論 Struct。全レコード空 metadata の場合は空フィールド Struct（空オブジェクト表現）
+    // で列を保持し、検索時に `{}` として復元させる（TS `data.metadata || {}` 契約・SDKコントラクト維持）。
     let meta_defs = infer_metadata_fields(records);
-    if !meta_defs.is_empty() {
+    let struct_array: StructArray = if meta_defs.is_empty() {
+        // 空フィールドでも行数分の長さを持つ StructArray を構築するため StructBuilder を使用。
+        // 各行は valid（null ではなく空オブジェクト）とし、検索デコードで {} となるようにする。
+        let mut builder = StructBuilder::new(Fields::default(), Vec::new());
+        for _ in records {
+            builder.append(true);
+        }
+        builder.finish()
+    } else {
         let mut meta_fields: Vec<Field> = Vec::with_capacity(meta_defs.len());
         let mut meta_arrays: Vec<ArrayRef> = Vec::with_capacity(meta_defs.len());
         for (key, dt) in &meta_defs {
             meta_fields.push(Field::new(key, dt.clone(), true));
             meta_arrays.push(build_field_array(records, key, dt)?);
         }
-        let fields_def = Fields::from(meta_fields);
-        let metadata_type = DataType::Struct(fields_def.clone());
-        let struct_array = StructArray::new(fields_def, meta_arrays, None);
-        fields.push(Field::new("metadata", metadata_type, false));
-        columns.push(Arc::new(struct_array));
-    }
+        StructArray::new(Fields::from(meta_fields), meta_arrays, None)
+    };
+    let metadata_type = struct_array.data_type().clone();
+    fields.push(Field::new("metadata", metadata_type, false));
+    columns.push(Arc::new(struct_array));
 
     let schema = Arc::new(Schema::new(fields));
     RecordBatch::try_new(schema, columns).map_err(|e| VectorError::IndexBuild {

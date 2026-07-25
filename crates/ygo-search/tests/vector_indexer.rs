@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
+use arrow_array::Array;
 use arrow_schema::DataType;
 use serde_json::{json, Value};
 use tempfile::tempdir;
@@ -222,6 +223,72 @@ fn build_record_batch_roundtrips_via_search() {
         search_table("cards", &QueryInput::Vector(vec![1.0, 0.0, 0.0]), &opts).expect("search");
     assert_eq!(spell.len(), 1);
     assert_eq!(spell[0].id, "card-3");
+}
+
+/// 全レコード空 metadata（`{}` または省略）の場合でも metadata 列を保持し、
+/// 空フィールド Struct になることを検証（SDKコントラクト: 検索時に {} を返すための前提）。
+#[test]
+fn build_record_batch_preserves_empty_metadata_column() {
+    let recs = vec![
+        VectorRecord { id: "a".into(), text: "alpha".into(), metadata: json!({}) },
+        VectorRecord { id: "b".into(), text: "beta".into(), metadata: Value::Null },
+    ];
+    let vecs = vec![vec![1.0, 0.0, 0.0], vec![0.0, 1.0, 0.0]];
+    let batch = build_record_batch(&recs, &vecs).expect("build");
+
+    // metadata 列が存在（id/text/vector/metadata の4列）
+    let schema = batch.schema();
+    assert_eq!(schema.fields().len(), 4);
+    let meta_field = schema.field_with_name("metadata").expect("metadata column must exist");
+    match meta_field.data_type() {
+        DataType::Struct(f) => assert!(f.is_empty(), "empty metadata must be empty Struct, got {f:?}"),
+        other => panic!("expected empty Struct metadata, got {other:?}"),
+    }
+    // 行数分の空オブジェクト（null ではなく valid）
+    let struct_col = batch
+        .column_by_name("metadata")
+        .expect("metadata column")
+        .as_any()
+        .downcast_ref::<arrow_array::StructArray>()
+        .expect("StructArray");
+    assert_eq!(struct_col.len(), 2);
+    assert_eq!(struct_col.null_count(), 0, "empty metadata rows must be valid (not null)");
+}
+
+/// 全レコード空 metadata の JSONL を構築 → 検索すると、各結果の metadata が
+/// `{}`（空オブジェクト）として復元されることを model なしで検証（TS `data.metadata || {}` パリティ）。
+#[test]
+fn build_record_batch_empty_metadata_roundtrips_as_empty_object() {
+    let _guard = SERIAL.lock().unwrap();
+    let wd = Workdir::new();
+
+    let recs = vec![
+        VectorRecord { id: "a".into(), text: "alpha".into(), metadata: json!({}) },
+        VectorRecord { id: "b".into(), text: "beta".into(), metadata: Value::Null },
+    ];
+    let vecs = vec![vec![1.0, 0.0, 0.0], vec![0.0, 1.0, 0.0]];
+    let batch = build_record_batch(&recs, &vecs).expect("build");
+
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let db_dir = wd.path().join("data").join("vector");
+        std::fs::create_dir_all(&db_dir).unwrap();
+        let db = lancedb::connect(db_dir.to_str().unwrap()).execute().await.unwrap();
+        db.create_table("cards", vec![batch]).execute().await.unwrap();
+    });
+
+    let opts = VectorSearchOptions { limit: Some(10), ..Default::default() };
+    let results =
+        search_table("cards", &QueryInput::Vector(vec![1.0, 0.0, 0.0]), &opts).expect("search");
+    assert_eq!(results.len(), 2);
+    for r in &results {
+        assert!(r.metadata.is_object(), "metadata must be object, got {}", r.metadata);
+        assert!(
+            r.metadata.as_object().unwrap().is_empty(),
+            "metadata must be empty object {{}}, got {}",
+            r.metadata
+        );
+    }
 }
 
 // =============================================================================
