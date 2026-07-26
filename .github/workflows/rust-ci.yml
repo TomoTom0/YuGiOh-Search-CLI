@@ -1,0 +1,140 @@
+name: rust-ci
+
+# Rust SDK (crates/ygo-search) の feature マトリクス CI。
+# design.md 第6節・development-plan.md M4-T1 に基づく。
+# - default/fs/format/fs+format/vector を個別に cargo check+test（native）
+# - core (Layer A) と workers crate が wasm32 target でビルド可能ことを検証
+# - wasm32 × native-only feature が compile_error! で排他されることを検証
+# --all-features は流さない（compile-fail を期待するため）。
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+  workflow_dispatch: {}
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ---------------------------------------------------------------
+  # Job 1: native feature マトリクス (cargo check + cargo test)
+  #   SERIAL env ガードがプロセス内 Mutex のため --test-threads=1 を常時付与。
+  #   fs+format は jsonl.rs / fs/mod.rs の両 feature gated コードをカバー。
+  # ---------------------------------------------------------------
+  native-matrix:
+    name: check+test (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: default
+            flags: ""
+          - name: fs
+            flags: "--features fs"
+          - name: format
+            flags: "--features format"
+          - name: fs+format
+            flags: "--features fs,format"
+          - name: vector
+            flags: "--features vector"
+    steps:
+      - uses: actions/checkout@v4
+
+      # rust-toolchain.toml が rustup により自動適用される
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: native-${{ matrix.name }}
+
+      - name: cargo check
+        run: cargo check -p ygo-search ${{ matrix.flags }} --locked --all-targets
+
+      - name: cargo test
+        run: cargo test -p ygo-search ${{ matrix.flags }} --locked -- --test-threads=1
+
+  # ---------------------------------------------------------------
+  # Job 2: wasm32 成功ケース
+  #   core を default features (=空) で、workers crate を wasm32 target で検証。
+  #   workers crate の cdylib リンク検証 (worker-build/wrangler) は TASK-24 待ち。
+  # ---------------------------------------------------------------
+  wasm32-success:
+    name: wasm32 build (success)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: wasm32-success
+
+      - name: core (Layer A) on wasm32
+        run: cargo check -p ygo-search --no-default-features --target wasm32-unknown-unknown --locked
+
+      - name: workers crate on wasm32
+        run: cargo check -p ygo-search-workers --target wasm32-unknown-unknown --locked
+
+  # ---------------------------------------------------------------
+  # Job 3: wasm32 compile-fail（排他 feature 検証）
+  #   候補B: shell で exit code≠0 を期待し、check_msg=true なら compile_error! メッセージまで厳格検証。
+  #   実証済み失敗モード:
+  #     format         -> compile_error! に到達 (check_msg=true)
+  #     fs/vector-*    -> 依存の getrandom が wasm32 で先に失敗し compile_error! 未到達 (check_msg=false)
+  #   いずれの経路でも native-only feature が wasm32 でビルド不可になることを保証する。
+  # ---------------------------------------------------------------
+  wasm32-compile-fail:
+    name: wasm32 compile-fail (${{ matrix.feature }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - feature: fs
+            msg: "feature `fs` is native-only"
+            check_msg: "false"
+          - feature: format
+            msg: "feature `format` is native-only"
+            check_msg: "true"
+          - feature: vector-search
+            msg: "feature `vector-search` is native-only"
+            check_msg: "false"
+          - feature: vector-index
+            msg: "feature `vector-index` is native-only"
+            check_msg: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: wasm32-fail-${{ matrix.feature }}
+
+      - name: Verify compile_error! for ${{ matrix.feature }}
+        env:
+          FEATURE: ${{ matrix.feature }}
+          MSG: ${{ matrix.msg }}
+          CHECK_MSG: ${{ matrix.check_msg }}
+        run: |
+          set +e
+          out=$(cargo check -p ygo-search --features "$FEATURE" \
+                  --target wasm32-unknown-unknown --locked 2>&1)
+          code=$?
+          printf '%s\n' "$out"
+          if [ "$code" -eq 0 ]; then
+            echo "::error::expected failure but 'cargo check --features $FEATURE' succeeded on wasm32"
+            exit 1
+          fi
+          if [ "$CHECK_MSG" = "true" ]; then
+            if ! printf '%s\n' "$out" | grep -qF "$MSG"; then
+              echo "::error::cargo check failed but expected compile_error! message not found: $MSG"
+              exit 1
+            fi
+            echo "OK: compile_error! message verified for '$FEATURE'"
+          else
+            if printf '%s\n' "$out" | grep -qF "$MSG"; then
+              echo "OK: compile_error! message found for '$FEATURE' (bonus)"
+            else
+              echo "::warning::'$FEATURE' failed on wasm32 (expected) but compile_error! not reached (deps failed first)"
+            fi
+          fi
+          echo "DONE: '$FEATURE' correctly rejected on wasm32"

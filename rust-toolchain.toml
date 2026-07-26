@@ -1,0 +1,7 @@
+# ygo-search 共通 toolchain。
+# ローカル・CI で stable + wasm32 target を統一（rustup が自動適用・インストール）。
+# rust-ci.yml の wasm32 検証と workers crate ビルドで必要。
+[toolchain]
+channel = "stable"
+targets = ["wasm32-unknown-unknown"]
+profile = "minimal"

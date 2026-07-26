@@ -56,4 +56,5 @@ Web APIのデプロイと運用
 プロジェクトルートの重要なドキュメント：
 
 - [README.md](/README.md) - プロジェクト概要
+- [.github/CICD.md](/.github/CICD.md) - CI/CD 設定（test.yml / rust-ci.yml / pr-validation.yml）
 - [CHANGELOG.md](/CHANGELOG.md) - リリース履歴（バージョン v1.0.0 ～ v1.3.0）

@@ -210,6 +210,8 @@ cargo test -p ygo-search --features vector-search   # model 不要テストは�
 cargo test --workspace                               # workers crate 含む全体
 ```
 
+CI（`rust-ci.yml`）では default/fs/format/fs+format/vector 各 feature の check+test と、wasm32 での native-only feature 排他検証（compile_error!）をマトリクス実行。詳細は `.github/CICD.md` 参照。
+
 ### 特定のテストファイルのみ実行
 ```bash
 npx vitest run tests/unit/pattern-extraction.test.ts
