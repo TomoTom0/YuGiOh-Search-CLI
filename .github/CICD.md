@@ -32,7 +32,7 @@ pnpm run test:watch
 Runs on every pull request and push to `main` and `dev` branches, plus manual dispatch. Verifies the Rust SDK (`crates/ygo-search`) across its feature matrix.
 
 **Jobs:**
-- `native-matrix`: `cargo check` + `cargo test` for each feature combination (`default` / `fs` / `format` / `fs+format` / `vector-search` / `vector`). `vector-search` is checked standalone (independent of `fs`) as well as via the `vector` umbrella. Tests run single-threaded (`--test-threads=1`) to respect SERIAL env guards.
+- `native-matrix`: `cargo check` + `cargo test` for each feature combination (`default` / `fs` / `format` / `fs+format` / `vector-search` / `vector`). `vector-search` is checked standalone (independent of `fs`) as well as via the `vector` umbrella. The `vector` rows install `protoc` via `apt-get` (required by the `lancedb` dependency, absent from the default `ubuntu-latest` image). Tests run single-threaded (`--test-threads=1`) to respect SERIAL env guards.
 - `wasm32-success`: Confirms the core crate (Layer A) and the `ygo-search-workers` crate compile on `wasm32-unknown-unknown`.
 - `wasm32-compile-fail`: Confirms native-only features (`fs` / `format` / `vector-search` / `vector-index`) are rejected on `wasm32`. The failure is strictly validated against an allow-list: it must contain either the feature-specific `compile_error!` message or the known `getrandom` upstream dependency error — unrelated dependency or compiler-regression failures fail the job.
 

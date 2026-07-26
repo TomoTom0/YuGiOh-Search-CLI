@@ -46,6 +46,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # lancedb (vector/vector-search feature) の依存 lance-encoding ビルドに protoc が必要。
+      # ubuntu-latest 既定イメージに含まれないため、vector 系の行でのみインストールする。
+      - name: Install protoc
+        if: contains(matrix.flags, 'vector')
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq protobuf-compiler
+
       # rust-toolchain.toml が rustup により自動適用される
       - uses: Swatinem/rust-cache@v2
         with:
