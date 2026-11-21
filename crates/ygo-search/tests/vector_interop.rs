@@ -13,6 +13,8 @@
 
 use std::sync::{Mutex, MutexGuard};
 
+use arrow_schema::DataType;
+
 use ygo_search::types::{ExcludeOptions, FilterValue, QueryInput, VectorSearchOptions};
 use ygo_search::vector::{list_tables, search_table};
 
@@ -160,4 +162,47 @@ fn excludes_categories_on_ts_created_faqs_table() {
     let mut ids: Vec<&str> = results.iter().map(|r| r.id.as_str()).collect();
     ids.sort();
     assert_eq!(ids, vec!["f2", "f3"]);
+}
+
+/// fixture のスキーマ前提の自己検証: TS 作成 DB では数値メタデータが `Float64` で
+/// 格納されることが本ファイルのフィルタ検証（特に `exclude.faqIds` の Int64 リテラル）の
+/// 前提である。fixture 再生成で列が `Int64` 等に変わると前提が崩れるため、ここで検出する。
+#[test]
+fn fixture_schema_has_float64_numeric_metadata() {
+    let _g = lock_fixture();
+    let db_dir = format!("{}/data/vector", fixture_workdir());
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        let db = lancedb::connect(&db_dir)
+            .execute()
+            .await
+            .expect("connect fixture db");
+        for (table, field_name) in [("faqs", "faqId"), ("cards", "level")] {
+            let tbl = db
+                .open_table(table)
+                .execute()
+                .await
+                .unwrap_or_else(|e| panic!("open_table {table}: {e}"));
+            let schema = tbl
+                .schema()
+                .await
+                .unwrap_or_else(|e| panic!("schema {table}: {e}"));
+            let metadata_field = schema
+                .field_with_name("metadata")
+                .unwrap_or_else(|e| panic!("{table}.metadata column missing: {e}"));
+            let struct_fields = match metadata_field.data_type() {
+                DataType::Struct(fields) => fields,
+                other => panic!("{table}.metadata must be Struct: {other:?}"),
+            };
+            let target = struct_fields
+                .iter()
+                .find(|f| f.name() == field_name)
+                .unwrap_or_else(|| panic!("{table}.metadata.{field_name} column missing"));
+            assert_eq!(
+                target.data_type(),
+                &DataType::Float64,
+                "{table}.metadata.{field_name} must be Float64 (fixture schema premise)"
+            );
+        }
+    });
 }

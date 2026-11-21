@@ -6,7 +6,7 @@
 // この fixture を使うテスト(tests/vector_interop.rs)の目的（m3-t3-indexer-decisions.md §相互運用検証）。
 //
 // モデル不要（ハードコード dim=3 ベクトル）。実行:
-//   cd /home/tomo/work/app/ygo/ygo-search && node crates/ygo-search/tests/fixtures/lancedb/gen-ts-fixture.mjs
+//   リポジトリルートで実行: node crates/ygo-search/tests/fixtures/lancedb/gen-ts-fixture.mjs
 //
 // ※ @lancedb/lancedb の版を上げた際は再生成すること（README.md 参照）。
 import { connect } from '@lancedb/lancedb';

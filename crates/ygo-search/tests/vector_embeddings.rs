@@ -86,6 +86,7 @@ fn embedding_matches_ts_golden() {
 }
 
 /// バッチ API(`generate_embeddings`・複数形)での golden 一致性（設計書 §4-2「batch 比較」）。
+/// golden を複製した33件で実行し、`EMBEDDING_BATCH_SIZE = 32` のチャンク境界を踏む。
 ///
 /// `generate_embeddings` は `generate_embedding`(単体推論) をチャンク適用する wrapper だが、
 /// batch 入力経路が golden と一致することを単体テストから独立に検証する。
@@ -105,15 +106,21 @@ fn embedding_batch_matches_ts_golden() {
     )
     .expect("parse golden.json");
 
-    let texts: Vec<&str> = golden.samples.iter().map(|s| s.text.as_str()).collect();
+    // golden の8サンプルを複製して33件にし、EMBEDDING_BATCH_SIZE = 32 の
+    // チャンク分割経路（32件 + 1件）を通す。各複製は元の golden と比較する。
+    assert!(!golden.samples.is_empty(), "golden samples が空");
+    let expanded: Vec<&Sample> = (0..33)
+        .map(|i| &golden.samples[i % golden.samples.len()])
+        .collect();
+    let texts: Vec<&str> = expanded.iter().map(|s| s.text.as_str()).collect();
     let outs = generate_embeddings(&texts).expect("generate_embeddings");
-    assert_eq!(outs.len(), golden.samples.len(), "batch 戻り値件数不一致");
+    assert_eq!(outs.len(), expanded.len(), "batch 戻り値件数不一致");
 
     let mut all_pass = true;
-    for (out, s) in outs.iter().zip(golden.samples.iter()) {
+    for (idx, (out, s)) in outs.iter().zip(expanded.iter()).enumerate() {
         let cos = cosine(out, &s.embedding);
         let pass = cos >= 0.999;
-        println!("{}: cosine={cos:.6} pass={pass}", s.id);
+        println!("#{idx} {}: cosine={cos:.6} pass={pass}", s.id);
         if !pass {
             all_pass = false;
         }

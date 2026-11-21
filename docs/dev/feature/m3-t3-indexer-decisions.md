@@ -78,9 +78,13 @@ indexer の jsonl 読込は `std::fs` + `serde_json` の inline（TS と同一�
   Rust 検索側では整合するが、TS 作成 DB 側の実測確認が残課題。
 
   **→ TASK-20 で実測解消（2026-07-26）**: TS 作成 DB（`level`/`faqId` は `Float64`）に対して
-  Rust の `exclude.faqIds`（i64 リテラルの `IN`)・Range フィルタ（f64 リテラル）ともに正常に hit することを
-  `tests/vector_interop.rs`（fixture: `tests/fixtures/lancedb/ts-workdir/`）で検証済み。DataFusion の
-  型強制（Int64→Float64 昇格）によりリテラル型の差は吸収され、フィルタ不効の懸念は実環境では再現しない。
+  Rust の `exclude.faqIds`（i64 リテラルの `IN`) が正常に hit することを
+  `tests/vector_interop.rs`（fixture: `tests/fixtures/lancedb/ts-workdir/`）で検証済みであり、
+  フィルタ不効の懸念は実環境では再現しない。この結果から、DataFusion の型強制
+  （Int64→Float64 昇格）によりリテラル型の差が吸収されたと推論されるが、型強制そのものは
+  実測で確認したものではない。
+  Range フィルタ（f64 リテラル）についても同テストで正常に hit することを検証済みだが、
+  こちらは f64 リテラルと `Float64` 列で型の差が無い経路であり、型強制により差が吸収される例ではない。
   逆方向（Rust 作成 DB → TS 検索）は Lance 形式の対称性と PoC `tmp/dev/poc/vector-poc/ts/search-rust-db.ts` で担保。
 
 ## 優先度

@@ -11,6 +11,7 @@
 ```
 ts-workdir/                  # YGO_SEARCH_WORKDIR が指す workdir
   data/vector/
+    __manifest/              # DB レベル manifest
     cards.lance/             # metadata: { category:Utf8, level:Float64 }
     faqs.lance/              # metadata: { category:Utf8, faqId:Float64 }
 ```
@@ -22,7 +23,7 @@ TS は JS の `number` をスキーマ推論で `Float64` にするため、`lev
 `@lancedb/lancedb` の版を上げた場合や、レコード構成を変える場合は再生成する。プロジェクトルートの `node_modules`（pnpm）を利用。
 
 ```sh
-cd /home/tomo/work/app/ygo/ygo-search
+# リポジトリルートで実行
 node crates/ygo-search/tests/fixtures/lancedb/gen-ts-fixture.mjs
 ```
 
