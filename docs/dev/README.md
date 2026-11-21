@@ -18,7 +18,7 @@
 - `m3-t1-t2-vector-search-embedding-decisions.md` - M3-T1/T2 ベクトル検索・埋め込みの技術的決定
 - `m3-t3-indexer-decisions.md` - M3-T3 インデックス構築の技術的決定
 - `m3-t4-model-pinning.md` - M3-T4 モデル整合性検証（revision/hash pinning）
-- `deploy-workers-toolchain-rot.md` - Workersデプロイツールチェーン腐敗の技術的負債
+- `deploy-workers-toolchain-rot.md` - Workersデプロイツールチェーン腐敗の技術的負債（TASK-24 で解決済み: worker 0.8.7 + worker-build ^0.8.7）
 - `format-yaml-serde-yaml-deprecated.md` - format-yaml serde_yaml 非推奨化の技術的負債
 
 ### その他ドキュメント

@@ -1,40 +1,40 @@
-# Workers デプロイパイプラインのツールチェーン腐敗
+# Workers デプロイパイプラインのツールチェーン腐敗（解決済み）
 
-## 現状
+## ステータス
 
-`crates/ygo-search-workers`（Cloudflare Workers adapter）のコードは `worker = "0.4"` 依存。コード自体は `cargo build --target wasm32-unknown-unknown` でコンパイル可能（`ygo_search_workers.wasm` 生成確認済み）。しかし **`wrangler deploy`（worker-build 経由のパッケージング）が現在のツールチェーンで失敗** する。
+**解決済み** — TASK-24（[M5-T0] Workers デプロイツールチェーン現代化）で方向 A（worker 0.4 → 0.8 アップグレード）により解消。
 
-TASK-5（M0-T1 workspace 移行）の検証で、`wrangler deploy --dry-run` を走らせて初めて顕在化した（移行前は `#[cfg(feature="workers")]` ゲート + デプロイ未検証で隠れていた）。
+## 解決内容（2026-11-21）
 
-## 問題点
+| 対象 | 変更 |
+|---|---|
+| `crates/ygo-search-workers/Cargo.toml` | `worker = "0.4"` -> `worker = "0.8.7"`（0.8.x 最新。`features = ["d1"]` は不変） |
+| `crates/ygo-search-workers/wrangler.toml` | build command の worker-build ピンを `^0.1` -> `^0.8.7` へ更新。あわせて wrangler 4 で無効な legacy `[build.upload]` ブロックを除去 |
+| `Cargo.lock` | worker / worker-sys / worker-macros 0.8.7・wasm-bindgen 0.2.130・js-sys / web-sys 0.3.107 |
 
-worker 0.4 系と現在の worker-build / wasm-bindgen ツールチェーンが連鎖的に不整合:
+検証結果:
 
-1. **worker-build 最新(0.2+) は `worker >= 0.8.5` を要求** → 当 crate の worker 0.4 を拒否。
-   - `wrangler.toml` は `cargo install -q worker-build@^0.1` に固定（worker 0.4 に対する正しい制約）。
-2. **wasm-bindgen 版不一致**: worker-build 0.1 同梱 CLI は `0.2.105`。一方 `js-sys 0.3.103`（worker 0.4.2 が依存）が `wasm-bindgen =0.2.126` を**固定要求**し、0.2.105 へのダウングレードは不可。
-3. 結果: Rust→wasm コンパイルは通るが、wasm-bindgen CLI による JS binding 生成ステップで版不一致エラーで停止。
+- `cargo build -p ygo-search-workers --target wasm32-unknown-unknown` 成功
+- `crates/ygo-search-workers` で `wrangler deploy --dry-run` 成功（旧来失敗していた wasm-bindgen CLI による JS binding 生成ステップを通過。wasm-opt / esbuild 含む。Total Upload 1074.01 KiB / gzip 387.42 KiB）
+- feature マトリクス `cargo check`+`cargo test`（default / fs / format / fs+format / vector-search / vector）全 pass・TS unit test 147件 pass・clippy（`-D warnings`）クリーン
 
-## 改善案
+## 前提の修正（TASK-24 で判明）
 
-TASK-24（[M5-T0] Workers デプロイツールチェーン現代化）で方向決定後に対応:
+起票時は「worker 0.8 では Router が廃止され、新ルーティング・D1 API の変更があるため src の再移植が必要」と想定していたが、実際には worker 0.8.7 でも `Router`（`get_async` / `post_async` / `run` / `RouteContext`）は存続し、D1 API（`prepare` / `bind(&[JsValue])` / `all` / `first` / `results`）も 0.4 と同形状だった。このため `src/{lib.rs, handlers.rs, db.rs, types.rs}` の再移植は不要で、既存エンドポイント・リクエスト/レスポンス形状を一切変えず、依存バージョン更新のみで移行が完了した。
 
-- **A（推奨）: worker 0.4 → 0.8 アップグレード**。最新 worker-build + wasm-bindgen で解消。ただし worker 0.8 は Router 廃止・新ルーティング/D1 API 変更があり、`handlers.rs`/`lib.rs`/`db.rs` の再移植が必要（TASK-5 で行った worker 0.4.2 移植の上位互換作業）。
-- **B**: js-sys/web-sys/wasm-bindgen を worker-build 0.1 同梱版に合うよう一段階ダウングレードする cascade pin。fragile・非推奨。
-- **C**: worker-build を経ず `wasm-pack` 直接運用に切替。
+## 解決前の課題（記録）
 
-## 優先度
+`crates/ygo-search-workers`（Cloudflare Workers adapter）は `worker = "0.4"` 依存で、`cargo build --target wasm32-unknown-unknown` は通るものの `wrangler deploy`（worker-build 経由のパッケージング）が失敗する状態だった（TASK-5 [M0-T1] の `wrangler deploy --dry-run` 検証で顕在化）。
 
-medium
+1. worker-build の新系は worker 0.4 系を拒否するため、`wrangler.toml` は `cargo install -q worker-build@^0.1` に固定する必要があった
+2. wasm-bindgen 版不一致: worker-build 0.1 同梱 CLI は `0.2.105`。一方 `js-sys 0.3.103`（worker 0.4.2 が依存）が `wasm-bindgen =0.2.126` を固定要求し、ダウングレード不可
+3. 結果: Rust -> wasm コンパイルは通るが、wasm-bindgen CLI による JS binding 生成ステップで版不一致エラーで停止
 
-core SDK 同等化（M1-M3, 本計画の主目的）には影響しない。Workers は設計上 M5「別軸」。ただし本番デプロイを行う場合は本課題の解決が必須。
+不採用の代替案: B（js-sys / web-sys / wasm-bindgen を worker-build 0.1 同梱版へ一段階ダウングレードする cascade pin・fragile）・C（worker-build を経ない wasm-pack 直接運用への切替）。
 
 ## 関連
 
 - タスク: TASK-24（[M5-T0] Workers デプロイツールチェーン現代化）
 - 起票元: TASK-5（[M0-T1] Cargo workspace 移行）の `wrangler deploy --dry-run` 検証
-- 関連ファイル:
-  - `crates/ygo-search-workers/Cargo.toml`（`worker = "0.4"`）
-  - `crates/ygo-search-workers/wrangler.toml`（`worker-build@^0.1` 固定）
-  - `Cargo.lock`（wasm-bindgen 0.2.126 / js-sys 0.3.103）
+- 関連ファイル: `crates/ygo-search-workers/{Cargo.toml, wrangler.toml}`・`Cargo.lock`
 - 設計: `tmp/dev/plan/design.md` 第9.5節（Layer D workers）、M5（別軸）
