@@ -18,16 +18,6 @@ index_name = "ygo-search-vectors"
 binding = "AI"
 
 # Build configuration
-# worker 0.4 系は最新 worker-build(0.2+, worker>=0.8 要求) と非互換のため 0.1 系に固定
+# TASK-24: worker 0.8 系に合わせ worker-build 0.8 系（^0.8.7）へ更新
 [build]
-command = "cargo install -q worker-build@^0.1 && worker-build --release"
-
-[build.upload]
-format = "modules"
-dir = "build/worker"
-main = "./shim.mjs"
-
-[[build.upload.rules]]
-type = "CompiledWasm"
-globs = ["**/*.wasm"]
-fallthrough = true
+command = "cargo install -q worker-build@^0.8.7 && worker-build --release"

@@ -41,7 +41,7 @@ pub async fn search_cards_by_name(
         .prepare(sql)
         .bind(&[bind_query.into(), (limit as i32).into()])?;
     let results = stmt.all().await?;
-    Ok(results.results::<CardInfo>()?)
+    results.results::<CardInfo>()
 }
 
 /// D1からカードIDでカードを検索する
@@ -54,7 +54,7 @@ pub async fn search_card_by_id(db: &D1Database, card_id: &str) -> Result<Option<
         .prepare("SELECT card_id, name, normalized_name, card_type, attribute, level, atk, def, description FROM cards WHERE card_id = ?")
         .bind(&[card_id.into()])?;
 
-    Ok(stmt.first::<CardInfo>(None).await?)
+    stmt.first::<CardInfo>(None).await
 }
 
 /// D1からFAQをテキスト検索する

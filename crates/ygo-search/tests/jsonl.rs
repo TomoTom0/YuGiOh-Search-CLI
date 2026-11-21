@@ -7,7 +7,6 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 use ygo_search::fs;
-use ygo_search::types::options::GenericConversionOptions;
 use ygo_search::types::VectorRecord;
 
 fn fixture(name: &str) -> PathBuf {
@@ -113,6 +112,7 @@ fn convert_faqs_count_and_text() {
 #[cfg(feature = "format")]
 mod generic {
     use super::*;
+    use ygo_search::types::options::GenericConversionOptions;
 
     fn write_input(name: &str, content: &str) -> (tempfile::TempDir, PathBuf) {
         let tmp = tempfile::tempdir().unwrap();
@@ -187,7 +187,6 @@ mod generic {
         let opts = GenericConversionOptions {
             exclude_columns: Some(vec!["x".into()]),
             include_columns: Some(vec!["y".into()]),
-            ..Default::default()
         };
         let res = fs::convert_generic_to_jsonl(&input, &out, &opts);
         assert!(res.is_err());
