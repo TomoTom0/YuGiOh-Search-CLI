@@ -91,8 +91,10 @@ ygo-search は TypeScript/JS SDK (`src/index.ts` 公開) と Rust ライブラ�
 | `POST /api/patterns/replace` | `replace_patterns` | (c) D1 |
 | `POST /api/search/cards` | `search_cards` | (c) D1 |
 | `POST /api/search/faqs` | `search_faqs` | (c) D1 |
+| `GET /api/cards/seek` | `seek_cards` | (c) D1（TASK-27 で追加。TS `seek-cards.ts` 準拠。`cols`/`colAll` は CardInfo 固定スキーマのため無視） |
+| `POST /api/convert` | `convert` | (a) のみ（TASK-27 で追加。TS `convert.ts` 準拠の json/jsonl 相互変換。core format feature は wasm32 で使えないため workers 側に純粋関数として実装） |
 
-D1 テーブル: `cards`, `faqs`, `faq_card_references`（詳細は `rust/src/workers/db.rs`）。
+D1 テーブル: `cards`, `faqs`, `faq_card_references`（詳細は `crates/ygo-search-workers/src/db.rs`）。
 
 ## 5. 型定義の覆盖
 

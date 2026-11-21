@@ -25,6 +25,9 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .post_async("/api/patterns/replace", handlers::replace_patterns)
         .post_async("/api/search/cards", handlers::search_cards)
         .post_async("/api/search/faqs", handlers::search_faqs)
+        // TASK-27: seek / convert（TS seek-cards.ts / convert.ts の移植）
+        .get_async("/api/cards/seek", handlers::seek_cards)
+        .post_async("/api/convert", handlers::convert)
         .run(req, env)
         .await
 }
