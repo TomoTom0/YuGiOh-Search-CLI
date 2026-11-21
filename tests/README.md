@@ -59,6 +59,9 @@ crates/ygo-search/             # Rust SDK テスト（cargo test、feature gate 
     ├── vector_model_integrity.rs  # revision/hash pinning 検証（feature: vector-search・model 不要）
     ├── vector_interop.rs      # TS↔Rust LanceDB 相互運用（feature: vector-search・model 不要）
     └── fixtures/lancedb/      # vector_interop 用 TS 作成 DB fixture + 生成器(gen-ts-fixture.mjs)
+
+crates/ygo-search-workers/     # Workers adapter テスト（cargo test -p ygo-search-workers・native で実行）
+└── src/handlers.rs            # convert パース/整形純粋関数・seek max 解析の unit test（#[cfg(test)]・TASK-27）
 ```
 
 ## テストカテゴリの役割

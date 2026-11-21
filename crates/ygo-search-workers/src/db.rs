@@ -295,3 +295,53 @@ async fn search_cards_by_ids(
 
     Ok(map)
 }
+
+/// D1 の cards テーブルから seek（ランダム/範囲/先頭 N 件）でカードを取得する。
+///
+/// TS `seek-cards.ts` と同じ SQL 分岐（範囲あり/なし × all/random/先頭）:
+/// - `range` 両端指定: `WHERE card_id BETWEEN ? AND ?`
+///   （TS と同じく card_id の範囲値は文字列のままバインドする）
+/// - `all = true`: 範囲内全件（ORDER BY / LIMIT なし）。前提: range が両端あることは
+///   ハンドラ側で 400 検証済み
+/// - `all = false` かつ `random = true`: `ORDER BY RANDOM() LIMIT max`
+/// - `all = false` かつ `random = false`: `LIMIT max`（先頭 N 件）
+///
+/// TS が `SELECT <cols>` をクエリパラメータで動的に組み立てるのに対し、Rust 版は
+/// [`CardInfo`] 固定スキーマの全列を常に返す（cols/colAll 無視。core fs 版
+/// `seek_cards` と同じ既存の差異）。
+pub async fn seek_cards(
+    db: &D1Database,
+    range: Option<(&str, &str)>,
+    random: bool,
+    all: bool,
+    max: usize,
+) -> Result<Vec<CardInfo>> {
+    let mut sql = String::from(
+        "SELECT card_id, name, normalized_name, card_type, attribute, level, atk, def, description
+         FROM cards",
+    );
+    let mut bindings: Vec<wasm_bindgen::JsValue> = Vec::new();
+
+    if let Some((start, end)) = range {
+        sql.push_str(" WHERE card_id BETWEEN ? AND ?");
+        bindings.push(start.into());
+        bindings.push(end.into());
+        if !all {
+            if random {
+                sql.push_str(" ORDER BY RANDOM()");
+            }
+            sql.push_str(" LIMIT ?");
+            bindings.push((max as i32).into());
+        }
+    } else if random {
+        sql.push_str(" ORDER BY RANDOM() LIMIT ?");
+        bindings.push((max as i32).into());
+    } else {
+        sql.push_str(" LIMIT ?");
+        bindings.push((max as i32).into());
+    }
+
+    let stmt = db.prepare(&sql).bind(&bindings)?;
+    let results = stmt.all().await?;
+    results.results::<CardInfo>()
+}

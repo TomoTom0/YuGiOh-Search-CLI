@@ -139,3 +139,20 @@ pub struct CardReferenceInfo {
     pub name: String,
     pub card_id: String,
 }
+
+/// seek カードレスポンス（TS `seek-cards.ts` の `{data, total}` 形状）
+#[derive(Debug, Serialize)]
+pub struct SeekCardsResponse {
+    pub data: Vec<CardInfo>,
+    pub total: usize,
+}
+
+/// convert レスポンス（TS `convert.ts` の `{converted, inputFormat, outputFormat}` 形状）
+#[derive(Debug, Serialize)]
+pub struct ConvertResponse {
+    pub converted: String,
+    #[serde(rename = "inputFormat")]
+    pub input_format: String,
+    #[serde(rename = "outputFormat")]
+    pub output_format: String,
+}

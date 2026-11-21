@@ -2,7 +2,7 @@
 
 ## New Features
 
-（変更内容をここに記載）
+- Workers adapter に seek / convert エンドポイント追加（TASK-27）: `GET /api/cards/seek`（ランダム/範囲/先頭 N 件・TS `seek-cards.ts` 準拠）と `POST /api/convert`（json/jsonl 相互変換・TS `convert.ts` 準拠）を `crates/ygo-search-workers` に追加。エラー応答は TS `errorResponse` と同一形状。convert のパース/整形は worker 型に依存しない純粋関数として実装し、単体テスト 10 件を追加
 
 ## Bug Fixes
 
