@@ -79,7 +79,7 @@ ygo-search は TypeScript/JS SDK (`src/index.ts` 公開) と Rust ライブラ�
 | FAQ 索引読込 | `loadFAQIndex` | (b) TSV | `fs::load_faq_index` | (b) | 解消（当初は fs 層なしで未実装） |
 | ID→カード取得 | `getCardsByIds` | (b) TSV | `fs::get_cards_by_ids`（純粋層）+ workers `db::search_card_by_id`（D1） | (b)/(c) | 解消（当初は D1 経由のみ） |
 | キャッシュクリア | `clearCache` | (a) | `fs::clear_cache` | (a) | 解消（当初はキャッシュ機構なし） |
-| ランダム/範囲取得 | `seekCards` / `SeekCardsOptions` | (b) TSV | `fs::seek_cards` + workers `GET /api/cards/seek`（D1） | (b)/(c) | 解消（当初は未実装） |
+| ランダム/範囲取得 | `seekCards` / `SeekCardsOptions` | (b) TSV | `fs::seek_cards` + workers `GET /api/cards/seek`（D1） | (b)/(c) | 解消（当初は未実装）。ただし `cols`/`colAll` は無視・`detail-all.tsv` のマージは非対応（TS は両対応。第6節残件を参照） |
 | フォーマット変換 | `convertFormatFile`, `detectFormat`, `formatOutput`, `parseFormatString`, `parseFormatFile` / `Format` | (a)+(b) | `format::{detect_format, parse_format_string, format_output}`（純粋部）+ `fs::{parse_format_file, convert_format_file}`（ファイル IO） | (a)/(b) | 解消（当初は全部未実装）。純粋部は `format` feature、ファイル IO は `fs`+`format` feature |
 | Vector 検索 | `vectorSearchCards`, `vectorSearchFaqs`, `vectorSearchAll`, `searchTable`, `listTables` | (e)+(f) | `vector::{vector_search_cards, vector_search_faqs, vector_search_all, search_table, list_tables}` | (e)+(f) | 解消（当初は未実装）。`vector-search` feature |
 | Vector DB 構築/変換 | `convertCardsToJsonl`, `convertFaqsToJsonl`, `convertGenericToJsonl`, `indexFromJsonl` | (b)+(e)+(f) | `fs::{convert_cards_to_jsonl, convert_faqs_to_jsonl, convert_generic_to_jsonl}` + `vector::{create_index, index_from_jsonl}` | (b)/(e) | 解消（当初は未実装）。変換は `fs` feature（generic は `format` も必要）、index 構築は `vector-index` feature |
@@ -99,7 +99,7 @@ workers crate `crates/ygo-search-workers/src/lib.rs` の Router に登録され�
 | `POST /api/patterns/replace` | `replace_patterns` | (c) D1 |
 | `POST /api/search/cards` | `search_cards` | (c) D1 |
 | `POST /api/search/faqs` | `search_faqs` | (c) D1 |
-| `GET /api/cards/seek` | `seek_cards` | (c) D1（TASK-27 で追加。TS `seek-cards.ts` 準拠。`cols`/`colAll` は CardInfo 固定スキーマのため無視） |
+| `GET /api/cards/seek` | `seek_cards` | (c) D1（TASK-27 で追加。TS `seek-cards.ts` 準拠。`cols`/`colAll` は CardInfo 固定スキーマのため無視・`detail-all.tsv` マージ相当なし） |
 | `POST /api/convert` | `convert` | (a) のみ（TASK-27 で追加。TS `convert.ts` 準拠の json/jsonl 相互変換。core format feature は wasm32 で使えないため workers 側に純粋関数として実装） |
 
 D1 テーブル: `cards`, `faqs`, `faq_card_references`（詳細は `crates/ygo-search-workers/src/db.rs`）。
@@ -152,7 +152,7 @@ workers crate は互換のため core の純粋ロジックモジュール（`yg
 1. **TSV/ファイル IO 層の新設と、それ経由の検索 API** —
 - `searchCards`（`cards-all.tsv` 読込）, `searchFAQ`（`faq-all.tsv`）, `loadFAQIndex`, `getCardsByIds`, `seekCards`（`cards-all.tsv`+`detail-all.tsv`）
 - 現状 Rust は「純粋メモリ検索」or「D1」の 2 層。TS SDK と形状を合わせるには **ファイル IO 層（第3の層）** が必須。
-- → `fs` feature として実装済み（`fs::search_cards`, `fs::search_faq`, `fs::load_faq_index`, `fs::get_cards_by_ids`, `fs::seek_cards`。M2-T2/T3）。
+- → `fs` feature として実装済み（`fs::search_cards`, `fs::search_faq`, `fs::load_faq_index`, `fs::get_cards_by_ids`, `fs::seek_cards`。M2-T2/T3）。ただし `fs::seek_cards` は `cols`/`colAll` を無視し、TS が行う `detail-all.tsv` 補足情報のマージも行わない（残件を参照）。
 2. **カード型の豊富化**: `Card` を TS の `Card`/`CardDetail` 並みに拡充、列挙型（`CardType`/`Attribute` 等）を新設、`CardMatch` 追加。 —
 - → `types::card` に全フィールド DTO と列挙型全種・`CardMatch` を実装済み（M0-T2/M1）。
 
@@ -179,8 +179,9 @@ workers crate は互換のため core の純粋ロジックモジュール（`yg
 
 ### 残件（欠損として残っているもの）
 
-機能・型の欠損は解消した。残件として読むべきものは次の形状差・範囲外事項のみである:
+機能・型の欠損は解消した。残件として読むべきものは次の機能差・形状差・範囲外事項である:
 
+- **`seekCards` の `cols`/`colAll` 無視と `detail-all.tsv` 非マージ**: Rust `fs::seek_cards`（workers `GET /api/cards/seek` も同様）は `cols`/`colAll` オプションを無視して全フィールドの `Card` を返し、TS が行う `detail-all.tsv` 補足情報のマージも行わない。TS `seekCards`（`src/lib/seek-cards.ts`）は列投影と detail マージの両方を実装する。固定スキーマの構造化戻り値（`Vec<Card>`）に起因する機能差であり、`crates/ygo-search/src/fs/seek.rs` のモジュールドキュメントに明記済み。
 - **Vector テーブル別 Options 型の形状差**（第5.3節）: TS の `VectorCardSearchOptions` / `VectorFaqSearchOptions` に相当する個別型はなく、共通の `VectorSearchOptions` で代替している。機能欠損ではない。
 - **Workers 上の Vector**: Rust workers crate は Vectorize / Workers AI を使用していない（`wrangler.toml` のバインディング宣言のみ）。これは当初から SDK 公開範囲外として優先度を下げた事項であり（第7節 Tier 3 の制約）、欠損には数えない。
 
@@ -218,7 +219,7 @@ workers crate は互換のため core の純粋ロジックモジュール（`yg
 ## 8. 成果物サマリ
 
 - **機能覆盖マトリクス**: 第4節（17 機能カテゴリ全てで Rust 側の対応が揃った。当初は「正規化・パターン抽出・カード検索・FAQ 検索・参照抽出」の 5 カテゴリのみだった）
-- **Rust 側欠損機能一覧（優先度付き）**: 第6節（P0〜P3 の全 8 項目が解消済み。残件は形状差・範囲外事項のみ）
+- **Rust 側欠損機能一覧（優先度付き）**: 第6節（P0〜P3 の全 8 項目が解消済み。残件は `seekCards` の `cols`/`colAll`・`detail-all.tsv` マージ差、形状差、範囲外事項）
 - **移植可能性分類**: 第7節（Tier 1 純粋 / Tier 2 ファイル IO / Tier 3 Vector / Tier 4 Workers 拡張。当初調査時の分類で、全 Tier 実施済み）
 
 ## 9. 次段（TASK-4 への入力）

@@ -115,7 +115,7 @@ TSV 読込・ファイル IO・モジュール級キャッシュ。エラー型�
 
 #### `fs::seek`
 
-- `seek_cards(opts: &SeekCardsOptions) -> Result<Vec<Card>, FsError>` — TS `seekCards`（ランダム/範囲取得）
+- `seek_cards(opts: &SeekCardsOptions) -> Result<Vec<Card>, FsError>` — TS `seekCards`（ランダム/範囲取得。`cols`/`colAll` は構造化 `Card` のため無視され、TS が行う `detail-all.tsv` のマージも行われない）
 
 #### `fs::filter`
 
