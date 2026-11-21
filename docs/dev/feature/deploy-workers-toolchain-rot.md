@@ -1,10 +1,10 @@
-## Workers デプロイパイプラインのツールチェーン腐敗（解決済み）
+# Workers デプロイパイプラインのツールチェーン腐敗（解決済み）
 
-### ステータス
+## ステータス
 
 **解決済み** — TASK-24（[M5-T0] Workers デプロイツールチェーン現代化）で方向 A（worker 0.4 → 0.8 アップグレード）により解消。
 
-### 解決内容（2026-11-21）
+## 解決内容（2026-11-21）
 
 | 対象 | 変更 |
 |---|---|
@@ -18,11 +18,11 @@
 - `crates/ygo-search-workers` で `wrangler deploy --dry-run` 成功（旧来失敗していた wasm-bindgen CLI による JS binding 生成ステップを通過。wasm-opt / esbuild 含む。Total Upload 1074.01 KiB / gzip 387.42 KiB）
 - feature マトリクス `cargo check`+`cargo test`（default / fs / format / fs+format / vector-search / vector）全 pass・TS unit test 147件 pass・clippy（`-D warnings`）クリーン
 
-### 前提の修正（TASK-24 で判明）
+## 前提の修正（TASK-24 で判明）
 
 起票時は「worker 0.8 では Router が廃止され、新ルーティング・D1 API の変更があるため src の再移植が必要」と想定していたが、実際には worker 0.8.7 でも `Router`（`get_async` / `post_async` / `run` / `RouteContext`）は存続し、D1 API（`prepare` / `bind(&[JsValue])` / `all` / `first` / `results`）も 0.4 と同形状だった。このため `src/{lib.rs, handlers.rs, db.rs, types.rs}` の再移植は不要で、既存エンドポイント・リクエスト/レスポンス形状を一切変えず、依存バージョン更新のみで移行が完了した。
 
-### 解決前の課題（記録）
+## 解決前の課題（記録）
 
 `crates/ygo-search-workers`（Cloudflare Workers adapter）は `worker = "0.4"` 依存で、`cargo build --target wasm32-unknown-unknown` は通るものの `wrangler deploy`（worker-build 経由のパッケージング）が失敗する状態だった（TASK-5 [M0-T1] の `wrangler deploy --dry-run` 検証で顕在化）。
 
@@ -32,7 +32,7 @@
 
 不採用の代替案: B（js-sys / web-sys / wasm-bindgen を worker-build 0.1 同梱版へ一段階ダウングレードする cascade pin・fragile）・C（worker-build を経ない wasm-pack 直接運用への切替）。
 
-### 関連
+## 関連
 
 - タスク: TASK-24（[M5-T0] Workers デプロイツールチェーン現代化）
 - 起票元: TASK-5（[M0-T1] Cargo workspace 移行）の `wrangler deploy --dry-run` 検証
