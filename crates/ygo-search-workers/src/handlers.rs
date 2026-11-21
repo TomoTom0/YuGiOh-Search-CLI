@@ -454,8 +454,26 @@ pub async fn convert(mut req: Request, _ctx: RouteContext<()>) -> Result<Respons
     })
 }
 
+/// 成功・エラー応答に共通で付ける CORS ヘッダ（名前と値）。
+/// native テストから検証できるよう、ヘッダ適用（worker 型は wasm 専用）から
+/// 分離した純粋データとして持つ。error_response / cors_json_response の両方が使う。
+fn cors_header_pairs() -> [(&'static str, &'static str); 1] {
+    [("Access-Control-Allow-Origin", "*")]
+}
+
+/// cors_header_pairs を worker の Headers に適用する。
+fn cors_headers() -> Result<Headers> {
+    let headers = Headers::new();
+    for (name, value) in cors_header_pairs() {
+        headers.set(name, value)?;
+    }
+    Ok(headers)
+}
+
 /// TS `errorResponse`（`src/lib/worker/response.ts`）と同一形状のエラー応答を返す。
 /// 形状: `{error, timestamp}` + 任意の `code` / `details`。
+/// 成功応答（`cors_json_response`）と同じ CORS ヘッダを含む（TS `errorResponse` が
+/// `Access-Control-Allow-Origin: *` を返すのと同一。ブラウザがエラー本文を読めるようにする）。
 fn error_response(
     message: &str,
     status: u16,
@@ -473,14 +491,15 @@ fn error_response(
         error["details"] =
             serde_json::Value::Array(details.into_iter().map(serde_json::Value::String).collect());
     }
-    Ok(Response::from_json(&error)?.with_status(status))
+    // Content-Type: application/json は from_json が設定する
+    Ok(Response::from_json(&error)?
+        .with_headers(cors_headers()?)
+        .with_status(status))
 }
 
 /// TS `jsonResponse` 相当（`Access-Control-Allow-Origin: *` ヘッダ付き JSON 応答）。
 fn cors_json_response<T: serde::Serialize>(data: &T) -> Result<Response> {
-    let headers = Headers::new();
-    headers.set("Access-Control-Allow-Origin", "*")?;
-    Ok(Response::from_json(data)?.with_headers(headers))
+    Ok(Response::from_json(data)?.with_headers(cors_headers()?))
 }
 
 /// 変換失敗。TS `convert.ts` の catch 節（500 CONVERSION_ERROR、details に原因）。
@@ -601,5 +620,12 @@ mod tests {
     fn parse_invalid_jsonl_line_is_error_with_line_number() {
         let err = parse_input("{\"a\":1}\n{oops}", ConvertFormat::Jsonl).unwrap_err();
         assert!(err.starts_with("line 2:"), "unexpected: {}", err);
+    }
+
+    #[test]
+    fn cors_header_pairs_include_allow_origin_wildcard() {
+        // error_response / cors_json_response は worker 型 (wasm 専用) を使うため
+        // native テストでは直接呼べない。両者が共有する cors_header_pairs を検証する。
+        assert_eq!(cors_header_pairs(), [("Access-Control-Allow-Origin", "*")]);
     }
 }
