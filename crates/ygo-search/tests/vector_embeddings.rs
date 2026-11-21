@@ -17,7 +17,7 @@
 //! ```
 #![cfg(feature = "vector-search")]
 
-use ygo_search::vector::generate_embedding;
+use ygo_search::vector::{generate_embedding, generate_embeddings};
 
 #[derive(serde::Deserialize)]
 struct Golden {
@@ -82,6 +82,52 @@ fn embedding_matches_ts_golden() {
     assert!(
         all_pass,
         "embedding golden 一致性テスト失敗（設計書 §10.2）"
+    );
+}
+
+/// バッチ API(`generate_embeddings`・複数形)での golden 一致性（設計書 §4-2「batch 比較」）。
+/// golden を複製した33件で実行し、`EMBEDDING_BATCH_SIZE = 32` のチャンク境界を踏む。
+///
+/// `generate_embeddings` は `generate_embedding`(単体推論) をチャンク適用する wrapper だが、
+/// batch 入力経路が golden と一致することを単体テストから独立に検証する。
+#[test]
+#[ignore = "requires ~118MB ONNX model file, run manually via YGO_SEARCH_MODEL_DIR"]
+fn embedding_batch_matches_ts_golden() {
+    let golden_path = std::env::var("VECTOR_GOLDEN_PATH").unwrap_or_else(|_| {
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tmp/dev/poc/vector-poc/golden.json"
+        )
+        .to_string()
+    });
+    let golden: Golden = serde_json::from_str(
+        &std::fs::read_to_string(&golden_path)
+            .unwrap_or_else(|e| panic!("golden.json ({golden_path}) 読込に失敗: {e}")),
+    )
+    .expect("parse golden.json");
+
+    // golden の8サンプルを複製して33件にし、EMBEDDING_BATCH_SIZE = 32 の
+    // チャンク分割経路（32件 + 1件）を通す。各複製は元の golden と比較する。
+    assert!(!golden.samples.is_empty(), "golden samples が空");
+    let expanded: Vec<&Sample> = (0..33)
+        .map(|i| &golden.samples[i % golden.samples.len()])
+        .collect();
+    let texts: Vec<&str> = expanded.iter().map(|s| s.text.as_str()).collect();
+    let outs = generate_embeddings(&texts).expect("generate_embeddings");
+    assert_eq!(outs.len(), expanded.len(), "batch 戻り値件数不一致");
+
+    let mut all_pass = true;
+    for (idx, (out, s)) in outs.iter().zip(expanded.iter()).enumerate() {
+        let cos = cosine(out, &s.embedding);
+        let pass = cos >= 0.999;
+        println!("#{idx} {}: cosine={cos:.6} pass={pass}", s.id);
+        if !pass {
+            all_pass = false;
+        }
+    }
+    assert!(
+        all_pass,
+        "embedding batch golden 一致性テスト失敗（設計書 §4-2）"
     );
 }
 

@@ -7,11 +7,19 @@
 ```
 tests/
 ├── unit/                      # ユニットテスト（単一関数・モジュール）
+│   ├── auth.test.ts           # 認証チェック（checkAuth）
+│   ├── bulk-search.test.ts    # 一括検索ハンドラ
+│   ├── card-patterns.test.ts  # カードパターン抽出
 │   ├── cli-docs.test.ts       # CLIドキュメント生成
+│   ├── faq-search.test.ts     # FAQ検索ハンドラ
+│   ├── handlers-info.test.ts  # info ハンドラ
 │   ├── mock-data.test.ts      # モックデータ生成
+│   ├── paths.test.ts          # パス解決（workdir の cwd フォールバック廃止の回帰）
 │   ├── pattern-extraction.test.ts  # カードパターン抽出
+│   ├── replace-cards.test.ts  # カード置換ハンドラ
 │   ├── replacement-logic.test.ts   # カード名置換ロジック
-│   └── text-search.test.ts    # テキスト検索機能
+│   ├── text-search.test.ts    # テキスト検索機能
+│   └── vector-converter.test.ts  # ベクトルレコード変換
 ├── integration/               # 統合テスト（複数モジュールの連携）
 │   ├── bulk-search-cards.test.ts
 │   ├── exported-functions.test.ts
@@ -21,7 +29,8 @@ tests/
 │   ├── ygo-seek.test.ts
 │   └── ygo-search-help.test.ts  # CLI --help/-h の位置非依存動作（commander移行の回帰防止）
 ├── e2e/                       # E2Eテスト（本番環境テスト）
-│   └── api-endpoints.test.ts  # 本番APIエンドポイント
+│   ├── api-endpoints.test.ts  # 本番APIエンドポイント
+│   └── api-keys.test.ts       # APIキー管理
 ├── fixtures/                  # テスト用フィクスチャ
 │   └── mock-data.ts
 └── README.md                  # このファイル
@@ -47,7 +56,9 @@ crates/ygo-search/             # Rust SDK テスト（cargo test、feature gate 
     ├── vector.rs              # LanceDB 接続・検索（feature: vector-search・model 不要）
     ├── vector_indexer.rs      # index 構築（feature: vector-index・model 不要 + #[ignore] E2E）
     ├── vector_embeddings.rs   # embedding golden 一致性 + 整合性ドリフト検出（#[ignore]・model 必須）
-    └── vector_model_integrity.rs  # revision/hash pinning 検証（feature: vector-search・model 不要）
+    ├── vector_model_integrity.rs  # revision/hash pinning 検証（feature: vector-search・model 不要）
+    ├── vector_interop.rs      # TS↔Rust LanceDB 相互運用（feature: vector-search・model 不要）
+    └── fixtures/lancedb/      # vector_interop 用 TS 作成 DB fixture + 生成器(gen-ts-fixture.mjs)
 ```
 
 ## テストカテゴリの役割
@@ -105,6 +116,7 @@ feature gate（`default` / `fs` / `format` / `vector-search` / `vector-index`）
 - `vector_indexer.rs` — index 構築（feature: `vector-index`・model 不要 `parse_jsonl`/`build_record_batch` + `#[ignore]` E2E）
 - `vector_embeddings.rs` — embedding golden 一致性 + モデル整合性ドリフト検出（`#[ignore]`・model 必須）
 - `vector_model_integrity.rs` — revision/hash pinning のオーケストレーション（feature: `vector-search`・model 不要）
+- `vector_interop.rs` — TS 作成 LanceDB DB を Rust が開く相互運用検証（feature: `vector-search`・model 不要・fixture: `fixtures/lancedb/`）。`exclude.faqIds`(Int64) vs TS `Float64` 列の整合性を実測
 
 **実行コマンド**:
 ```bash
@@ -144,6 +156,7 @@ YGO_SEARCH_MODEL_DIR="$ROOT/tmp/dev/poc/vector-poc/models/Xenova/multilingual-e5
 | リファクタリング | 既存テストが全てパスすることを確認 | **必須** |
 | `crates/ygo-search/src/` の関数・モジュール追加・変更 | 対応する `crates/ygo-search/tests/*.rs` またはモジュール内 unit test（該当 feature 指定で実行） | **必須** |
 | モデルファイル（`onnx/*.onnx`・`tokenizer.json`）の差し替え | `models.sha256` 再生成（`scripts/setup/gen-model-manifest.sh`）+ `vector_embeddings.rs` のドリフトテスト実行 | **必須** |
+| `@lancedb/lancedb`(TS) / `lancedb`(Rust) の版上げ | `crates/ygo-search/tests/fixtures/lancedb/` の TS fixture 再生成（`gen-ts-fixture.mjs`）+ `vector_interop.rs` 実行 | **必須** |
 
 ## テストファイルの命名規則
 
@@ -271,13 +284,13 @@ describe('myFunction', () => {
 - itブロックで具体的なテストケースを記述
 - テスト名は「何をテストしているか」を明確に
 
-## テスト更新漏れチェック
+## テスト更新
 
-`check-test-updates`スキルを使用して、コード変更後のテスト更新漏れをチェックできます：
+`update-tests`スキルを使用して、コード変更後のテスト更新を実行できます：
 
 ```bash
 # Claude Codeで実行
-/check-test-updates
+/update-tests
 ```
 
 このスキルは：

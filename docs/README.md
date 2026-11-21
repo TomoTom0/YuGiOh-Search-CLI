@@ -29,7 +29,7 @@
 
 - `records/` - マージ競合解決、重要な開発決定の記録
 - `cloudflare-workers-api-development-plan.md` - Cloudflare Workers API開発計画
-- `sdk-feature-gap-investigation.md` - TS/Rust SDK 機能覆盖差分調査（覆盖マトリクス・欠損一覧・移植可能性）
+- `sdk-feature-gap-investigation.md` - TS/Rust SDK 機能差分調査（カバレッジマトリクス・欠損一覧・移植可能性）
 - `m0-t2-contract.md` - M0-T2 契約凍結の判断記録（SpellEffectType / cardId 型 / serde rename 戦略・M1/M3 境界）
 - `m0-t3-searchcards-filter-spec.md` - M0-T3 仕様確定（SpellEffectType=quick 統一 / searchCards filter 仕様・M2-T2 spec fixture）
 - `feature/` - 技術的負債の記録（PRレビュー指摘・将来改善案・スケール時懸念）
@@ -38,6 +38,20 @@
 Web APIのデプロイと運用
 
 - [deployment.md](deployment.md) - 本番デプロイ手順、エンドポイント一覧、環境設定
+
+### [api/](api/README.md)
+TypeDoc生成のAPIリファレンス（TS SDK）
+
+- `functions/` - 公開関数のリファレンス
+- `interfaces/` - 公開インターフェースのリファレンス
+- `type-aliases/` - 型エイリアスのリファレンス
+
+### [changelog/](changelog/)
+バージョンごとの変更履歴
+
+- `unreleased.md` - 未リリース分の変更
+- `v1.5.0.md` - v1.5.0 の変更履歴
+- `v1.4.0.md` - v1.4.0 の変更履歴
 
 ## ドキュメント選択ガイド
 
