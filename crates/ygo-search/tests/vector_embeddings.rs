@@ -17,7 +17,7 @@
 //! ```
 #![cfg(feature = "vector-search")]
 
-use ygo_search::vector::generate_embedding;
+use ygo_search::vector::{generate_embedding, generate_embeddings};
 
 #[derive(serde::Deserialize)]
 struct Golden {
@@ -82,6 +82,45 @@ fn embedding_matches_ts_golden() {
     assert!(
         all_pass,
         "embedding golden 一致性テスト失敗（設計書 §10.2）"
+    );
+}
+
+/// バッチ API(`generate_embeddings`・複数形)での golden 一致性（設計書 §4-2「batch 比較」）。
+///
+/// `generate_embeddings` は `generate_embedding`(単体推論) をチャンク適用する wrapper だが、
+/// batch 入力経路が golden と一致することを単体テストから独立に検証する。
+#[test]
+#[ignore = "requires ~118MB ONNX model file, run manually via YGO_SEARCH_MODEL_DIR"]
+fn embedding_batch_matches_ts_golden() {
+    let golden_path = std::env::var("VECTOR_GOLDEN_PATH").unwrap_or_else(|_| {
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../tmp/dev/poc/vector-poc/golden.json"
+        )
+        .to_string()
+    });
+    let golden: Golden = serde_json::from_str(
+        &std::fs::read_to_string(&golden_path)
+            .unwrap_or_else(|e| panic!("golden.json ({golden_path}) 読込に失敗: {e}")),
+    )
+    .expect("parse golden.json");
+
+    let texts: Vec<&str> = golden.samples.iter().map(|s| s.text.as_str()).collect();
+    let outs = generate_embeddings(&texts).expect("generate_embeddings");
+    assert_eq!(outs.len(), golden.samples.len(), "batch 戻り値件数不一致");
+
+    let mut all_pass = true;
+    for (out, s) in outs.iter().zip(golden.samples.iter()) {
+        let cos = cosine(out, &s.embedding);
+        let pass = cos >= 0.999;
+        println!("{}: cosine={cos:.6} pass={pass}", s.id);
+        if !pass {
+            all_pass = false;
+        }
+    }
+    assert!(
+        all_pass,
+        "embedding batch golden 一致性テスト失敗（設計書 §4-2）"
     );
 }
 

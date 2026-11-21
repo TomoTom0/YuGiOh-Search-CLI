@@ -39,6 +39,20 @@ Web APIのデプロイと運用
 
 - [deployment.md](deployment.md) - 本番デプロイ手順、エンドポイント一覧、環境設定
 
+### [api/](api/README.md)
+TypeDoc生成のAPIリファレンス（TS SDK）
+
+- `functions/` - 公開関数のリファレンス
+- `interfaces/` - 公開インターフェースのリファレンス
+- `type-aliases/` - 型エイリアスのリファレンス
+
+### [changelog/](changelog/)
+バージョンごとの変更履歴
+
+- `unreleased.md` - 未リリース分の変更
+- `v1.5.0.md` - v1.5.0 の変更履歴
+- `v1.4.0.md` - v1.4.0 の変更履歴
+
 ## ドキュメント選択ガイド
 
 ### こんな時は...

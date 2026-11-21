@@ -71,20 +71,26 @@ indexer の jsonl 読込は `std::fs` + `serde_json` の inline（TS と同一�
 - **1**: 大規模データの再構築が頻発するなら融合バッチ推論を実装し、golden 一致テスト
   （`#[ignore]`、`tests/vector_embeddings.rs` に準じる）で検証して有効化する。
 - **2**: ネスト metadata のフィルタが必要になった場合は Struct 再帰スキーマ推論に拡張する。
-- **相互運用検証（TASK-20 / M4-T2 で必須）**: Rust 作成 DB を TS が検索、および TS 作成 DB を
+- **相互運用検証（TASK-20 / M4-T2）**: Rust 作成 DB を TS が検索、および TS 作成 DB を
   Rust が検索する双方向テストで metadata 型互換性を検証すること。特に TS(`@lancedb/lancedb`) が
   JS 数値を `Float64` で格納する場合、Rust 検索側の `exclude.faqIds`（i64 リテラル）との
   型不一致でフィルタが効かないリスクがある。Rust 作成 DB は整数を `Int64` で格納するため
   Rust 検索側では整合するが、TS 作成 DB 側の実測確認が残課題。
 
+  **→ TASK-20 で実測解消（2026-07-26）**: TS 作成 DB（`level`/`faqId` は `Float64`）に対して
+  Rust の `exclude.faqIds`（i64 リテラルの `IN`)・Range フィルタ（f64 リテラル）ともに正常に hit することを
+  `tests/vector_interop.rs`（fixture: `tests/fixtures/lancedb/ts-workdir/`）で検証済み。DataFusion の
+  型強制（Int64→Float64 昇格）によりリテラル型の差は吸収され、フィルタ不効の懸念は実環境では再現しない。
+  逆方向（Rust 作成 DB → TS 検索）は Lance 形式の対称性と PoC `tmp/dev/poc/vector-poc/ts/search-rust-db.ts` で担保。
+
 ## 優先度
 
-low（1 は性能・2 は特殊ケースで現状影響軽微。相互運用検証は M4-T2 で対応）
+low（1 は性能・2 は特殊ケースで現状影響軽微。相互運用検証は TASK-20 で完了）
 
 ## 関連
 
-- タスク: TASK-18 `[M3-T3] index構築`
+- タスク: TASK-18 `[M3-T3] index構築`、TASK-20 `[M4-T2] 統合テスト`（相互運用検証を実施）
 - 設計: `tmp/dev/plan/design.md` §4（層構造 C-index）、`tmp/dev/plan/development-plan.md` M3-T3
 - 関連ファイル: `crates/ygo-search/src/vector/{indexer,embeddings,mod,searcher}.rs`、
-  `crates/ygo-search/tests/vector_indexer.rs`
-- 後続: TASK-20 `[M4-T2] 統合テスト(TS同等性/embedding/LanceDB)`（双方向相互運用検証）
+  `crates/ygo-search/tests/{vector_indexer,vector_interop}.rs`、
+  `crates/ygo-search/tests/fixtures/lancedb/`
