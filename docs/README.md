@@ -45,6 +45,7 @@ TypeDoc生成のAPIリファレンス（TS SDK）
 - `functions/` - 公開関数のリファレンス
 - `interfaces/` - 公開インターフェースのリファレンス
 - `type-aliases/` - 型エイリアスのリファレンス
+- `rust.md` - Rust SDK（crate `ygo-search` / `ygo-search-workers`）のAPIリファレンス
 
 ### [changelog/](changelog/)
 バージョンごとの変更履歴
