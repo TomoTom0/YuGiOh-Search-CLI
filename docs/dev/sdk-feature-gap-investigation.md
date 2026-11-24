@@ -79,7 +79,7 @@ ygo-search は TypeScript/JS SDK (`src/index.ts` 公開) と Rust ライブラ�
 | FAQ 索引読込 | `loadFAQIndex` | (b) TSV | `fs::load_faq_index` | (b) | 解消（当初は fs 層なしで未実装） |
 | ID→カード取得 | `getCardsByIds` | (b) TSV | `fs::get_cards_by_ids`（純粋層）+ workers `db::search_card_by_id`（D1） | (b)/(c) | 解消（当初は D1 経由のみ） |
 | キャッシュクリア | `clearCache` | (a) | `fs::clear_cache` | (a) | 解消（当初はキャッシュ機構なし） |
-| ランダム/範囲取得 | `seekCards` / `SeekCardsOptions` | (b) TSV | `fs::seek_cards` + workers `GET /api/cards/seek`（D1） | (b)/(c) | 解消（当初は未実装）。workers 側は TASK-51 で `cols`/`colAll` 列投影に対応（無指定時は TS 既定 `card_id, name` 投影）。ただし `fs::seek_cards` は `cols`/`colAll` を無視し `detail-all.tsv` のマージも非対応（TS は両対応。第6節残件を参照） |
+| ランダム/範囲取得 | `seekCards` / `SeekCardsOptions` | (b) TSV | `fs::seek_cards` / `fs::seek_cards_projected` + workers `GET /api/cards/seek`（D1） | (b)/(c) | 解消（当初は未実装）。core の `cols`/`colAll` 列投影・`detail-all.tsv` マージは `fs::seek_cards_projected` が TS 同一意味論で提供（TASK-53）。型付き `fs::seek_cards` は全フィールド `Card` を返す形状差として残存。workers 側は TASK-51 で `cols`/`colAll` 列投影に対応（無指定時は TS 既定 `card_id, name` 投影・応答 `data` は D1 row の直接透過） |
 | フォーマット変換 | `convertFormatFile`, `detectFormat`, `formatOutput`, `parseFormatString`, `parseFormatFile` / `Format` | (a)+(b) | `format::{detect_format, parse_format_string, format_output}`（純粋部）+ `fs::{parse_format_file, convert_format_file}`（ファイル IO） | (a)/(b) | 解消（当初は全部未実装）。純粋部は `format` feature、ファイル IO は `fs`+`format` feature |
 | Vector 検索 | `vectorSearchCards`, `vectorSearchFaqs`, `vectorSearchAll`, `searchTable`, `listTables` | (e)+(f) | `vector::{vector_search_cards, vector_search_faqs, vector_search_all, search_table, list_tables}` | (e)+(f) | 解消（当初は未実装）。`vector-search` feature |
 | Vector DB 構築/変換 | `convertCardsToJsonl`, `convertFaqsToJsonl`, `convertGenericToJsonl`, `indexFromJsonl` | (b)+(e)+(f) | `fs::{convert_cards_to_jsonl, convert_faqs_to_jsonl, convert_generic_to_jsonl}` + `vector::{create_index, index_from_jsonl}` | (b)/(e) | 解消（当初は未実装）。変換は `fs` feature（generic は `format` も必要）、index 構築は `vector-index` feature |
@@ -152,7 +152,7 @@ workers crate は互換のため core の純粋ロジックモジュール（`yg
 1. **TSV/ファイル IO 層の新設と、それ経由の検索 API** —
 - `searchCards`（`cards-all.tsv` 読込）, `searchFAQ`（`faq-all.tsv`）, `loadFAQIndex`, `getCardsByIds`, `seekCards`（`cards-all.tsv`+`detail-all.tsv`）
 - 現状 Rust は「純粋メモリ検索」or「D1」の 2 層。TS SDK と形状を合わせるには **ファイル IO 層（第3の層）** が必須。
-- → `fs` feature として実装済み（`fs::search_cards`, `fs::search_faq`, `fs::load_faq_index`, `fs::get_cards_by_ids`, `fs::seek_cards`。M2-T2/T3）。ただし `fs::seek_cards` は `cols`/`colAll` を無視し、TS が行う `detail-all.tsv` 補足情報のマージも行わない（残件を参照）。
+- → `fs` feature として実装済み（`fs::search_cards`, `fs::search_faq`, `fs::load_faq_index`, `fs::get_cards_by_ids`, `fs::seek_cards`。M2-T2/T3）。TS 同一意味論の `cols`/`colAll` 列投影と `detail-all.tsv` マージは `fs::seek_cards_projected` として追加実装済み（TASK-53）。型付き `fs::seek_cards` は全フィールド `Card` を返す設計として残る（形状差）。
 2. **カード型の豊富化**: `Card` を TS の `Card`/`CardDetail` 並みに拡充、列挙型（`CardType`/`Attribute` 等）を新設、`CardMatch` 追加。 —
 - → `types::card` に全フィールド DTO と列挙型全種・`CardMatch` を実装済み（M0-T2/M1）。
 
@@ -181,7 +181,7 @@ workers crate は互換のため core の純粋ロジックモジュール（`yg
 
 機能・型の欠損は解消した。残件として読むべきものは次の機能差・形状差・範囲外事項である:
 
-- **`fs::seek_cards` の `cols`/`colAll` 無視と `detail-all.tsv` 非マージ（workers 側は TASK-51 で解消）**: workers `GET /api/cards/seek` は `cols`/`colAll` 列投影（whitelist 検証付き・無指定時は TS 既定 `card_id, name`・応答 `data` は D1 row の直接透過〔key は D1 列名＝snake_case・`atk`/`def`/`level` は JSON 数値・TS worker の `|| ""` 空文字既定補完なし・whitelist 厳格化により大文字/引用符付き/修飾名列は 500 になる意図した逸脱〕）に対応済み。残るのは `fs::seek_cards` のみ: `cols`/`colAll` オプションを無視して全フィールドの `Card` を返し、TS が行う `detail-all.tsv` 補足情報のマージも行わない。TS `seekCards`（`src/lib/seek-cards.ts`）は列投影と detail マージの両方を実装する（fs 側はいずれも未対応）。固定スキーマの構造化戻り値（`Vec<Card>`）に起因する機能差であり、`crates/ygo-search/src/fs/seek.rs` のモジュールドキュメントに明記済み。
+- **`seekCards` の `cols`/`colAll` と `detail-all.tsv` マージ — 解消済み（core は TASK-53、workers は TASK-51）**: core は `fs::seek_cards_projected` が TS `seekCards`（`src/lib/seek-cards.ts`）と同一の意味論（`cols`/`colAll` 列投影・cardId 結合の detail マージ〔既存キー不更新〕・全フィールドの backslash-n アンエスケープ・`parseInt` 意味論の range フィルタ）で動的レコード `Vec<serde_json::Value>`（キー順は effectiveCols 順・`preserve_order`）を返す。型付き `fs::seek_cards` は全フィールド `Card` を返す設計として残る形状差。workers `GET /api/cards/seek` は TASK-51 で `cols`/`colAll` 列投影（whitelist 検証付き・無指定時は TS 既定 `card_id, name`・応答 `data` は D1 row の直接透過〔key は D1 列名＝snake_case・`atk`/`def`/`level` は JSON 数値・TS worker の `|| ""` 空文字既定補完なし・whitelist 厳格化により大文字/引用符付き/修飾名列は 500 になる意図した逸脱〕）に対応済みで、core とは別枠の対応となる。
 - **Vector テーブル別 Options 型の形状差**（第5.3節）: TS の `VectorCardSearchOptions` / `VectorFaqSearchOptions` に相当する個別型はなく、共通の `VectorSearchOptions` で代替している。機能欠損ではない。
 - **Workers 上の Vector**: Rust workers crate は Vectorize / Workers AI を使用していない（`wrangler.toml` のバインディング宣言のみ）。これは当初から SDK 公開範囲外として優先度を下げた事項であり（第7節 Tier 3 の制約）、欠損には数えない。
 
@@ -219,7 +219,7 @@ workers crate は互換のため core の純粋ロジックモジュール（`yg
 ## 8. 成果物サマリ
 
 - **機能覆盖マトリクス**: 第4節（17 機能カテゴリ全てで Rust 側の対応が揃った。当初は「正規化・パターン抽出・カード検索・FAQ 検索・参照抽出」の 5 カテゴリのみだった）
-- **Rust 側欠損機能一覧（優先度付き）**: 第6節（P0〜P3 の全 8 項目が解消済み。残件は fs 側 `seekCards` の `cols`/`colAll`・`detail-all.tsv` マージ差、形状差、範囲外事項）
+- **`seekCards` の `cols`/`colAll` と `detail-all.tsv` マージ — 解消済み（core は TASK-53、workers は TASK-51）**: core は `fs::seek_cards_projected` が TS `seekCards`（`src/lib/seek-cards.ts`）と同一の意味論（`cols`/`colAll` 列投影・cardId 結合の detail マージ〔既存キー不更新〕・全フィールドの backslash-n アンエスケープ・`parseInt` 意味論の range フィルタ）で動的レコード `Vec<serde_json::Value>`（キー順は effectiveCols 順・`preserve_order`）を返す。型付き `fs::seek_cards` は全フィールド `Card` を返す設計として残る形状差。workers `GET /api/cards/seek` は TASK-51 で `cols`/`colAll` 列投影（whitelist 検証付き・無指定時は TS 既定 `card_id, name`・応答 `data` は D1 row の直接透過〔key は D1 列名＝snake_case・`atk`/`def`/`level` は JSON 数値・TS worker の `|| ""` 空文字既定補完なし・whitelist 厳格化により大文字/引用符付き/修飾名列は 500 になる意図した逸脱〕）に対応済みで、core とは別枠の対応となる。
 - **移植可能性分類**: 第7節（Tier 1 純粋 / Tier 2 ファイル IO / Tier 3 Vector / Tier 4 Workers 拡張。当初調査時の分類で、全 Tier 実施済み）
 
 ## 9. 次段（TASK-4 への入力）

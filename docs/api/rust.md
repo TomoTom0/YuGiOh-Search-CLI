@@ -115,7 +115,8 @@ TSV 読込・ファイル IO・モジュール級キャッシュ。エラー型�
 
 #### `fs::seek`
 
-- `seek_cards(opts: &SeekCardsOptions) -> Result<Vec<Card>, FsError>` — TS `seekCards`（ランダム/範囲取得。`cols`/`colAll` は構造化 `Card` のため無視され、TS が行う `detail-all.tsv` のマージも行われない）
+- `seek_cards(opts: &SeekCardsOptions) -> Result<Vec<Card>, FsError>` — TS `seekCards` の型付き版（ランダム/範囲取得）。全フィールドの `Card` を返す設計で、`cols`/`colAll` の列投影と `detail-all.tsv` のマージは行わない
+- `seek_cards_projected(opts: &SeekCardsOptions) -> Result<Vec<serde_json::Value>, FsError>` — TS `seekCards` と同一の意味論（TASK-53）。`cols`/`colAll` による列投影と `detail-all.tsv` の cardId マージ（既存キーは上書きせず・全フィールドの backslash-n アンエスケープ）を行い、キー順が effectiveCols 順の動的レコード（全値は文字列・欠損列は空文字）を返す。`colAll` 時の effectiveCols は cards ヘッダ全列 + detail ヘッダのうち cards に無いもの
 
 #### `fs::filter`
 

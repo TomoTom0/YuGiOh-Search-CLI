@@ -8,8 +8,8 @@
 //!
 //! TS との差異:
 //! - 重複 cardId の扱いは簡略化（実データでは重複無しを前提）。TS は Map で後勝ち + uniq。
-//! - `metadata` のキー順序は TS（挿入順）と厳密一致を保証しない（`serde_json::Map` はソート順）。
-//!   意味論的同等。完全一致が必要なら `serde_json` の `preserve_order` feature 検討。
+//! - `metadata` のキー順序は `serde_json` の `preserve_order` feature（TASK-53 で有効化）により
+//!   挿入順を保持し、TS（挿入順）と一致。
 
 use std::collections::HashMap;
 use std::path::Path;
