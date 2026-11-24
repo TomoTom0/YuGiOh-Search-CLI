@@ -140,10 +140,14 @@ pub struct CardReferenceInfo {
     pub card_id: String,
 }
 
-/// seek カードレスポンス（TS `seek-cards.ts` の `{data, total}` 形状）
+/// seek カードレスポンス（TS `seek-cards.ts` の `{data, total}` 形状）。
+///
+/// data は SELECT 投影 row（D1 row）の直接透過で、key は D1 列名（snake_case）。
+/// 選択列のみを持ち、`CardInfo` への逆直列化や空文字既定の補完はしない
+/// （TASK-51）。cols/colAll 無指定時は TS 既定の `card_id, name` 投影になる。
 #[derive(Debug, Serialize)]
 pub struct SeekCardsResponse {
-    pub data: Vec<CardInfo>,
+    pub data: Vec<serde_json::Value>,
     pub total: usize,
 }
 
