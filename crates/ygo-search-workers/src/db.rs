@@ -331,6 +331,11 @@ pub enum SeekSelect {
     /// 選択列集合〔created_at 以外〕は同一。応答 JSON 全体の形状差は gap doc §6 の既知残差）
     All,
     /// 投影列（`cols` 指定。`CARDS_COLUMNS` 検証済みの列名のみ入る）
+    ///
+    /// 不変条件: 空でないこと。handler 側 `resolve_seek_select` が保証する
+    /// （未指定・空文字は既定 2 列、非空 cols は 1 個以上のセグメントを検証して
+    /// から構築する）。空のまま [`build_seek_sql`] に渡すと `SELECT  FROM cards`
+    /// という退化 SQL になるため、同関数で debug_assert している（TASK-52）
     Columns(Vec<&'static str>),
 }
 
@@ -345,6 +350,9 @@ pub fn build_seek_sql(select: &SeekSelect, has_range: bool, random: bool, all: b
         SeekSelect::All => &CARDS_COLUMNS,
         SeekSelect::Columns(columns) => columns,
     };
+    // SeekSelect::Columns の非空は構築側（handler の resolve_seek_select）が
+    // 保証する不変条件。空だと "SELECT  FROM cards" の退化 SQL になる（TASK-52）
+    debug_assert!(!columns.is_empty(), "SeekSelect::Columns must not be empty");
     let mut sql = format!("SELECT {} FROM cards", columns.join(", "));
     if has_range {
         sql.push_str(" WHERE card_id BETWEEN ? AND ?");
@@ -490,5 +498,15 @@ mod tests {
                 all_columns
             )
         );
+    }
+
+    #[test]
+    #[should_panic(expected = "SeekSelect::Columns must not be empty")]
+    fn build_seek_sql_empty_columns_is_rejected_by_debug_assert() {
+        // Columns の非空は handler 側 resolve_seek_select が保証する不変条件
+        // （未指定・空文字は既定 2 列、非空 cols は 1 個以上のセグメントを検証）。
+        // 空のまま SQL を組み立てると "SELECT  FROM cards" の退化 SQL になるため
+        // debug_assert で落とす（TASK-52）
+        let _ = build_seek_sql(&SeekSelect::Columns(vec![]), false, false, false);
     }
 }

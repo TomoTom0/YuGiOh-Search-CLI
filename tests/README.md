@@ -61,8 +61,8 @@ crates/ygo-search/             # Rust SDK テスト（cargo test、feature gate 
     └── fixtures/lancedb/      # vector_interop 用 TS 作成 DB fixture + 生成器(gen-ts-fixture.mjs)
 
 crates/ygo-search-workers/     # Workers adapter テスト（cargo test -p ygo-search-workers・native で実行）
-├── src/handlers.rs            # convert パース/整形純粋関数・seek クエリ検証/解決（max・range 空文字・cols/colAll）の unit test（#[cfg(test)]・TASK-27/TASK-51）
-└── src/db.rs                  # seek SQL 構成（CARDS_COLUMNS whitelist・SeekSelect・build_seek_sql）の unit test（#[cfg(test)]・TASK-51）
+├── src/handlers.rs            # convert パース/整形純粋関数・seek クエリ検証/解決（max・range 空文字・cols/colAll・TS 準拠細部〔NaN 既定値・`;` 区切り〕）の unit test（#[cfg(test)]・TASK-27/TASK-51/TASK-52）
+└── src/db.rs                  # seek SQL 構成（CARDS_COLUMNS whitelist・SeekSelect・build_seek_sql・空 Columns の debug_assert）の unit test（#[cfg(test)]・TASK-51/TASK-52）
 ```
 
 ## テストカテゴリの役割
