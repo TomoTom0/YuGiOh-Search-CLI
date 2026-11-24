@@ -200,6 +200,7 @@ pub async fn search_faqs(mut req: Request, ctx: RouteContext<()>) -> Result<Resp
 // ============================================================
 // TASK-27: seek / convert エンドポイント
 // （TS `seek-cards.ts` / `convert.ts` の Workers crate への移植）
+// TASK-51: seek に cols/colAll 列投影を追加（`resolve_seek_select`）
 // ============================================================
 
 /// GET クエリ `max` の既定値（TS `seek-cards.ts` と同じ 10）
@@ -231,58 +232,168 @@ fn parse_js_int(s: &str) -> Option<i64> {
     }
 }
 
+/// seek ハンドラのクエリ検証・解決エラー（検証順序を native テストで固定するため
+/// handler から `resolve_seek_params` へ分離している）。
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum SeekParamError {
+    /// 400 Bad Request（メッセージは TS と同一）
+    BadRequest(String),
+    /// cols 列解決失敗。TS では D1 prepare エラー → catch → 500 になるため
+    /// 500 "Internal server error" で応答する
+    InvalidColumns(String),
+}
+
+/// seek クエリの解決結果（`db::seek_cards` への入力）。
+#[derive(Debug)]
+struct SeekParams {
+    /// 1..=MAX_LIMIT に検証済み
+    max: usize,
+    /// `random=false` 指定時のみ無効（既定有効）
+    random: bool,
+    /// 空文字を「無し」扱い（TS truthiness と一致）にした後の range。両端ある場合のみ Some
+    range: Option<(String, String)>,
+    /// `all=true` 指定時のみ有効
+    all: bool,
+    /// cols / colAll から解決した SELECT 構成
+    select: db::SeekSelect,
+}
+
+/// seek ハンドラのクエリパラメータ検証・解決（TS `seek-cards.ts` と同一の順序）。
+///
+/// 検証順序:
+/// 1. `max`（1..=MAX_LIMIT 外は 400）
+/// 2. `all` には range 両端が必要（欠けていれば 400）
+/// 3. cols / colAll の列解決（[`resolve_seek_select`]。失敗は 500 扱い）
+///
+/// TASK-51（D4-a）: `range_start` / `range_end` の空文字は「無し」扱いにする
+/// （TS `rangeStart && rangeEnd` の truthiness 判定と一致）。
+fn resolve_seek_params(
+    param: impl Fn(&str) -> Option<String>,
+) -> Result<SeekParams, SeekParamError> {
+    let max = param("max")
+        .as_deref()
+        .and_then(parse_js_int)
+        .unwrap_or(SEEK_DEFAULT_MAX);
+    if !(1..=MAX_LIMIT).contains(&max) {
+        return Err(SeekParamError::BadRequest(format!(
+            "Max must be between 1 and {}",
+            MAX_LIMIT
+        )));
+    }
+
+    // TS の truthiness 判定（`rangeStart && rangeEnd`）と同じく空文字は「無し」扱い
+    let range_start = param("range_start").filter(|v| !v.is_empty());
+    let range_end = param("range_end").filter(|v| !v.is_empty());
+    let all = param("all").as_deref() == Some("true");
+    if all && (range_start.is_none() || range_end.is_none()) {
+        return Err(SeekParamError::BadRequest(
+            "all parameter requires range_start and range_end".to_string(),
+        ));
+    }
+
+    let col_all = param("colAll").as_deref() == Some("true");
+    let select = resolve_seek_select(col_all, param("cols").as_deref())
+        .map_err(SeekParamError::InvalidColumns)?;
+
+    Ok(SeekParams {
+        max: max as usize,
+        random: param("random").as_deref() != Some("false"),
+        range: match (range_start, range_end) {
+            (Some(start), Some(end)) => Some((start, end)),
+            _ => None,
+        },
+        all,
+        select,
+    })
+}
+
+/// cols / colAll クエリパラメータから SELECT 列構成を解決する純粋関数（native テスト可）。
+///
+/// TS `seek-cards.ts` と同一の優先順位:
+/// - `colAll=true` は常に [`db::SeekSelect::All`]（cols の検証はしない。
+///   `?colAll=true&cols=garbage` は TS でも 200 で通るため同じく通す）
+/// - `colAll` が `true` 以外（false・未指定・他値）は cols を解釈:
+///   - なし・空文字 → TS 既定の `card_id, name`
+///   - あり → `,` split → trim → [`db::CARDS_COLUMNS`] whitelist 完全一致検証 →
+///     Columns。未知列・空セグメント（`cols=,` 等）は列名を含む Err
+///
+/// TS は cols を SQL へ直接結合するため injection 可能だが、Rust 版は whitelist
+/// 検証済みの静的な列名のみを SQL に出す（注入面を閉じる意図した逸脱。
+/// 大文字・引用符付き・`cards.card_id` 修飾名・`created_at` は TS では通るが
+/// Rust では未知列扱いで 500）。
+fn resolve_seek_select(col_all: bool, cols: Option<&str>) -> Result<db::SeekSelect, String> {
+    if col_all {
+        return Ok(db::SeekSelect::All);
+    }
+    let Some(cols) = cols.filter(|c| !c.is_empty()) else {
+        return Ok(db::SeekSelect::Columns(vec!["card_id", "name"]));
+    };
+    let columns: Result<Vec<&'static str>, String> = cols
+        .split(',')
+        .map(|segment| {
+            let trimmed = segment.trim();
+            db::CARDS_COLUMNS
+                .iter()
+                .copied()
+                .find(|column| *column == trimmed)
+                .ok_or_else(|| format!("unknown column: {:?}", trimmed))
+        })
+        .collect();
+    Ok(db::SeekSelect::Columns(columns?))
+}
+
 /// GET /api/cards/seek — ランダム/範囲/先頭 N 件のカード取得。
-/// TS `src/lib/worker/handlers/seek-cards.ts` の移植。
+/// TS `src/lib/worker/handlers/seek-cards.ts` の移植（TASK-51 で cols/colAll 列投影対応）。
 ///
 /// - `max`: 既定 10。1..=100（MAX_LIMIT）外は 400（メッセージは TS と同一）
 /// - `random`: `false` 指定時のみ無効（既定有効）
-/// - `range_start` / `range_end`: 両方ある場合のみ card_id の BETWEEN 範囲指定
+/// - `range_start` / `range_end`: 両方ある場合のみ card_id の BETWEEN 範囲指定。
+///   空文字は「無し」扱い（TS truthiness と一致。`?all=true&range_start=&range_end=5`
+///   は 400）
 /// - `all`: `true` 指定時のみ有効。有効かつ範囲なしは 400
-/// - `cols` / `colAll`: 無視する（CardInfo が固定スキーマのため。core fs 版
-///   `seek_cards` と同じ既存の差異）
+/// - `cols`: 投影列（`,` 区切り・trim 対応・[`resolve_seek_select`] の whitelist 検証）。
+///   未知列・空セグメントは 500（TS の D1 prepare エラー → 500 と同一の観測挙動）
+/// - `colAll`: `true` で全 17 列（`cols` より優先し cols の検証はスキップ）
+/// - 応答 `data` は D1 row の直接透過（key は D1 列名＝snake_case）。cols/colAll
+///   無指定時は TS 既定の `card_id, name` 投影になる（旧実装の全列 CardInfo からの
+///   破壊的変更）
 pub async fn seek_cards(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let url = req.url()?;
-    let param = |name: &str| {
+    let params = match resolve_seek_params(|name: &str| {
         url.query_pairs()
             .find(|(k, _)| k == name)
             .map(|(_, v)| v.to_string())
-    };
-
-    let max = param("max")
-        .and_then(|v| parse_js_int(&v))
-        .unwrap_or(SEEK_DEFAULT_MAX);
-    let random = param("random").as_deref() != Some("false");
-    let range_start = param("range_start");
-    let range_end = param("range_end");
-    let all = param("all").as_deref() == Some("true");
-
-    if !(1..=MAX_LIMIT).contains(&max) {
-        return error_response(
-            &format!("Max must be between 1 and {}", MAX_LIMIT),
-            400,
-            None,
-            None,
-        );
-    }
-    if all && (range_start.is_none() || range_end.is_none()) {
-        return error_response(
-            "all parameter requires range_start and range_end",
-            400,
-            None,
-            None,
-        );
-    }
-
-    let range = match (&range_start, &range_end) {
-        (Some(s), Some(e)) => Some((s.as_str(), e.as_str())),
-        _ => None,
+    }) {
+        Ok(params) => params,
+        Err(SeekParamError::BadRequest(message)) => {
+            return error_response(&message, 400, None, None);
+        }
+        // TS では cols 不正は D1 prepare エラー → catch → 500（console.error 出力）。
+        // 同一の観測挙動（500・同一応答形状）にする
+        Err(SeekParamError::InvalidColumns(detail)) => {
+            console_error!("Seek cards error: {}", detail);
+            return error_response("Internal server error", 500, None, None);
+        }
     };
 
     let db = ctx.env.d1("DB")?;
-    match db::seek_cards(&db, range, random, all, max as usize).await {
-        Ok(cards) => {
-            let total = cards.len();
-            cors_json_response(&SeekCardsResponse { data: cards, total })
+    let range = params
+        .range
+        .as_ref()
+        .map(|(start, end)| (start.as_str(), end.as_str()));
+    match db::seek_cards(
+        &db,
+        &params.select,
+        range,
+        params.random,
+        params.all,
+        params.max,
+    )
+    .await
+    {
+        Ok(rows) => {
+            let total = rows.len();
+            cors_json_response(&SeekCardsResponse { data: rows, total })
         }
         Err(e) => {
             // TS と同じく D1 エラーは 500 の errorResponse 形状で応答
@@ -627,5 +738,185 @@ mod tests {
         // error_response / cors_json_response は worker 型 (wasm 専用) を使うため
         // native テストでは直接呼べない。両者が共有する cors_header_pairs を検証する。
         assert_eq!(cors_header_pairs(), [("Access-Control-Allow-Origin", "*")]);
+    }
+
+    // ============================================================
+    // TASK-51: seek の cols/colAll 列投影
+    // ============================================================
+
+    #[test]
+    fn resolve_seek_select_col_all_takes_precedence_and_skips_cols_validation() {
+        // TS の if/else と同じ優先順位: colAll=true は cols に関わらず常に All
+        // （?colAll=true&cols=garbage は TS でも 200 で通るため同じく通す）
+        assert_eq!(resolve_seek_select(true, None), Ok(db::SeekSelect::All));
+        assert_eq!(
+            resolve_seek_select(true, Some("atk")),
+            Ok(db::SeekSelect::All)
+        );
+        assert_eq!(
+            resolve_seek_select(true, Some("garbage")),
+            Ok(db::SeekSelect::All)
+        );
+    }
+
+    #[test]
+    fn resolve_seek_select_interprets_cols_when_col_all_not_true() {
+        assert_eq!(
+            resolve_seek_select(false, Some("name, atk")),
+            Ok(db::SeekSelect::Columns(vec!["name", "atk"]))
+        );
+    }
+
+    #[test]
+    fn resolve_seek_select_defaults_to_card_id_and_name_when_no_cols_or_empty() {
+        // cols なし・空文字は TS 既定の card_id, name
+        assert_eq!(
+            resolve_seek_select(false, None),
+            Ok(db::SeekSelect::Columns(vec!["card_id", "name"]))
+        );
+        assert_eq!(
+            resolve_seek_select(false, Some("")),
+            Ok(db::SeekSelect::Columns(vec!["card_id", "name"]))
+        );
+    }
+
+    #[test]
+    fn resolve_seek_select_splits_and_trims_segments() {
+        assert_eq!(
+            resolve_seek_select(false, Some(" name ,atk\t")),
+            Ok(db::SeekSelect::Columns(vec!["name", "atk"]))
+        );
+    }
+
+    #[test]
+    fn resolve_seek_select_unknown_column_is_err_with_column_name() {
+        let err = resolve_seek_select(false, Some("atk, garbage")).unwrap_err();
+        assert!(err.contains("garbage"), "unexpected: {}", err);
+    }
+
+    #[test]
+    fn resolve_seek_select_empty_segment_is_err() {
+        // cols=, 等の空セグメントは Err（列名〔空〕を含むメッセージ）
+        let err = resolve_seek_select(false, Some("atk,,def")).unwrap_err();
+        assert!(err.contains("unknown column"), "unexpected: {}", err);
+        let err = resolve_seek_select(false, Some(",")).unwrap_err();
+        assert!(err.contains("unknown column"), "unexpected: {}", err);
+    }
+
+    #[test]
+    fn resolve_seek_params_max_validation_precedes_select_resolution() {
+        // max 不正 + cols 未知の併記 → 400（max 検証）が select 解決（500）に先行する
+        let err = resolve_seek_params(|name| match name {
+            "max" => Some("0".to_string()),
+            "cols" => Some("garbage".to_string()),
+            _ => None,
+        })
+        .unwrap_err();
+        assert_eq!(
+            err,
+            SeekParamError::BadRequest("Max must be between 1 and 100".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_seek_params_unknown_cols_is_invalid_columns_not_bad_request() {
+        // cols 未知列は 400 BadRequest ではなく 500 扱いの InvalidColumns variant に
+        // 分類される（map_err の接着部分の固定。設計 D3: 未知列を 400 にする案は明示的に
+        // 棄却済みで、TS の D1 prepare エラー -> 500 と同じ観測挙動が契約）
+        let err = resolve_seek_params(|name| match name {
+            "cols" => Some("garbage".to_string()),
+            _ => None,
+        })
+        .unwrap_err();
+        assert!(matches!(err, SeekParamError::InvalidColumns(_)));
+    }
+
+    #[test]
+    fn resolve_seek_params_empty_range_string_is_treated_as_absent() {
+        // D4-a: ?all=true&range_start=&range_end=5 → 空文字は「無し」扱いで 400
+        // （TS の truthiness 判定と一致。旧実装は BETWEEN を実行していた）
+        let err = resolve_seek_params(|name| match name {
+            "all" => Some("true".to_string()),
+            "range_start" => Some(String::new()),
+            "range_end" => Some("5".to_string()),
+            _ => None,
+        })
+        .unwrap_err();
+        assert_eq!(
+            err,
+            SeekParamError::BadRequest(
+                "all parameter requires range_start and range_end".to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn resolve_seek_params_partially_empty_range_yields_no_range() {
+        // range_start=5&range_end=（片方だけ空文字）→ range なし（TS の && と同じ）
+        let params = resolve_seek_params(|name| match name {
+            "range_start" => Some("5".to_string()),
+            "range_end" => Some(String::new()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(params.range, None);
+    }
+
+    #[test]
+    fn resolve_seek_params_defaults_and_full_resolution() {
+        // 無指定: max=10・random 有効・range なし・all 無効・既定投影 card_id, name
+        let params = resolve_seek_params(|_| None).unwrap();
+        assert_eq!(params.max, 10);
+        assert!(params.random);
+        assert_eq!(params.range, None);
+        assert!(!params.all);
+        assert_eq!(
+            params.select,
+            db::SeekSelect::Columns(vec!["card_id", "name"])
+        );
+
+        // 全指定: range あり・random=false・cols 投影
+        let params = resolve_seek_params(|name| match name {
+            "max" => Some("50".to_string()),
+            "random" => Some("false".to_string()),
+            "range_start" => Some("100000".to_string()),
+            "range_end" => Some("200000".to_string()),
+            "all" => Some("true".to_string()),
+            "cols" => Some("name, atk".to_string()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(params.max, 50);
+        assert!(!params.random);
+        assert_eq!(
+            params.range,
+            Some(("100000".to_string(), "200000".to_string()))
+        );
+        assert!(params.all);
+        assert_eq!(params.select, db::SeekSelect::Columns(vec!["name", "atk"]));
+
+        // colAll は "true" 完全一致のみ有効（TS === と同じ）。他値は cols を解釈
+        let params = resolve_seek_params(|name| match name {
+            "colAll" => Some("1".to_string()),
+            "cols" => Some("name".to_string()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(params.select, db::SeekSelect::Columns(vec!["name"]));
+    }
+
+    #[test]
+    fn seek_cards_response_serializes_projected_rows_in_envelope() {
+        // 投影 row（例: cols=atk）は選択列のみのまま {data, total} に入る
+        // （D1 row の直接透過・空文字既定の補完なし）
+        let response = SeekCardsResponse {
+            data: vec![serde_json::json!({"atk": 100})],
+            total: 1,
+        };
+        let value = serde_json::to_value(&response).unwrap();
+        assert_eq!(
+            value,
+            serde_json::json!({"data": [{"atk": 100}], "total": 1})
+        );
     }
 }

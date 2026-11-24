@@ -214,7 +214,7 @@ Cloudflare Workers 向け HTTP API（`cdylib` + `rlib`）。`worker` 0.8.7（`d1
 | `POST /api/patterns/replace` | `handlers::replace_patterns` | D1 使用 |
 | `POST /api/search/cards` | `handlers::search_cards` | D1 使用 |
 | `POST /api/search/faqs` | `handlers::search_faqs` | D1 使用 |
-| `GET /api/cards/seek` | `handlers::seek_cards` | D1 使用（TASK-27） |
+| `GET /api/cards/seek` | `handlers::seek_cards` | D1 使用（TASK-27。TASK-51 で `cols`/`colAll` 列投影に対応: 応答 `data` は D1 row の直接透過〔key は D1 列名〕で無指定時は TS 既定 `card_id, name` 投影） |
 | `POST /api/convert` | `handlers::convert` | 純粋ロジックのみ（TASK-27。json/jsonl 相互変換） |
 
 ### モジュール: `handlers`
@@ -223,13 +223,16 @@ Cloudflare Workers 向け HTTP API（`cdylib` + `rlib`）。`worker` 0.8.7（`d1
 
 ### モジュール: `db`（D1 アクセス）
 
-全て `pub async fn`。戻り値の `Result` は `worker` crate の型。対象テーブルは `cards`, `faqs`, `faq_card_references`。
+D1 アクセス関数は全て `pub async fn`（戻り値の `Result` は `worker` crate の型）。対象テーブルは `cards`, `faqs`, `faq_card_references`。TASK-51 で seek 列投影まわりの pub item（`CARDS_COLUMNS`・`SeekSelect`・`build_seek_sql`）も追加されている。
 
 - `search_cards_by_name(db: &D1Database, query: &str, limit: usize) -> Result<Vec<CardInfo>>`
 - `search_card_by_id(db: &D1Database, card_id: &str) -> Result<Option<CardInfo>>`
 - `search_faqs_by_text(db: &D1Database, query: &str, limit: usize) -> Result<Vec<FaqInfo>>`
 - `search_faqs_by_card_id(db: &D1Database, card_id: &str, limit: usize) -> Result<Vec<FaqInfo>>`
-- `seek_cards(db: &D1Database, range: Option<(&str, &str)>, random: bool, all: bool, max: usize) -> Result<Vec<CardInfo>>`
+- `seek_cards(db: &D1Database, select: &SeekSelect, range: Option<(&str, &str)>, random: bool, all: bool, max: usize) -> Result<Vec<serde_json::Value>>` — TASK-51 で `cols`/`colAll` 列投影に対応（`select` はハンドラ側 `resolve_seek_select` が解決。応答 row は D1 row を `CardInfo` へ逆直列化せず `serde_json::Value` のまま直接透過）
+- `CARDS_COLUMNS: [&str; 17]` — seek 列投影の whitelist（cards 18 列から `created_at` を除いた schema 順 17 列。`colAll` 時の明示列挙）
+- `SeekSelect` — 列挙型（`All`〔whitelist 17 列の明示列挙〕 / `Columns(Vec<&'static str>)`〔`cols` 投影列〕）
+- `build_seek_sql(select: &SeekSelect, has_range: bool, random: bool, all: bool) -> String` — seek の SQL 文面を組み立てる純粋関数（TS `seek-cards.ts` と同一の分岐・文言）
 
 ### モジュール: `types`（リクエスト/レスポンス DTO）
 
@@ -238,5 +241,5 @@ Cloudflare Workers 向け HTTP API（`cdylib` + `rlib`）。`worker` 0.8.7（`d1
 - `ReplacePatternsRequest`, `ReplacePatternsResponse`, `ProcessedPatternInfo`
 - `SearchCardsRequest`, `SearchCardsResponse`, `CardInfo`
 - `SearchFaqsRequest`, `SearchFaqsResponse`, `FaqInfo`, `CardReferenceInfo`
-- `SeekCardsResponse`
+- `SeekCardsResponse` — `{data, total}` 形状。TASK-51 以降 `data` は D1 row 直接透過の `Vec<serde_json::Value>`（投影 row は選択列のみを key に持つ）
 - `ConvertResponse`
