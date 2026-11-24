@@ -212,6 +212,12 @@ const MAX_LIMIT: i64 = 100;
 /// JS `parseInt(str, 10)` 相当: 先頭の符号付き 10 進整数部を読む。
 /// 数字が一つも無い場合は `None`（JS の NaN。ハンドラ仕様として NaN は既定値扱い）。
 /// 桁あふれは飽和させる（JS は巨大数を返して max 検証で 400 になるため同挙動にする）。
+///
+/// TASK-52 で TS 正本（`src/lib/worker/handlers/seek-cards.ts`）を読んで実検証した
+/// 意図した逸脱: TS では `max=abc` の NaN が検証（`NaN > 100 || NaN < 1` は共に
+/// false）を素通りし、`LIMIT ?` への bind で D1 エラーとなって 500 を返す。
+/// Rust 版は NaN を「未指定」と同じ既定値扱いにし 200 を返す（検証を素通りした
+/// NaN のエラー再現ではなく、ハンドラ仕様としてこちらを正とする）。
 fn parse_js_int(s: &str) -> Option<i64> {
     let s = s.trim_start();
     let body = s.strip_prefix(['+', '-']).unwrap_or(s);
@@ -354,6 +360,10 @@ fn resolve_seek_select(col_all: bool, cols: Option<&str>) -> Result<db::SeekSele
 /// - `cols`: 投影列（`,` 区切り・trim 対応・[`resolve_seek_select`] の whitelist 検証）。
 ///   未知列・空セグメントは 500（TS の D1 prepare エラー → 500 と同一の観測挙動）
 /// - `colAll`: `true` で全 17 列（`cols` より優先し cols の検証はスキップ）
+/// - クエリ解析は `url` crate の `query_pairs`（form_urlencoded）。ペア区切りは
+///   TS `URLSearchParams` と同じく `&` のみで、`;` は区切りにならないことを
+///   TASK-52 で実検証した（`cols=name;atk` は単一値として未知列 -> 500 で、
+///   TS の D1 prepare エラー -> 500 と同一の観測挙動）
 /// - 応答 `data` は D1 row の直接透過（key は D1 列名＝snake_case）。cols/colAll
 ///   無指定時は TS 既定の `card_id, name` 投影になる（旧実装の全列 CardInfo からの
 ///   破壊的変更）
@@ -918,5 +928,38 @@ mod tests {
             value,
             serde_json::json!({"data": [{"atk": 100}], "total": 1})
         );
+    }
+
+    // ============================================================
+    // TASK-52: TS 準拠細部の検証（REVIEW-1 P3 観察の負債解消）
+    // ============================================================
+
+    #[test]
+    fn resolve_seek_params_non_numeric_max_falls_back_to_default() {
+        // max=abc: TS は parseInt -> NaN が検証（NaN > 100 || NaN < 1 は共に false）を
+        // 素通りし、NaN が LIMIT ? に bind されて D1 エラー -> 500 になる。
+        // Rust 版は意図した逸脱として NaN を既定値 10 扱いにする（parse_js_int の
+        // doc comment に明記。TASK-52 で TS 正本 seek-cards.ts を読んで実検証した）
+        let params = resolve_seek_params(|name| match name {
+            "max" => Some("abc".to_string()),
+            _ => None,
+        })
+        .unwrap();
+        assert_eq!(params.max, 10);
+    }
+
+    #[test]
+    fn resolve_seek_params_semicolon_in_cols_is_single_unknown_segment() {
+        // クエリのペア区切りは & のみ: url crate の query_pairs が使う
+        // form_urlencoded 1.2.2 は & でのみ分割し（ソース実検証済み・TASK-52）、
+        // TS URLSearchParams も同じ。cols=name;atk は単一値 "name;atk" となり、
+        // , 分割でも割れない未知セグメントとして InvalidColumns（500 扱い）になる
+        // （TS は SQL へ直接結合され D1 prepare エラー -> 500 で同一の観測挙動）
+        let err = resolve_seek_params(|name| match name {
+            "cols" => Some("name;atk".to_string()),
+            _ => None,
+        })
+        .unwrap_err();
+        assert!(matches!(err, SeekParamError::InvalidColumns(_)));
     }
 }

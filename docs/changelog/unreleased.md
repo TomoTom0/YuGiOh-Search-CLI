@@ -27,6 +27,8 @@
 
 ## Internal Improvements
 
+- Workers adapter seek の TS 準拠細部を検証し負債を解消（TASK-52）: `max=abc`（parseInt NaN）は TS では検証を素通りして D1 bind エラー -> 500 になることを正本から確認し、Rust 版の「既定値扱い -> 200」を意図した逸脱として doc comment に明記。クエリのペア区切りは `query_pairs`（form_urlencoded）・`URLSearchParams` とも `&` のみで `;` は区切りにならないことを実検証し、`cols=name;atk` が未知列 -> 500 で TS と同一の観測挙動になることをテストで固定。`SeekSelect::Columns` の非空を不変条件として `build_seek_sql` に debug_assert を追加。いずれも観測挙動の変更なし。単体テスト 3 件を追加
+
 - Workers デプロイツールチェーン現代化（TASK-24）: Rust Workers crate の worker 依存を 0.4.2 -> 0.8.7 へ、wrangler.toml の worker-build ピンを ^0.1 -> ^0.8.7 へ更新し legacy `[build.upload]` を除去。`wrangler deploy --dry-run`（wasm-bindgen binding 生成ステップ含む）が通る状態に復旧
 
 ## Known Issues
