@@ -501,6 +501,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(debug_assertions)]
     #[should_panic(expected = "SeekSelect::Columns must not be empty")]
     fn build_seek_sql_empty_columns_is_rejected_by_debug_assert() {
         // Columns の非空は handler 側 resolve_seek_select が保証する不変条件
