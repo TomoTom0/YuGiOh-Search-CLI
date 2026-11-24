@@ -11,7 +11,8 @@ crate-type = ["rlib"]
 regex = "1"
 # DTO 定義（常時・型契約用）。設計書 §5「serde は常時依存」
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# seek_cards_projected のキー順（effectiveCols 順）を serde_json::Map で保持する
+serde_json = { version = "1", features = ["preserve_order"] }
 # format feature 配下（フォーマット変換: JSON/JSONL/JSONC/YAML）
 serde_yaml = { version = "0.9", optional = true }
 jsonc-parser = { version = "0.26", features = ["serde"], optional = true }

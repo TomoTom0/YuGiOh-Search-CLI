@@ -471,9 +471,9 @@ pub(crate) fn parse_input(input: &str, format: ConvertFormat) -> Result<serde_js
 /// TS `formatOutput` 相当: json は 2 スペース pretty、jsonl は配列要素を compact にして
 /// 改行結合（非配列は 1 要素化）。
 ///
-/// 既知の差異: serde_json の Map は key 順を保持しないため、json 出力のオブジェクト key は
-/// 入力順ではなく整列される（TS `JSON.stringify` は挿入順保持）。core format feature
-/// （`crates/ygo-search/src/format/mod.rs`）と同じ受容済みの差異。
+/// serde_json は `preserve_order` feature（core crate が TASK-53 で有効化・依存グラフで統一）により
+/// 入力順の key 順序を保持し、TS `JSON.stringify`（挿入順保持）と一致。core format feature
+/// （`crates/ygo-search/src/format/mod.rs`）も同じ挙動。
 pub(crate) fn format_output(
     data: &serde_json::Value,
     format: ConvertFormat,

@@ -12,7 +12,7 @@ use serde_json::Value;
 /// JSONL 1 行に相当するベクトル化対象レコード。
 ///
 /// TS: `{ id: string, text: string, metadata: Record<string, any> }`。
-/// `metadata` のキー順序は TS（挿入順）と厳密一致を保証しない（意味論的同等）。
+/// `metadata` のキー順序は `serde_json` の `preserve_order` feature（TASK-53 で有効化）により TS 同様の挿入順。
 /// 数値項目は `f64`/`i64` として直列化（TS `parseInt` 結果に一致）。
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct VectorRecord {

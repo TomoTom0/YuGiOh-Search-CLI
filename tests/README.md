@@ -49,6 +49,7 @@ crates/ygo-search/             # Rust SDK テスト（cargo test、feature gate 
     ├── contract.rs            # 型契約・シリアライズ（default）
     ├── search.rs              # カード検索（feature: fs）
     ├── seek.rs                # ランダム抽出 seek（feature: fs）
+    ├── seek_projected.rs      # seekCards 列投影（cols/colAll）・detail-all.tsv マージ（feature: fs・TASK-53）
     ├── pipeline.rs            # 検索パイプライン（feature: fs）
     ├── fs.rs                  # TSV 読込（feature: fs）
     ├── format.rs              # フォーマット変換（feature: format）
@@ -114,8 +115,8 @@ crates/ygo-search-workers/     # Workers adapter テスト（cargo test -p ygo-s
 feature gate（`default` / `fs` / `format` / `vector-search` / `vector-index`）でコンパイル・実行対象が変わる。
 
 **主なテストファイル**（`crates/ygo-search/tests/`）:
-- `contract.rs`・`search.rs`・`seek.rs`・`pipeline.rs`・`fs.rs`・`format.rs`・`jsonl.rs`
-  — 型契約・検索・TSV/JSONL 読込・フォーマット変換（feature: `fs`/`format`/`default`）
+- `contract.rs`・`search.rs`・`seek.rs`・`seek_projected.rs`・`pipeline.rs`・`fs.rs`・`format.rs`・`jsonl.rs`
+  — 型契約・検索・seek（ランダム抽出・列投影/detail マージ）・TSV/JSONL 読込・フォーマット変換（feature: `fs`/`format`/`default`）
 - `vector.rs` — LanceDB 接続・検索（feature: `vector-search`・model 不要）
 - `vector_indexer.rs` — index 構築（feature: `vector-index`・model 不要 `parse_jsonl`/`build_record_batch` + `#[ignore]` E2E）
 - `vector_embeddings.rs` — embedding golden 一致性 + モデル整合性ドリフト検出（`#[ignore]`・model 必須）

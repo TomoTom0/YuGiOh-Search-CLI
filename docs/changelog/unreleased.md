@@ -4,6 +4,7 @@
 
 - Workers adapter に seek / convert エンドポイント追加（TASK-27）: `GET /api/cards/seek`（ランダム/範囲/先頭 N 件・TS `seek-cards.ts` 準拠）と `POST /api/convert`（json/jsonl 相互変換・TS `convert.ts` 準拠）を `crates/ygo-search-workers` に追加。エラー応答は TS `errorResponse` と同一形状・同一 CORS ヘッダ（`Access-Control-Allow-Origin: *`、成功応答と同じ）。convert のパース/整形は worker 型に依存しない純粋関数として実装し、単体テスト 11 件を追加
 - Workers adapter の seek エンドポイントに `cols`/`colAll` 列投影を追加（TASK-51）: `GET /api/cards/seek` が `cols`（`,` 区切り・trim 対応・whitelist 完全一致検証）と `colAll`（whitelist 17 列の明示列挙）を受け付ける。応答 `data` を D1 row の直接透過（key は D1 列名＝snake_case・選択列のみ）に変更し、cols/colAll 無指定時は TS 正本と同じ `card_id, name` 既定投影になる（旧実装の全 9 列 `CardInfo` 固定応答からの破壊的変更。repo 内に Rust adapter seek の消費者なし）。cols の未知列・空セグメントは TS と同じ観測挙動の 500 で応答。TS が cols を SQL へ直接結合する箇所は whitelist 検証済み列のみを SQL に入れる構成に置き換え（SQL injection 面の除去・正本に対する意図した逸脱）。単体テスト 15 件を追加
+- core Rust SDK に `fs::seek_cards_projected` を追加（TASK-53）: 型付き `fs::seek_cards` が `cols`/`colAll` を無視し `detail-all.tsv` のマージも行わなかった TS `seekCards` パリティの機能差を解消。動的レコード `Vec<serde_json::Value>`（キー順 = effectiveCols 順）を返し、TS と同一の列投影・detail マージ（cardId 結合・既存キー不更新・全フィールドの backslash-n アンエスケープ）・`parseInt` 意味論の range フィルタ・`--all requires --range` 検証を実装。キー順保持のため core crate の `serde_json` に `preserve_order` feature を有効化（従来 `Map` がソート順だった JSON 出力の key 順が挿入順に変わる）。統合テスト 8 件（`tests/seek_projected.rs`）を追加
 
 ## Bug Fixes
 

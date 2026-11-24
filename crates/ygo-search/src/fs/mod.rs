@@ -23,7 +23,7 @@ pub use jsonl::convert_generic_to_jsonl;
 pub use jsonl::{convert_cards_to_jsonl, convert_faqs_to_jsonl};
 pub use pipeline::{extract_and_search_cards, extract_card_patterns, judge_and_replace};
 pub use search::{extract_card_references, get_cards_by_ids, load_faq_index, search_cards, search_faq};
-pub use seek::seek_cards;
+pub use seek::{seek_cards, seek_cards_projected};
 pub use tsv::{load_card_details, load_cards, load_faqs, read_tsv_table, TsvTable};
 
 /// fs feature のエラー型。
